@@ -1,0 +1,207 @@
+job "traefik" {
+  datacenters = ["dc1"]
+  type        = "service"
+
+  group "traefik" {
+    count = 3
+
+    constraint {
+      operator = "distinct_hosts"
+      value    = "true"
+    }
+
+    volume "traefik" {
+      type            = "csi"
+      read_only       = false
+      source          = "traefik"
+      access_mode     = "multi-node-multi-writer"
+      attachment_mode = "file-system"
+    }
+
+    volume "letsencrypt" {
+      type            = "csi"
+      read_only       = false
+      source          = "letsencrypt"
+      access_mode     = "multi-node-multi-writer"
+      attachment_mode = "file-system"
+    }
+
+    network {
+      mode = "bridge"
+
+      port "http" {
+        static = 80
+      }
+      port "https" {
+        static = 443
+      }
+      port "dashboard" {
+        static = 9000
+      }
+    }
+
+    service {
+      name = "traefik"
+
+      check {
+        name     = "alive"
+        type     = "tcp"
+        port     = "https"
+        interval = "10s"
+        timeout  = "2s"
+      }
+    }
+
+    task "traefik" {
+      driver = "docker"
+
+      volume_mount {
+        volume      = "letsencrypt"
+        destination = "/letsencrypt"
+        read_only   = false
+      }
+
+      volume_mount {
+        volume      = "traefik"
+        destination = "/logs"
+        read_only   = false
+      }
+
+      config {
+        image = "traefik:v3.2"
+        ports = ["http", "https", "dashboard"]
+        volumes = [
+          "local/traefik.yml:/etc/traefik/traefik.yml",
+        ]
+      }
+
+      template {
+        data = <<EOF
+entryPoints:
+  http:
+    address: ":80"
+    proxyProtocol:
+      trustedIPs: 
+        - "172.17.0.0/16"
+
+  https:
+    address: ":443"
+    proxyProtocol:
+      trustedIPs:
+        - "172.17.0.0/16"
+    http:
+      middlewares:
+        # - crowdsec@file
+        - securedheaders@file
+
+  traefik:
+    address: ":9000"
+
+tls:
+  options:
+    default:
+      sniStrict: true
+      minVersion: VersionTLS12
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+    mintls13:
+      minVersion: VersionTLS13
+
+accessLog:
+  filepath: /logs/access.{{ env "attr.unique.hostname" }}.log
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  consulCatalog:
+    prefix: "traefik"
+    exposedByDefault: false
+
+    endpoint:
+      address: "172.17.0.1:8500"
+      scheme: "http"
+
+  file:
+    filename: "local/static_providers.yml"
+
+certificatesResolvers:
+  letsEncrypt:
+    acme:
+      tlsChallenge: true
+      email: "d@falconindy.com"
+      storage: "/letsencrypt/acme.json"
+
+experimental:
+  plugins:
+    crowdsec-bouncer:
+      modulename: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.2.1"
+EOF
+
+        destination = "local/traefik.yml"
+      }
+
+      template {
+        data        = <<EOF
+http:
+  routers:
+    omada:
+      rule: "Host(`omada.falconindy.com`)"
+      entrypoints: "https"
+      tls:
+        certresolver: "letsEncrypt"
+      service: "omada"
+
+  services:
+    omada:
+      loadBalancer:
+        servers:
+        - url: "http://10.0.1.100:10081"
+
+  middlewares:
+    crowdsec:
+      plugin:
+        crowdsec-bouncer:
+          enabled: true
+          crowdseclapikey: "${var.crowdseclapikey}"
+          crowdseclapischeme: "http"
+          crowdseclapihost: "crowdsec.service.consul:8080"
+
+    securedheaders:
+      headers:
+        forcestsheader: true
+        sslRedirect: true
+        STSPreload: true
+        ContentTypeNosniff: true
+        BrowserXssFilter: true
+        STSIncludeSubdomains: true
+        STSSeconds: 315360000
+
+    customheaders:
+      headers:
+        customResponseHeaders:
+          X-Backend-Name: {{ env "attr.unique.hostname" }}
+EOF
+        destination = "local/static_providers.yml"
+      }
+
+      resources {
+        cpu    = 100
+        memory = 128
+      }
+    }
+  }
+}
+
+variable crowdseclapikey {
+  type = string
+}

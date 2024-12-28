@@ -1,0 +1,6 @@
+[Match]
+Driver=virtio_net
+
+[Network]
+DHCP=yes
+MulticastDNS=yes
