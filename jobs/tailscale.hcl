@@ -17,7 +17,7 @@ job "tailscale" {
     task "tailscale" {
       driver = "docker"
       config {
-        image        = "tailscale/tailscale:v1.76.6"
+        image        = "tailscale/tailscale:v1.78.3"
         entrypoint   = ["/local/start.sh"]
         network_mode = "host"
         force_pull   = "true"
