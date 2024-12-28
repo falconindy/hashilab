@@ -17,10 +17,10 @@ job "tailscale" {
     task "tailscale" {
       driver = "docker"
       config {
-        image        = "tailscale/tailscale:v1.76.6"
+        image        = "tailscale/tailscale:v1.78.3"
         entrypoint   = ["/local/start.sh"]
         network_mode = "host"
-        force_pull   = "true"
+        force_pull   = true
         privileged   = true
         cap_add      = ["NET_ADMIN", "NET_RAW"]
         volumes = [
@@ -39,7 +39,12 @@ job "tailscale" {
 #!/bin/sh
 
 function up() {
-    until /usr/local/bin/tailscale up --snat-subnet-routes=false --auth-key=${var.tailscale_auth_key} --advertise-routes=10.0.1.0/24,10.0.20.0/24,10.0.100.0/24 --hostname="homelab"
+    until /usr/local/bin/tailscale up \
+        --snat-subnet-routes=false \
+        --auth-key=${var.tailscale_auth_key} \
+        --advertise-exit-node \
+        --advertise-routes=10.0.1.0/24,10.0.20.0/24,10.0.100.0/24 \
+        --hostname="homelab"
     do
         sleep 0.1
     done
@@ -58,7 +63,7 @@ EOH
 
       resources {
         cpu    = 100
-        memory = 128
+        memory = 64
       }
     }
   }
