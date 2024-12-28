@@ -19,10 +19,10 @@ job "zwave-js" {
     }
 
     volume "zwavejs" {
-      type = "csi"
-      read_only = false
-      source = "zwavejs"
-      access_mode = "single-node-writer"
+      type            = "csi"
+      read_only       = false
+      source          = "zwavejs"
+      access_mode     = "single-node-writer"
       attachment_mode = "file-system"
     }
 
@@ -41,9 +41,9 @@ job "zwave-js" {
       }
 
       volume_mount {
-        volume = "zwavejs"
+        volume      = "zwavejs"
         destination = "/usr/src/app/store"
-        read_only = false
+        read_only   = false
       }
 
       env {
