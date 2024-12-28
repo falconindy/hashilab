@@ -9,7 +9,7 @@ job "cloudflare-ddns" {
       driver = "docker"
 
       config {
-        image        = "favonia/cloudflare-ddns:1.15.0"
+        image        = "favonia/cloudflare-ddns:1.15.1"
         force_pull   = true
         network_mode = "host"
         cap_drop     = ["all"]
