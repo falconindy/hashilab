@@ -9,8 +9,8 @@ capability {
 }
 
 context {
-  server = "truenas.local"
-  share  = "/mnt/pool/tailscale"
+  server = "nasty.local"
+  share  = "/volume1/tailscale"
 }
 
 mount_options {
