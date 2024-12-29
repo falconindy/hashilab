@@ -32,11 +32,14 @@ job "homeassistant" {
       config {
         image        = "homeassistant/home-assistant:2024.12.5"
         network_mode = "host"
-        privileged   = "true"
         ports        = ["http"]
         volumes = [
           "/run/dbus:/run/dbus",
         ]
+      }
+
+      env {
+        TZ = "America/New_York"
       }
 
       volume_mount {
