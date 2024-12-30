@@ -11,6 +11,7 @@ capability {
 context {
   server = "nasty.local"
   share  = "/volume1/postgres"
+  subDir = "15"
 }
 
 mount_options {
