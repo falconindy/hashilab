@@ -45,7 +45,6 @@ job "postgres" {
 
       config {
         image      = "postgres:15"
-        privileged = true
         ports      = ["db"]
       }
 
@@ -56,7 +55,6 @@ job "postgres" {
         PGDATA            = "/appdata/postgres"
       }
     }
-
   }
 }
 
