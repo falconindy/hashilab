@@ -1,15 +1,8 @@
 job "traefik" {
   datacenters = ["dc1"]
-  type        = "service"
+  type        = "system"
 
   group "traefik" {
-    count = 3
-
-    constraint {
-      operator = "distinct_hosts"
-      value    = "true"
-    }
-
     volume "traefik" {
       type            = "csi"
       read_only       = false
