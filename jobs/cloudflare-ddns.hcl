@@ -16,8 +16,25 @@ job "cloudflare-ddns" {
         security_opt = ["no-new-privileges=true"]
       }
 
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
+      template {
+        data = <<EOH
+          {{ with secret "kv/data/default/cloudflare-ddns" }}
+            CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
+          {{ end }}
+        EOH
+        destination = "secrets/auth.env"
+        env = true
+      }
+
       env {
-        CLOUDFLARE_API_TOKEN = "${var.cloudflare_api_token}"
         DOMAINS              = "scoot.falconindy.com"
         IP6_PROVIDER         = "none"
       }
@@ -28,8 +45,4 @@ job "cloudflare-ddns" {
       }
     }
   }
-}
-
-variable cloudflare_api_token {
-  type = string
 }

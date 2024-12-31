@@ -23,7 +23,6 @@ job "mosquitto" {
       driver = "docker"
       config {
         image = "eclipse-mosquitto:2.0.20"
-        # network_mode = "host"
         privileged = true
         ports      = ["mqtt"]
       }
