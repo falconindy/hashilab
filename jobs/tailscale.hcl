@@ -34,6 +34,24 @@ job "tailscale" {
         read_only   = false
       }
 
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
+      template {
+        data = <<EOH
+          {{ with secret "kv/data/default/tailscale" }}
+          AUTH_KEY="{{ .Data.data.auth_key }}"
+          {{ end }}
+      EOH
+        destination = "secrets/auth.env"
+        env = true
+      }
+
       template {
         data        = <<EOH
 #!/bin/sh
@@ -41,7 +59,7 @@ job "tailscale" {
 function up() {
     until /usr/local/bin/tailscale up \
         --snat-subnet-routes=false \
-        --auth-key=${var.tailscale_auth_key} \
+        --auth-key="${AUTH_KEY}" \
         --advertise-exit-node \
         --advertise-routes=10.0.1.0/24,10.0.20.0/24,10.0.100.0/24 \
         --hostname="homelab"
@@ -67,9 +85,5 @@ EOH
       }
     }
   }
-}
-
-variable "tailscale_auth_key" {
-  type = string
 }
 

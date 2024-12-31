@@ -68,6 +68,14 @@ job "traefik" {
         ]
       }
 
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
       template {
         data = <<EOF
 entryPoints:
@@ -165,7 +173,7 @@ http:
       plugin:
         crowdsec-bouncer:
           enabled: true
-          crowdseclapikey: "${var.crowdseclapikey}"
+          crowdseclapikey: {{ with secret "kv/data/default/traefik" }}{{ .Data.data.crowdsec_lapi_key }}{{ end }}
           crowdseclapischeme: "http"
           crowdseclapihost: "crowdsec.service.consul:8080"
 
@@ -193,8 +201,4 @@ EOF
       }
     }
   }
-}
-
-variable crowdseclapikey {
-  type = string
 }

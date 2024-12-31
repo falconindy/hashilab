@@ -71,17 +71,37 @@ job "teslamate" {
         ports = ["http"]
       }
 
-      env {
-        ENCRYPTION_KEY = "${var.teslamate_encryption_key}"
+      vault {}
 
-        DATABASE_USER = "postgres"
-        DATABASE_PASS = "${var.postgres_password}"
-        DATABASE_NAME = "teslamate"
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
+      template {
+        data = <<EOH
+          {{ with secret "kv/data/default/teslamate" }}
+            ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
+            DATABASE_PASS="{{ .Data.data.postgres_password }}" 
+            MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
+          {{ end }}
+        EOH
+        destination = "secrets/auth.env"
+        env = true
+      }
+
+      env {
+        #ENCRYPTION_KEY = "wUyIHr3AYH7THzzzBhS3IO/JJO+6wWbAJlragenbzicT0MleDFmCWu"
+
         DATABASE_HOST = "postgres.service.consul"
+        DATABASE_USER = "teslamate"
+        #DATABASE_PASS = "46b3183d070e3aa18f0984e9e798eafc"
+        DATABASE_NAME = "teslamate"
 
         MQTT_HOST     = "mosquitto.service.consul"
         MQTT_USERNAME = "teslamate"
-        MQTT_PASSWORD = "${var.teslamate_mqtt_password}"
+        #MQTT_PASSWORD = "7d6e01e42ea4a2d89a6b26a626d22065"
       }
 
       resources {
@@ -90,16 +110,4 @@ job "teslamate" {
       }
     }
   }
-}
-
-variable postgres_password {
-  type = string
-}
-
-variable teslamate_encryption_key {
-  type = string
-}
-
-variable teslamate_mqtt_password {
-  type = string
 }

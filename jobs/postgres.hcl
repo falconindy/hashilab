@@ -32,10 +32,33 @@ job "postgres" {
     task "postgres" {
       driver = "docker"
 
+      config {
+        image      = "postgres:15"
+        ports      = ["db"]
+      }
+
       volume_mount {
         volume      = "postgres"
         destination = "/appdata/postgres"
         read_only   = false
+      }
+
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
+      template {
+        data = <<EOH
+          {{ with secret "kv/data/default/postgres" }}
+            POSTGRES_PASSWORD="{{ .Data.data.postgres_password }}"
+          {{ end }}
+      EOH
+        destination = "secrets/auth.env"
+        env = true
       }
 
       resources {
@@ -43,21 +66,11 @@ job "postgres" {
         memory = 1024 # MB
       }
 
-      config {
-        image      = "postgres:15"
-        ports      = ["db"]
-      }
-
       env {
         POSTGRES_DB       = "postgres"
         POSTGRES_USER     = "postgres"
-        POSTGRES_PASSWORD = "${var.postgres_password}"
         PGDATA            = "/appdata/postgres"
       }
     }
   }
-}
-
-variable postgres_password {
-  type = string
 }
