@@ -87,4 +87,3 @@ job "grafana" {
     }
   }
 }
-

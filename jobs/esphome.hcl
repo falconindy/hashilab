@@ -57,7 +57,7 @@ job "esphome" {
 
         check {
           type     = "http"
-          path     = "/devices"
+          path     = "/version"
           interval = "10s"
           timeout  = "2s"
         }

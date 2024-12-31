@@ -3,15 +3,6 @@ job "homeassistant" {
   type        = "service"
 
   group "homeassistant" {
-    #update {
-    #  max_parallel = 1
-    #  canary = 1
-    #  auto_promote = true
-    #  auto_revert = true
-    #  min_healthy_time = "30s"
-    #  healthy_deadline = "5m"
-    #}
-
     network {
       port "http" {
         static = "8123"

@@ -41,15 +41,9 @@ job "zwave-js" {
         ]
       }
 
-      volume_mount {
-        volume      = "zwavejs"
-        destination = "/usr/src/app/store"
-        read_only   = false
-      }
-
-      env {
-        SESSION_SECRET = "${var.zwave_session_secret}"
-        TZ             = "America/New_York"
+      resources {
+        cpu    = 100
+        memory = 300
       }
 
       service {
@@ -62,10 +56,34 @@ job "zwave-js" {
           timeout  = "2s"
         }
       }
+
+      volume_mount {
+        volume      = "zwavejs"
+        destination = "/usr/src/app/store"
+        read_only   = false
+      }
+
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud = ["vault.io"]
+        ttl = "1h"
+      }
+
+      template {
+        data = <<EOH
+          {{ with secret "kv/data/default/zwave-js" }}
+            SESSION_SECRET="{{ .Data.data.session_secret }}"
+          {{ end }}
+      EOH
+        destination = "secrets/auth.env"
+        env = true
+      }
+
+      env {
+        TZ             = "America/New_York"
+      }
     }
   }
-}
-
-variable zwave_session_secret {
-  type = string
 }

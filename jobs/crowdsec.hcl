@@ -94,7 +94,3 @@ job "crowdsec" {
     }
   }
 }
-
-variable crowdseclapikey {
-  type = string
-}
