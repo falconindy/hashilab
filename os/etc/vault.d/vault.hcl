@@ -7,6 +7,9 @@ ui = true
 
 disable_mlock = true
 
+api_addr     = "https://{{ GetInterfaceIP \"enp1s0\" }}:8200"
+cluster_addr = "https://{{ GetInterfaceIP \"enp1s0\" }}:8201"
+
 storage "raft" {
   path = "/opt/vault"
 
@@ -15,17 +18,18 @@ storage "raft" {
     leader_api_addr         = "https://10.0.100.100:8200"
     leader_tls_servername   = "10.0.100.100"
     leader_ca_cert_file     = "/opt/vault/tls/vault-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-vault-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-vault-0-key.pem"
+    leader_client_cert_file = "/opt/vault/tls/global-server-vault-1.pem"
+    leader_client_key_file  = "/opt/vault/tls/global-server-vault-1-key.pem"
   }
+
 
   retry_join {
     auto_join_scheme        = "https"
     leader_api_addr         = "https://10.0.100.101:8200"
     leader_tls_servername   = "10.0.100.101"
     leader_ca_cert_file     = "/opt/vault/tls/vault-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-vault-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-vault-0-key.pem"
+    leader_client_cert_file = "/opt/vault/tls/global-server-vault-1.pem"
+    leader_client_key_file  = "/opt/vault/tls/global-server-vault-1-key.pem"
   }
 
   retry_join {
@@ -33,17 +37,16 @@ storage "raft" {
     leader_api_addr         = "https://10.0.100.102:8200"
     leader_tls_servername   = "10.0.100.102"
     leader_ca_cert_file     = "/opt/vault/tls/vault-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-vault-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-vault-0-key.pem"
+    leader_client_cert_file = "/opt/vault/tls/global-server-vault-1.pem"
+    leader_client_key_file  = "/opt/vault/tls/global-server-vault-1-key.pem"
   }
 }
 
 # HTTPS listener
 listener "tcp" {
   address            = "0.0.0.0:8200"
-  tls_disable        = 0
-  tls_cert_file      = "/opt/vault/tls/global-server-vault-0.pem"
-  tls_key_file       = "/opt/vault/tls/global-server-vault-0-key.pem"
+  tls_cert_file      = "/opt/vault/tls/global-server-vault-1.pem"
+  tls_key_file       = "/opt/vault/tls/global-server-vault-1-key.pem"
   tls_client_ca_file = "/opt/vault/tls/vault-agent-ca.pem"
 }
 
@@ -58,21 +61,3 @@ seal "gcpckms" {
 service_registration "consul" {
   address = "http://127.0.0.1:8500"
 }
-
-api_addr     = "https://{{ GetInterfaceIP \"enp1s0\" }}:8200"
-cluster_addr = "https://{{ GetInterfaceIP \"enp1s0\" }}:8201"
-
-# Example AWS KMS auto unseal
-#seal "awskms" {
-#  region = "us-east-1"
-#  kms_key_id = "REPLACE-ME"
-#}
-
-# Example HSM auto unseal
-#seal "pkcs11" {
-#  lib            = "/usr/vault/lib/libCryptoki2_64.so"
-#  slot           = "0"
-#  pin            = "AAAA-BBBB-CCCC-DDDD"
-#  key_label      = "vault-hsm-key"
-#  hmac_key_label = "vault-hsm-hmac-key"
-#}
