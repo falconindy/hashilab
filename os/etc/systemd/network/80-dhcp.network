@@ -1,0 +1,6 @@
+[Match]
+Driver=r8169
+
+[Network]
+DHCP=yes
+MulticastDNS=resolve

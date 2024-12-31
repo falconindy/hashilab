@@ -8,5 +8,5 @@ server {
   bootstrap_expect = 3
   raft_protocol    = 3
 
-  encrypt          = "cxmhW6EIIdg0KU8xtwB29EpiJ5yiUdJaYkJYjUC/734="
+  # encrypt = "<only needed for initial bootstrap>"
 }

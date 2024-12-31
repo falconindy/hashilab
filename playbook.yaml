@@ -1,0 +1,43 @@
+- name: Deploy OS configs
+  hosts: homelab
+  become: True
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: systemd
+      ansible.builtin.copy:
+        src: os/etc/systemd
+        dest: /etc
+
+    - name: sysctl
+      ansible.builtin.copy:
+        src: os/etc/sysctl.d
+        dest: /etc
+
+    - name: keepalived
+      ansible.builtin.copy:
+        src: os/etc/keepalived/keepalived.{{ ansible_facts['nodename'] }}.conf
+        dest: /etc/keepalived/keepalived.conf
+
+- name: Deploy cluster configs
+  hosts: homelab
+  become: True
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: consul configuration
+      ansible.builtin.copy:
+        src: os/etc/consul.d
+        dest: /etc
+
+    - name: vault configuration
+      ansible.builtin.copy:
+        src: os/etc/vault.d
+        dest: /etc
+
+    - name: nomad configuration
+      ansible.builtin.copy:
+        src: os/etc/nomad.d
+        dest: /etc
