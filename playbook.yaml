@@ -1,4 +1,4 @@
-- name: Deploy OS configs
+- name: Deploy configations
   hosts: homelab
   become: True
   become_method: sudo
@@ -20,24 +20,17 @@
         src: os/etc/keepalived/keepalived.{{ ansible_facts['nodename'] }}.conf
         dest: /etc/keepalived/keepalived.conf
 
-- name: Deploy cluster configs
-  hosts: homelab
-  become: True
-  become_method: sudo
-  vars:
-    ansible_python_interpreter: /usr/bin/python3
-  tasks:
-    - name: consul configuration
+    - name: consul
       ansible.builtin.copy:
         src: os/etc/consul.d
         dest: /etc
 
-    - name: vault configuration
+    - name: vault
       ansible.builtin.copy:
         src: os/etc/vault.d
         dest: /etc
 
-    - name: nomad configuration
+    - name: nomad
       ansible.builtin.copy:
         src: os/etc/nomad.d
         dest: /etc
