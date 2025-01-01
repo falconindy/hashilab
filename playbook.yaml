@@ -27,6 +27,16 @@
         dpkg_options: 'force-confdef,force-confold'
         state: latest
 
+    - name: Enable systemd services
+      ansible.builtin.systemd_service:
+        name: '{{ item }}'
+        enabled: true
+      with_list:
+        - keepalived
+        - nomad
+        - consul
+        - vault
+
 - name: Deploy configurations
   hosts: homelab
   become: True
