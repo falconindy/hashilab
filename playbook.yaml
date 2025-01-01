@@ -32,10 +32,10 @@
         name: '{{ item }}'
         enabled: true
       with_list:
-        - keepalived
-        - nomad
-        - consul
-        - vault
+        - keepalived.service
+        - nomad.service
+        - consul.service
+        - vault.service
 
 - name: Deploy configurations
   hosts: homelab
