@@ -6,9 +6,8 @@ job "tailscale" {
     count = 1
 
     volume "tailscale" {
-      type      = "csi"
-      read_only = false
-
+      type            = "csi"
+      read_only       = false
       source          = "tailscale"
       access_mode     = "single-node-writer"
       attachment_mode = "file-system"
@@ -38,18 +37,18 @@ job "tailscale" {
 
       identity {
         name = "vault_default"
-        aud = ["vault.io"]
-        ttl = "1h"
+        aud  = ["vault.io"]
+        ttl  = "1h"
       }
 
       template {
-        data = <<EOH
+        data        = <<EOH
           {{ with secret "kv/data/default/tailscale" }}
           AUTH_KEY="{{ .Data.data.auth_key }}"
           {{ end }}
       EOH
         destination = "secrets/auth.env"
-        env = true
+        env         = true
       }
 
       template {
