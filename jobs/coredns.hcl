@@ -35,6 +35,7 @@ job "coredns" {
         data = <<EOH
 . {
   bind {{ env "NOMAD_IP_dns" }}
+  bind 172.17.0.1
   forward . 8.8.8.8
   whoami
   log
@@ -42,6 +43,7 @@ job "coredns" {
 }
 consul.:53 {
   bind {{ env "NOMAD_IP_dns" }}
+  bind 172.17.0.1
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
   whoami
   log
