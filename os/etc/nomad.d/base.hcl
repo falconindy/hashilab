@@ -45,10 +45,10 @@ vault {
   create_from_role = "nomad-cluster"
 
   default_identity {
-    aud = ["vault.io"]
-    env = true
+    aud  = ["vault.io"]
+    env  = true
     file = true
-    ttl = "1h"
+    ttl  = "1h"
   }
 }
 
