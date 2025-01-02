@@ -32,6 +32,9 @@
         name: '{{ item }}'
         enabled: true
       with_list:
+        - systemd-resolved.service
+        - systemd-networkd.service
+        - systemd-timesyncd.service
         - keepalived.service
         - nomad.service
         - consul.service
