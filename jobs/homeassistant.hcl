@@ -21,7 +21,7 @@ job "homeassistant" {
     task "homeassistant" {
       driver = "docker"
       config {
-        image        = "homeassistant/home-assistant:2024.12.5"
+        image        = "homeassistant/home-assistant:2025.1.0"
         network_mode = "host"
         ports        = ["http"]
         volumes = [
