@@ -1,8 +1,8 @@
 homelab:
   hosts:
     nomad0:
-      ansible_host: nomad0.node.dc1.consul
+      ansible_host: 10.0.100.100
     nomad1:
-      ansible_host: nomad1.node.dc1.consul
+      ansible_host: 10.0.100.101
     nomad2:
-      ansible_host: nomad2.node.dc1.consul
+      ansible_host: 10.0.100.102
