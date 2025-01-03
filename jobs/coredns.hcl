@@ -41,7 +41,7 @@ job "coredns" {
   log
   errors
 }
-consul.:53 {
+consul.:53 home.:53 {
   bind {{ env "NOMAD_IP_dns" }}
   bind 172.17.0.1
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
