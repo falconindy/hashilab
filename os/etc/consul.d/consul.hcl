@@ -10,6 +10,8 @@ server             = true
 bootstrap_expect   = 3
 leave_on_terminate = true
 
+alt_domain = "home."
+
 ui_config {
   enabled = true
 }
