@@ -2,22 +2,6 @@ job "teslamate" {
   datacenters = ["dc1"]
   type        = "service"
 
-  #update {
-  #  max_parallel      = 1
-  #  min_healthy_time  = "10s"
-  #  healthy_deadline  = "3m"
-  #  progress_deadline = "10m"
-  #  auto_revert       = false
-  #  canary            = 0
-  #}
-
-  #migrate {
-  #  max_parallel     = 1
-  #  health_check     = "checks"
-  #  min_healthy_time = "10s"
-  #  healthy_deadline = "5m"
-  #}
-
   ui {
     description = "Teslamate"
     link {
@@ -31,25 +15,7 @@ job "teslamate" {
 
     network {
       mode = "bridge"
-      port "http" {
-        to = 4000
-      }
-
-      dns {
-        servers = ["172.17.0.1"]
-      }
-    }
-
-    service {
-      name = "teslamate"
-      port = "http"
-
-      check {
-        type     = "tcp"
-        port     = "http"
-        interval = "30s"
-        timeout  = "2s"
-      }
+      port "http" {}
     }
 
     restart {
@@ -71,16 +37,33 @@ job "teslamate" {
         ports = ["http"]
       }
 
+      service {
+        name = "teslamate"
+        port = "http"
+        tags = [
+          "traefik.enable=true",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.consul`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+        ]
+
+        check {
+          type     = "tcp"
+          port     = "http"
+          interval = "30s"
+          timeout  = "2s"
+        }
+      }
+
       vault {}
 
       identity {
         name = "vault_default"
-        aud = ["vault.io"]
-        ttl = "1h"
+        aud  = ["vault.io"]
+        ttl  = "1h"
       }
 
       template {
-        data = <<EOH
+        data        = <<EOH
           {{ with secret "kv/data/default/teslamate" }}
             ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
             DATABASE_PASS="{{ .Data.data.postgres_password }}" 
@@ -88,10 +71,12 @@ job "teslamate" {
           {{ end }}
         EOH
         destination = "secrets/auth.env"
-        env = true
+        env         = true
       }
 
       env {
+        PORT = "${NOMAD_PORT_http}"
+
         DATABASE_HOST = "postgres.service.consul"
         DATABASE_USER = "teslamate"
         DATABASE_NAME = "teslamate"

@@ -7,14 +7,7 @@ job "mqtt-explorer" {
 
     network {
       mode = "bridge"
-
-      port "http" {
-        to = 4000
-      }
-
-      dns {
-        servers = ["172.17.0.1"]
-      }
+      port "http" {}
     }
 
     volume "mqtt-explorer" {
@@ -35,6 +28,15 @@ job "mqtt-explorer" {
       service {
         name = "mqtt-explorer"
         port = "http"
+        tags = [
+          "traefik.enable=true",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.consul`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+        ]
+      }
+
+      env {
+        HTTP_PORT = "${NOMAD_PORT_http}"
       }
 
       volume_mount {
