@@ -175,7 +175,7 @@ http:
           enabled: true
           crowdseclapikey: {{ with secret "kv/data/default/traefik" }}{{ .Data.data.crowdsec_lapi_key }}{{ end }}
           crowdseclapischeme: "http"
-          crowdseclapihost: "crowdsec.service.consul:8080"
+          crowdseclapihost: "crowdsec.service.home:8080"
 
     securedheaders:
       headers:

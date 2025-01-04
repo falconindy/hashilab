@@ -42,7 +42,7 @@ job "teslamate" {
         port = "http"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.consul`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
         ]
 
@@ -77,11 +77,11 @@ job "teslamate" {
       env {
         PORT = "${NOMAD_PORT_http}"
 
-        DATABASE_HOST = "postgres.service.consul"
+        DATABASE_HOST = "postgres.service.home"
         DATABASE_USER = "teslamate"
         DATABASE_NAME = "teslamate"
 
-        MQTT_HOST     = "mosquitto.service.consul"
+        MQTT_HOST     = "mosquitto.service.home"
         MQTT_USERNAME = "teslamate"
       }
 

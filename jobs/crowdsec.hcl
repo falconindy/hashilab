@@ -31,9 +31,6 @@ job "crowdsec" {
       type      = "csi"
       read_only = true
       source    = "traefik"
-      # Doesn't actually need to be writeable but Nomad doesn't support us
-      # mounting this volume as read-only for crowdsec and read-write for
-      # traefik.
       access_mode     = "multi-node-multi-writer"
       attachment_mode = "file-system"
     }
