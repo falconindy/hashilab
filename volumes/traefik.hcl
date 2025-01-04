@@ -14,7 +14,7 @@ capability {
 }
 
 context {
-  server = "nasty.local"
+  server = "nasty.node.home"
   share  = "/volume1/traefik"
 }
 
