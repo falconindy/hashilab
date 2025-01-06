@@ -167,12 +167,23 @@ http:
       tls:
         certresolver: "letsEncrypt"
       service: "omada"
+    nasty:
+      rule: "Host(`dsm.falconindy.com`)"
+      entrypoints: "https"
+      tls:
+        certresolver: "letsEncrypt"
+      service: "nasty"
 
   services:
     omada:
       loadBalancer:
         servers:
         - url: "http://10.0.1.100:10081"
+
+    nasty:
+      loadBalancer:
+        servers:
+        - url: "http://nasty.node.home:5000"
 
   middlewares:
     crowdsec:
@@ -197,6 +208,10 @@ http:
       headers:
         customResponseHeaders:
           X-Backend-Name: {{ env "attr.unique.hostname" }}
+
+    authelia:
+      forwardAuth:
+        address: 'http://authelia.service.home:9091/api/authz/forward-auth'
 EOF
         destination = "local/static_providers.yml"
       }
