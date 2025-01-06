@@ -48,7 +48,12 @@ job "zwave-js" {
 
       service {
         port = "http"
-        name = "zwavejs"
+        name = "zwave-js"
+        tags = [
+          "traefik.enable=true",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+        ]
 
         check {
           type     = "tcp"
