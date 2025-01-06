@@ -81,15 +81,21 @@ job "traefik" {
 entryPoints:
   http:
     address: ":80"
+    forwardedHeaders:
+      insecure: false
     proxyProtocol:
-      trustedIPs: 
-        - "172.17.0.0/16"
+      insecure: false
+      trustedIPs:
+        - "172.16.0.0/12"
 
   https:
     address: ":443"
+    forwardedHeaders:
+      insecure: false
     proxyProtocol:
+      insecure: false
       trustedIPs:
-        - "172.17.0.0/16"
+        - "172.16.0.0/12"
     http:
       middlewares:
         # - crowdsec@file
