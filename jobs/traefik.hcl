@@ -61,7 +61,7 @@ job "traefik" {
       }
 
       config {
-        image = "traefik:v3.2"
+        image = "traefik:v3.3"
         ports = ["http", "https", "dashboard"]
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml",
