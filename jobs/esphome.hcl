@@ -69,7 +69,7 @@ job "esphome" {
       }
 
       resources {
-        cpu    = 2000
+        cpu    = 500
         memory = 4096
       }
     }

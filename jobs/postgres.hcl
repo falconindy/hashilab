@@ -62,8 +62,8 @@ job "postgres" {
       }
 
       resources {
-        cpu    = 1000 # MHz
-        memory = 1024 # MB
+        cpu    = 200
+        memory = 512
       }
 
       env {
