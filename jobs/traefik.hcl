@@ -3,14 +3,6 @@ job "traefik" {
   type        = "system"
 
   group "traefik" {
-    volume "traefik" {
-      type            = "csi"
-      read_only       = false
-      source          = "traefik"
-      access_mode     = "multi-node-multi-writer"
-      attachment_mode = "file-system"
-    }
-
     volume "letsencrypt" {
       type            = "csi"
       read_only       = false
@@ -51,12 +43,6 @@ job "traefik" {
       volume_mount {
         volume      = "letsencrypt"
         destination = "/letsencrypt"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "traefik"
-        destination = "/logs"
         read_only   = false
       }
 
@@ -104,7 +90,6 @@ entryPoints:
         - "172.16.0.0/12"
     http:
       middlewares:
-        # - crowdsec@file
         - securedheaders@file
 
   traefik:
@@ -126,9 +111,6 @@ tls:
         - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
     mintls13:
       minVersion: VersionTLS13
-
-accessLog:
-  filepath: /logs/access.{{ env "attr.unique.hostname" }}.log
 
 api:
   dashboard: true
@@ -152,12 +134,6 @@ certificatesResolvers:
       tlsChallenge: true
       email: "d@falconindy.com"
       storage: "/letsencrypt/acme.json"
-
-experimental:
-  plugins:
-    crowdsec-bouncer:
-      modulename: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
-      version: "v1.2.1"
 EOF
 
         destination = "local/traefik.yml"
@@ -192,14 +168,6 @@ http:
         - url: "http://nasty.node.home:5000"
 
   middlewares:
-    crowdsec:
-      plugin:
-        crowdsec-bouncer:
-          enabled: true
-          crowdseclapikey: {{ with secret "kv/data/default/traefik" }}{{ .Data.data.crowdsec_lapi_key }}{{ end }}
-          crowdseclapischeme: "http"
-          crowdseclapihost: "crowdsec.service.home:8080"
-
     securedheaders:
       headers:
         forcestsheader: true
