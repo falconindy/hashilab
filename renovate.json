@@ -2,8 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "packageRules": [
     {
-      "matchPackageNames": ["deluge", "postgres"],
+      "matchPackageNames": ["postgres"],
       "enabled": false
+    },
+    {
+      "matchPackageNames": ["linuxserver/deluge"],
+      "allowedVersions": "/^amd64-.+$/"
     }
   ],
   "customManagers": [
