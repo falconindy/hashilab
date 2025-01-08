@@ -47,6 +47,8 @@ job "homeassistant" {
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
           "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=letsEncrypt",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-internal.rule=Host(`homeassistant.service.home`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-internal.entrypoints=http",
         ]
 
         check {
