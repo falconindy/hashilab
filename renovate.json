@@ -12,8 +12,7 @@
       "datasourceTemplate": "docker",
       "fileMatch": ["jobs/.+\\.hcl$"],
       "matchStrings": [
-        "\\s*image\\s*=\\s*\\\"(?<depName>.*?):(?<currentValue>.*?)\\\"",
-        "\\s*image\\s*=\\s*\\\"(?<depName>.*?):browser-(?<currentValue>.*?)\\\""
+        "\\s*image\\s*=\\s*\\\"(?<depName>.*?):([a-z0-9]+-)?(?<currentValue>.*?)\\\""
       ]
     }
   ]
