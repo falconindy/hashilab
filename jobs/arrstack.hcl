@@ -16,10 +16,6 @@ job "arrstack" {
         to = 7878
       }
 
-      # port "sabnzbd" {
-      #   to = 8080
-      # }
-
       port "prowlarr" {
         to = 9696
       }
@@ -49,20 +45,35 @@ job "arrstack" {
       attachment_mode = "file-system"
     }
 
-    # volume "sabnzbd-config" {
-    #   type            = "csi"
-    #   read_only       = false
-    #   source          = "sabnzbd-config"
-    #   access_mode     = "single-node-writer"
-    #   attachment_mode = "file-system"
-    # }
-
     volume "prowlarr-config" {
       type            = "csi"
       read_only       = false
       source          = "prowlarr-config"
       access_mode     = "single-node-writer"
       attachment_mode = "file-system"
+    }
+
+    task "await-deluge" {
+      driver = "docker"
+
+      config {
+        image = "busybox:latest"
+        command = "sh"
+        args = [
+          "-c",
+          "echo -n 'Waiting for deluge'; until nslookup deluge.service.home 2>&1 >/dev/null; do echo -n .; sleep 2; done; echo; echo done"
+        ]
+      }
+
+      resources {
+        cpu = 100
+        memory = 128
+      }
+
+      lifecycle {
+        hook = "prestart"
+        sidecar = false
+      }
     }
 
     task "prowlarr" {
@@ -112,54 +123,6 @@ job "arrstack" {
         memory = 1024
       }
     }
-
-    # task "sabnzbd" {
-    #   driver = "docker"
-
-    #   config {
-    #     image = "linuxserver/sabnzbd:4.4.1"
-    #     ports = ["sabnzbd"]
-    #   }
-
-    #   volume_mount {
-    #     volume = "media"
-    #     destination = "/media"
-    #     read_only = false
-    #   }
-
-    #   volume_mount {
-    #     volume      = "sabnzbd-config"
-    #     destination = "/config"
-    #     read_only   = false
-    #   }
-
-    #   env {
-    #     TZ = "America/New_York"
-    #     PUID = 911
-    #     PGID = 911
-    #   }
-
-    #   service {
-    #     name = "sabnzbd"
-    #     port = "sabnzbd"
-    #     tags = [
-    #       "traefik.enable=true",
-    #       "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-    #       "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=http",
-    #     ]
-    #     check {
-    #       type     = "http"
-    #       path     = "/"
-    #       interval = "10s"
-    #       timeout  = "5s"
-    #     }
-    #   }
-
-    #   resources {
-    #     cpu    = 100
-    #     memory = 1024
-    #   }
-    # }
 
     task "radarr" {
       driver = "docker"
