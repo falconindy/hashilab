@@ -72,22 +72,22 @@ job "zwave-js" {
 
       identity {
         name = "vault_default"
-        aud = ["vault.io"]
-        ttl = "1h"
+        aud  = ["vault.io"]
+        ttl  = "1h"
       }
 
       template {
-        data = <<EOH
+        data        = <<EOH
           {{ with secret "kv/data/default/zwave-js" }}
             SESSION_SECRET="{{ .Data.data.session_secret }}"
           {{ end }}
       EOH
         destination = "secrets/auth.env"
-        env = true
+        env         = true
       }
 
       env {
-        TZ             = "America/New_York"
+        TZ = "America/New_York"
       }
     }
   }

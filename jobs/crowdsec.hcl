@@ -28,9 +28,9 @@ job "crowdsec" {
     }
 
     volume "traefik-logs" {
-      type      = "csi"
-      read_only = true
-      source    = "traefik"
+      type            = "csi"
+      read_only       = true
+      source          = "traefik"
       access_mode     = "multi-node-multi-writer"
       attachment_mode = "file-system"
     }

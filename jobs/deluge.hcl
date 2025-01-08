@@ -43,19 +43,19 @@ job "deluge" {
       }
 
       volume_mount {
-        volume = "media"
+        volume      = "media"
         destination = "/media"
-        read_only = false
+        read_only   = false
       }
 
       volume_mount {
-        volume = "deluge-config"
+        volume      = "deluge-config"
         destination = "/config"
-        read_only = false
+        read_only   = false
       }
 
       env {
-        TZ = "America/New_York"
+        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }

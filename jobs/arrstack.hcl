@@ -57,7 +57,7 @@ job "arrstack" {
       driver = "docker"
 
       config {
-        image = "busybox:latest"
+        image   = "busybox:latest"
         command = "sh"
         args = [
           "-c",
@@ -66,12 +66,12 @@ job "arrstack" {
       }
 
       resources {
-        cpu = 100
+        cpu    = 100
         memory = 128
       }
 
       lifecycle {
-        hook = "prestart"
+        hook    = "prestart"
         sidecar = false
       }
     }
@@ -85,9 +85,9 @@ job "arrstack" {
       }
 
       volume_mount {
-        volume = "media"
+        volume      = "media"
         destination = "/media"
-        read_only = false
+        read_only   = false
       }
 
       volume_mount {
@@ -97,7 +97,7 @@ job "arrstack" {
       }
 
       env {
-        TZ = "America/New_York"
+        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }
@@ -133,7 +133,7 @@ job "arrstack" {
       }
 
       env {
-        TZ = "America/New_York"
+        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }
@@ -181,7 +181,7 @@ job "arrstack" {
       }
 
       env {
-        TZ = "America/New_York"
+        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }

@@ -20,23 +20,23 @@ job "cloudflare-ddns" {
 
       identity {
         name = "vault_default"
-        aud = ["vault.io"]
-        ttl = "1h"
+        aud  = ["vault.io"]
+        ttl  = "1h"
       }
 
       template {
-        data = <<EOH
+        data        = <<EOH
           {{ with secret "kv/data/default/cloudflare-ddns" }}
             CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
           {{ end }}
         EOH
         destination = "secrets/auth.env"
-        env = true
+        env         = true
       }
 
       env {
-        DOMAINS              = "scoot.falconindy.com"
-        IP6_PROVIDER         = "none"
+        DOMAINS      = "scoot.falconindy.com"
+        IP6_PROVIDER = "none"
       }
 
       resources {
