@@ -38,7 +38,6 @@ job "coredns" {
   bind 172.17.0.1
   forward . 8.8.8.8
   whoami
-  log
   errors
 }
 consul.:53 home.:53 {
@@ -46,7 +45,6 @@ consul.:53 home.:53 {
   bind 172.17.0.1
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
   whoami
-  log
   errors
 }
 EOH
