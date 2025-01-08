@@ -38,7 +38,7 @@ job "deluge" {
       driver = "docker"
 
       config {
-        image = "linuxserver/deluge:amd64-2.1.1"
+        image = "linuxserver/deluge:amd64-18.04.1"
         ports = ["deluge", "deluge-inbound"]
       }
 
