@@ -1,6 +1,6 @@
 job "coredns" {
   datacenters = ["dc1"]
-  type = "system"
+  type        = "system"
 
   group "coredns" {
     count = 1
@@ -15,24 +15,24 @@ job "coredns" {
     task "coredns" {
       driver = "docker"
       config {
-        image = "coredns/coredns:1.12.0"
+        image        = "coredns/coredns:1.12.0"
         network_mode = "host"
-        ports = ["dns"]
-        args = ["-conf", "/local/coredns/corefile"]
+        ports        = ["dns"]
+        args         = ["-conf", "/local/coredns/corefile"]
       }
 
       service {
         port = "dns"
         name = "coredns"
         check {
-          type = "tcp"
+          type     = "tcp"
           interval = "10s"
-          timeout = "2s"
+          timeout  = "2s"
         }
       }
 
       template {
-        data = <<EOH
+        data            = <<EOH
 . {
   bind {{ env "NOMAD_IP_dns" }}
   bind 172.17.0.1
@@ -50,10 +50,10 @@ consul.:53 home.:53 {
   errors
 }
 EOH
-        destination = "local/coredns/corefile"
-        env         = false
-        change_mode = "signal"
-        change_signal = "SIGHUP"
+        destination     = "local/coredns/corefile"
+        env             = false
+        change_mode     = "signal"
+        change_signal   = "SIGHUP"
         left_delimiter  = "{{"
         right_delimiter = "}}"
       }
