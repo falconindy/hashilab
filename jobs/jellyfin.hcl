@@ -6,8 +6,10 @@ job "jellyfin" {
     count = 1
 
     network {
+      mode = "bridge"
+
       port "http" {
-        static = 8096
+        to = 8096
       }
     }
 
