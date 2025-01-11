@@ -34,10 +34,13 @@ job "zwave-js" {
       config {
         image      = "zwavejs/zwave-js-ui:9.29.0"
         ports      = ["http", "ws"]
-        privileged = true
 
-        volumes = [
-          "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00:/dev/zwave"
+        devices = [
+          {
+            host_path          = "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00"
+            container_path     = "/dev/zwave"
+            cgroup_permissions = "rw"
+          }
         ]
       }
 
