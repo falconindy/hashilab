@@ -16,11 +16,11 @@ ui {
   enabled = true
 
   consul {
-    ui_url = "http://consul.service.consul:8500/ui"
+    ui_url = "http://consul.service.home:8500/ui"
   }
 
   vault {
-    ui_url = "https://vault.service.consul:8200/ui"
+    ui_url = "https://vault.service.home:8200/ui"
   }
 }
 
