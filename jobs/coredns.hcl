@@ -10,6 +10,9 @@ job "coredns" {
       port "dns" {
         static = 53
       }
+      port "metrics" {
+        static = 9153
+      }
     }
 
     task "coredns" {
@@ -17,7 +20,7 @@ job "coredns" {
       config {
         image        = "coredns/coredns:1.12.0"
         network_mode = "host"
-        ports        = ["dns"]
+        ports        = ["dns", "metrics"]
         args         = ["-conf", "/local/coredns/corefile"]
       }
 
@@ -39,6 +42,7 @@ job "coredns" {
   forward . 8.8.8.8
   whoami
   errors
+  prometheus {{ env "NOMAD_IP_metrics" }}:9153
 }
 consul.:53 home.:53 {
   bind {{ env "NOMAD_IP_dns" }}
@@ -46,6 +50,7 @@ consul.:53 home.:53 {
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
   whoami
   errors
+  prometheus {{ env "NOMAD_IP_metrics" }}:9153
 }
 EOH
         destination     = "local/coredns/corefile"

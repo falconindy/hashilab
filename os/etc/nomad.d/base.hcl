@@ -52,6 +52,14 @@ vault {
   }
 }
 
+telemetry {
+  disable_hostname = true
+  prometheus_metrics = true
+  publish_allocation_metrics = true
+  publish_node_metrics = true
+  use_node_name = false
+}
+
 plugin "docker" {
   config {
     allow_privileged = true
