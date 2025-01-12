@@ -47,6 +47,25 @@
   vars:
     ansible_python_interpreter: /usr/bin/python3
   tasks:
+    - name: Gather USB facts
+      community.general.usb_facts:
+      register: usb_facts
+
+    - name: Deploy Z-Wave capability marker
+      ansible.builtin.copy:
+        src: os/etc/nomad.meta/has_zwave.hcl
+        dest: /etc/nomad.d
+      when:
+        # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
+        usb_devices | map(attribute='id') | select('contains', '1a86:55d4')
+
+    - name: Deploy Quicksync capability marker
+      ansible.builtin.copy:
+        src: os/etc/nomad.meta/has_quicksync.hcl
+        dest: /etc/nomad.d
+      when:
+        ansible_processor | select('contains', 'Intel(R) N100')
+
     - name: systemd
       ansible.builtin.copy:
         src: os/etc/systemd/system-environment-generators
