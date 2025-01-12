@@ -88,10 +88,6 @@ job "zwave-js" {
         destination = "secrets/auth.env"
         env         = true
       }
-
-      env {
-        TZ = "America/New_York"
-      }
     }
   }
 }

@@ -29,10 +29,6 @@ job "homeassistant" {
         ]
       }
 
-      env {
-        TZ = "America/New_York"
-      }
-
       volume_mount {
         volume      = "homeassistant"
         destination = "/config"

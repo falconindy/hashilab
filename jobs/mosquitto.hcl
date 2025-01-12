@@ -38,10 +38,6 @@ job "mosquitto" {
         port = "mqtt"
       }
 
-      env {
-        TZ = "America/New_York"
-      }
-
       resources {
         cpu    = 100
         memory = 64
