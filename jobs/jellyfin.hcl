@@ -2,6 +2,12 @@ job "jellyfin" {
   datacenters = ["dc1"]
   type        = "service"
 
+  constraint {
+    attribute = "${meta.has_quicksync}"
+    operator  = "="
+    value     = "true"
+  }
+
   group "jellyfin" {
     count = 1
 
