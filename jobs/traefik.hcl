@@ -134,6 +134,12 @@ certificatesResolvers:
       tlsChallenge: true
       email: "d@falconindy.com"
       storage: "/letsencrypt/acme.json"
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    entryPoint: traefik
 EOF
 
         destination = "local/traefik.yml"

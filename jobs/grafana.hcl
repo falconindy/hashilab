@@ -56,7 +56,7 @@ job "grafana" {
         read_only   = false
       }
       env {
-        GF_SERVER_ROOT_URL    = "https://grafana.falconindy.com"
+        GF_SERVER_ROOT_URL    = "https://grafana.service.home"
         GF_PATHS_DATA         = "/var/lib/grafana"
         GF_AUTH_BASIC_ENABLED = "false"
         GF_INSTALL_PLUGINS    = "grafana-piechart-panel"
@@ -68,9 +68,8 @@ job "grafana" {
         name = "grafana"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.falconindy.com`)",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=letsEncrypt",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
         ]
         check {
           type     = "http"
