@@ -55,7 +55,6 @@ job "deluge" {
       }
 
       env {
-        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }

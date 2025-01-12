@@ -97,7 +97,6 @@ job "arrstack" {
       }
 
       env {
-        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }
@@ -133,7 +132,6 @@ job "arrstack" {
       }
 
       env {
-        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }
@@ -181,7 +179,6 @@ job "arrstack" {
       }
 
       env {
-        TZ   = "America/New_York"
         PUID = 911
         PGID = 911
       }
