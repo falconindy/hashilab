@@ -134,7 +134,7 @@ EOH
       }
 
       config {
-        image        = "prom/prometheus:v3.1.0"
+        image = "prom/prometheus:v3.1.0"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--web.listen-address", "${NOMAD_ADDR_http}",
@@ -142,7 +142,7 @@ EOH
         ]
         # needed in order to bind to NOMAD_ADDR_http
         network_mode = "host"
-        ports      = ["http"]
+        ports        = ["http"]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
         ]
