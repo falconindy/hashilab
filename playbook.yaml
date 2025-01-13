@@ -66,6 +66,14 @@
       when:
         ansible_processor | select('contains', 'Intel(R) N100')
 
+    - name: Deploy UPS capability marker
+      ansible.builtin.copy:
+        src: os/etc/nomad.meta/has_ups.hcl
+        dest: /etc/nomad.d
+      when:
+        # 051d:0003: American Power Conversion UPS
+        usb_devices | map(attribute='id') | select('contains', '051d:0003')
+
     - name: systemd
       ansible.builtin.copy:
         src: os/etc/systemd/system-environment-generators
