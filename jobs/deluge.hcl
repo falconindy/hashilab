@@ -2,6 +2,12 @@ job "deluge" {
   datacenters = ["dc1"]
   type        = "service"
 
+  constraint {
+    attribute = "${attr.unique.network.ip-address}"
+    operator  = "="
+    value     = "10.0.100.102"
+  }
+
   group "deluge" {
     count = 1
 
