@@ -52,8 +52,8 @@ job "jellyfin" {
       }
 
       env {
-        PUID = 1000
-        PGID = 1000
+        PUID = 911
+        PGID = 911
       }
 
       volume_mount {
