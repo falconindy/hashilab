@@ -26,8 +26,8 @@ job "nut" {
 
         devices = [
           {
-            host_path          = "/dev/bus/usb/001/003"
-            container_path     = "/dev/bus/usb/001/003"
+            host_path          = "/dev/bus/usb"
+            container_path     = "/dev/bus/usb"
             cgroup_permissions = "rw"
           }
         ]
