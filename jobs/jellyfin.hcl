@@ -27,18 +27,10 @@ job "jellyfin" {
       attachment_mode = "file-system"
     }
 
-    volume "jellyfin-config" {
+    volume "jellyfin" {
       type            = "csi"
       read_only       = false
-      source          = "jellyfin-config"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "jellyfin-cache" {
-      type            = "csi"
-      read_only       = false
-      source          = "jellyfin-cache"
+      source          = "jellyfin"
       access_mode     = "single-node-writer"
       attachment_mode = "file-system"
     }
@@ -47,7 +39,7 @@ job "jellyfin" {
       driver = "docker"
 
       config {
-        image = "jellyfin/jellyfin:2025011305"
+        image = "linuxserver/jellyfin:10.10.3"
         ports = ["http"]
 
         devices = [
@@ -59,15 +51,14 @@ job "jellyfin" {
         ]
       }
 
-      volume_mount {
-        volume      = "jellyfin-config"
-        destination = "/config"
-        read_only   = false
+      env {
+        PUID = 1000
+        PGID = 1000
       }
 
       volume_mount {
-        volume      = "jellyfin-cache"
-        destination = "/cache"
+        volume      = "jellyfin"
+        destination = "/config"
         read_only   = false
       }
 
