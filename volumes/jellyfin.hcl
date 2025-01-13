@@ -1,7 +1,7 @@
 plugin_id = "nfs"
 type      = "csi"
-id        = "jellyfin-config"
-name      = "jellyfin-config"
+id        = "jellyfin"
+name      = "jellyfin"
 
 capability {
   access_mode     = "single-node-writer"
@@ -11,7 +11,6 @@ capability {
 context {
   server = "nasty.node.home"
   share  = "/volume1/jellyfin"
-  subDir = "config"
 }
 
 mount_options {
