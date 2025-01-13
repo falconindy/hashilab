@@ -8,6 +8,10 @@
     {
       "matchPackageNames": ["linuxserver/deluge"],
       "allowedVersions": "/^amd64-.+$/"
+    },
+    {
+      "matchPackageNames": ["linuxserver/jellyfin"],
+      "allowedVersions": "/^\\d{2}\\./"
     }
   ],
   "customManagers": [
