@@ -133,12 +133,12 @@ certificatesResolvers:
     acme:
       tlsChallenge: true
       email: "d@falconindy.com"
-      storage: "/letsencrypt/acme.json"
+      storage: "/letsencrypt/acme.{{ env "attr.unique.hostname" }}.json"
 
   vault:
     acme:
       email: "d@falconindy.com"
-      storage: "/letsencrypt/acme.${attr.unique.hostname}.json"
+      storage: "/letsencrypt/acme.{{ env "attr.unique.hostname" }}.json"
       caServer: "http://172.17.0.1:8200/v1/pki_int/acme/directory"
       httpChallenge:
         entryPoint: "http"
