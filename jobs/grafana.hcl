@@ -69,7 +69,8 @@ job "grafana" {
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"

@@ -56,8 +56,14 @@ job "esphome" {
         name = "esphome"
         tags = [
           "traefik.enable=true",
+          # http rule is still needed in order for HASS to do whatever polling
+          # it does against the /devices endpoint.
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+
+          "traefik.http.routers.${NOMAD_JOB_NAME}-https.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-https.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-https.tls.certresolver=vault",
         ]
 
         check {
