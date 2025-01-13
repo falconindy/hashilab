@@ -24,4 +24,4 @@ connect {
 client_addr    = "0.0.0.0"
 advertise_addr = "{{ GetInterfaceIP \"enp1s0\" }}"
 bind_addr      = "{{ GetInterfaceIP \"enp1s0\" }}"
-retry_join     = ["nomad0.local", "nomad1.local", "nomad2.local"]
+retry_join     = ["10.0.100.100", "10.0.100.101", "10.0.100.102"]
