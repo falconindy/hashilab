@@ -40,14 +40,19 @@ job "coredns" {
   bind {{ env "NOMAD_IP_dns" }}
   bind 172.17.0.1
   forward . 8.8.8.8
+  cache {
+    serve_stale 24h
+    prefetch 10 1m 20%
+  }
   whoami
   errors
   prometheus {{ env "NOMAD_IP_metrics" }}:9153
 }
-consul.:53 home.:53 {
+home.:53 consul.:53 {
   bind {{ env "NOMAD_IP_dns" }}
   bind 172.17.0.1
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
+  cache
   whoami
   errors
   prometheus {{ env "NOMAD_IP_metrics" }}:9153
