@@ -126,6 +126,21 @@ scrape_configs:
         replacement: $1:9153
         target_label: __address__
 
+  - job_name: 'omada'
+    metrics_path: /metrics
+    scheme: http
+    scrape_interval: 30s
+    scrape_timeout: 20s
+    consul_sd_configs:
+      - server: '{{ env "NOMAD_IP_http" }}:8500'
+        services: ['omada-exporter']
+        scheme: http
+    relabel_configs:
+      - source_labels: ['__meta_consul_dc']
+        target_label:  'dc'
+      - source_labels: ['__meta_consul_node']
+        target_label:  'host'
+
 EOH
 
         destination   = "local/prometheus.yml"
