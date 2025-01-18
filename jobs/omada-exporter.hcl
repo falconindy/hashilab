@@ -34,7 +34,7 @@ job "omada-exporter" {
       }
 
       env {
-        OMADA_HOST = "https://omada.falconindy.com"
+        OMADA_HOST = "http://10.0.1.100:10081"
         OMADA_USER = "prometheus"
         OMADA_SITE = "Default"
         OMADA_PORT = "${NOMAD_PORT_metrics}"
