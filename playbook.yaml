@@ -20,7 +20,9 @@
     - name: Install Apt packages
       ansible.builtin.apt:
         name:
+          - vim
           - keepalived
+          - docker.io
           - nomad
           - consul
           - vault
@@ -39,6 +41,11 @@
         - nomad.service
         - consul.service
         - vault.service
+
+    - name: Setup sane editor
+      alternatives:
+        name: editor
+        path: /usr/bin/vim.basic
 
 - name: Deploy configurations
   hosts: homelab
