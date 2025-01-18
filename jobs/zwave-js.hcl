@@ -1,4 +1,7 @@
 job "zwave-js" {
+  datacenters = ["dc1"]
+  type        = "service"
+
   constraint {
     attribute = "${meta.has_zwave}"
     operator  = "="
