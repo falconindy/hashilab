@@ -13,6 +13,10 @@ leave_on_terminate = true
 domain = "home."
 alt_domain = "consul."
 
+encrypt = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
+encrypt_verify_incoming = true
+encrypt_verify_outgoing = true
+
 ui_config {
   enabled = true
 }
