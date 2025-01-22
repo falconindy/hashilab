@@ -19,7 +19,7 @@ job "mealie" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/mealie-recipes/mealie:v2.4.2"
+        image = "ghcr.io/mealie-recipes/mealie:v2.5.0"
         ports = ["http"]
       }
 
