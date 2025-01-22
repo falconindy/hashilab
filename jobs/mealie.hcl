@@ -19,7 +19,7 @@ job "mealie" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/mealie-recipes/mealie:v2.4.2"
+        image = "ghcr.io/mealie-recipes/mealie:v2.5.0"
         ports = ["http"]
       }
 
@@ -75,6 +75,13 @@ job "mealie" {
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
           "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=letsEncrypt",
         ]
+
+        check {
+          type     = "http"
+          path     = "/api/app/about"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
