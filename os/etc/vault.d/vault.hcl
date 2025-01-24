@@ -41,6 +41,11 @@ storage "raft" {
   }
 }
 
+telemetry {
+  disable_hostname = true
+  prometheus_retention_time = "12h"
+}
+
 # HTTP listener for local connections
 listener "tcp" {
   address     = "172.17.0.1:8200"

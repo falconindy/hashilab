@@ -21,6 +21,14 @@ job "prometheus" {
       driver = "docker"
       user   = "1000:2000"
 
+      vault {}
+
+      identity {
+        name = "vault_default"
+        aud  = ["vault.io"]
+        ttl  = "1h"
+      }
+
       volume_mount {
         volume      = "prometheus"
         destination = "/opt/prometheus"
@@ -90,6 +98,24 @@ scrape_configs:
         regex: ([^:]+):.*
         replacement: $1:8500
         target_label: __address__
+
+  - job_name: 'vault'
+    metrics_path: /v1/sys/metrics
+    scheme: https
+    authorization:
+      credentials: "hvs.CAESICyMF9VktWZ24GzzMdyxp4vU8WjKXjfSyWbdMVgbPzt8Gh4KHGh2cy5rMFJWY0JMZkdIRUdaY283QWxkQU8yUW4"
+    params:
+      format: ['prometheus']
+    tls_config:
+      insecure_skip_verify: true
+    consul_sd_configs:
+      - server: {{ env "NOMAD_IP_http" }}:8500
+        services: ['vault']
+    relabel_configs:
+      - source_labels: ['__meta_consul_dc']
+        target_label:  'dc'
+      - source_labels: ['__meta_consul_node']
+        target_label:  'host'
 
   - job_name: 'traefik'
     metrics_path: /metrics
