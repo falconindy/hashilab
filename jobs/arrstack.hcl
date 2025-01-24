@@ -80,7 +80,7 @@ job "arrstack" {
       driver = "docker"
 
       config {
-        image = "linuxserver/prowlarr:1.29.2"
+        image = "linuxserver/prowlarr:1.30.2"
         ports = ["prowlarr"]
       }
 
