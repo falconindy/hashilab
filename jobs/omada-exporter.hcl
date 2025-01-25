@@ -34,7 +34,7 @@ job "omada-exporter" {
       }
 
       env {
-        OMADA_HOST = "http://10.0.1.100:10081"
+        OMADA_HOST = "http://omada-controller.service.home:8088"
         OMADA_USER = "prometheus"
         OMADA_SITE = "Default"
         OMADA_PORT = "${NOMAD_PORT_metrics}"
