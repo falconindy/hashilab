@@ -157,12 +157,6 @@ EOF
         data        = <<EOF
 http:
   routers:
-    omada:
-      rule: "Host(`omada.falconindy.com`)"
-      entrypoints: "https"
-      tls:
-        certresolver: "letsEncrypt"
-      service: "omada"
     nasty:
       rule: "Host(`dsm.falconindy.com`)"
       entrypoints: "https"
@@ -171,11 +165,6 @@ http:
       service: "nasty"
 
   services:
-    omada:
-      loadBalancer:
-        servers:
-        - url: "http://10.0.1.100:10081"
-
     nasty:
       loadBalancer:
         servers:
