@@ -39,7 +39,7 @@ job "jellyfin" {
       driver = "docker"
 
       config {
-        image = "linuxserver/jellyfin:10.10.4"
+        image = "linuxserver/jellyfin:10.10.5"
         ports = ["http"]
 
         devices = [
