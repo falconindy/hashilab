@@ -1,20 +1,19 @@
-id           = "tailscale"
-name         = "tailscale"
-type         = "csi"
-plugin_id    = "org.democratic-csi.iscsi"
-capacity_min = "10MiB"
-capacity_max = "10MiB"
+plugin_id = "nfs"
+type      = "csi"
+id        = "tailscale"
+name      = "tailscale"
 
 capability {
   access_mode     = "single-node-writer"
-  attachment_mode = "block-device"
+  attachment_mode = "file-system"
 }
 
 context {
-  node_attach_driver = "iscsi"
+  server = "nasty.node.home"
+  share  = "/volume1/tailscale"
 }
 
 mount_options {
-  fs_type     = "ext4"
-  mount_flags = ["noatime"]
+  fs_type     = "nfs"
+  mount_flags = ["timeo=30", "vers=4.1", "nolock", "sync"]
 }
