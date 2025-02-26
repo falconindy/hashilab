@@ -155,8 +155,8 @@ scrape_configs:
   - job_name: 'omada'
     metrics_path: /metrics
     scheme: http
-    scrape_interval: 10s
-    scrape_timeout: 5s
+    scrape_interval: 30s
+    scrape_timeout: 25s
     consul_sd_configs:
       - server: '{{ env "NOMAD_IP_http" }}:8500'
         services: ['omada-exporter']
