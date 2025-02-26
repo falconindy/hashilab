@@ -176,7 +176,7 @@ EOH
       }
 
       config {
-        image = "prom/prometheus:v3.2.0"
+        image = "prom/prometheus:v3.2.1"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--web.listen-address", "${NOMAD_ADDR_http}",
