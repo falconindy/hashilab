@@ -35,7 +35,7 @@ job "zwave-js" {
       kill_signal = "SIGINT"
 
       config {
-        image = "zwavejs/zwave-js-ui:9.31.0"
+        image = "zwavejs/zwave-js-ui:9.33.0"
         ports = ["http", "ws"]
 
         devices = [
