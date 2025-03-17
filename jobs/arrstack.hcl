@@ -174,7 +174,7 @@ job "arrstack" {
       driver = "docker"
 
       config {
-        image = "linuxserver/sonarr:4.0.13"
+        image = "linuxserver/sonarr:4.0.14"
         ports = ["sonarr"]
       }
 
