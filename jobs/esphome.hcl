@@ -31,7 +31,7 @@ job "esphome" {
     task "dashboard" {
       driver = "docker"
       config {
-        image        = "esphome/esphome:2025.2.2"
+        image        = "esphome/esphome:2025.3.0"
         network_mode = "host"
         ports        = ["http"]
         volumes = [
