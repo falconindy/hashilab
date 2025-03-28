@@ -33,7 +33,7 @@ job "teslamate" {
       driver = "docker"
 
       config {
-        image = "teslamate/teslamate:1.32"
+        image = "teslamate/teslamate:1.33"
         ports = ["http"]
       }
 
