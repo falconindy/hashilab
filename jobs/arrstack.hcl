@@ -127,7 +127,7 @@ job "arrstack" {
       driver = "docker"
 
       config {
-        image = "linuxserver/radarr:5.21.1"
+        image = "linuxserver/radarr:5.22.4"
         ports = ["radarr"]
       }
 
