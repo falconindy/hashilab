@@ -11,7 +11,7 @@ capability {
 context {
   server = "nasty.node.home"
   share  = "/volume1/postgres"
-  subDir = "15"
+  subDir = "17"
 }
 
 mount_options {
