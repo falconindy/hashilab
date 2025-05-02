@@ -102,8 +102,7 @@ scrape_configs:
   - job_name: 'vault'
     metrics_path: /v1/sys/metrics
     scheme: https
-    authorization:
-      credentials: "hvs.CAESICyMF9VktWZ24GzzMdyxp4vU8WjKXjfSyWbdMVgbPzt8Gh4KHGh2cy5rMFJWY0JMZkdIRUdaY283QWxkQU8yUW4"
+    bearer_token: "hvs.CAESILKrHCZcCUyoeSUeerh4UXFREhS-kwtGji-IMvPybHq6Gh4KHGh2cy41ODZPZ21BY21PZVNjNjIyelBobXByek0"
     params:
       format: ['prometheus']
     tls_config:
@@ -176,7 +175,7 @@ EOH
       }
 
       config {
-        image = "prom/prometheus:v3.3.0"
+        image = "prom/prometheus:v3.3.1"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--web.listen-address", "${NOMAD_ADDR_http}",
