@@ -32,7 +32,7 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "docker"
       config {
-        image = "mbentley/omada-controller:5.15.20.20"
+        image = "mbentley/omada-controller:5.15.24.17"
         network_mode = "host"
       }
 
