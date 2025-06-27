@@ -1,0 +1,125 @@
+#!/bin/bash
+
+shopt -s extglob
+
+resolve_all() {
+  local r
+
+  # loosely detect and pass through UUIDs.
+  if [[ $1 == +([[:xdigit:]-]) ]]; then
+    r=("$1")
+  else
+    mapfile -t r < <(nomad job allocs -json "$1" |
+        jq -r 'map(select(.ClientStatus == "running")) | .[] .ID')
+  fi
+
+  printf '%s\n' "${r[@]}"
+}
+
+resolve_any() {
+  local resolved
+
+  # egalitarianism
+  resolve_all "$1" | shuf -n 1
+}
+
+resolve_only_one() {
+  local r
+
+  mapfile -t r < <(resolve_all "$1")
+
+  if (( ${#r[*]} > 1 )); then
+    {
+      echo "name resolved to more than one alloc:"
+      printf '\t%s\n' "${r[@]}"
+    } >&2
+    exit 1
+  fi
+
+  echo "${r[0]}"
+}
+
+cmd_lookupallocs() {
+  resolve_all "$1"
+}
+
+cmd_diff() {
+  local jobname=$(nomad run -output "$1" | jq -r .Job.Name)
+  [[ $jobname ]] || return 1
+
+  local current=$(nomad job inspect -hcl "$jobname")
+  [[ $current ]] || return 1
+
+  diff -u --label current --label future <(echo "$current") "$1"
+}
+
+cmd_dockerpull() {
+  local nodes image=$(nomad run -output "$1" | jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
+  mapfile -t nodes < <(nomad node status -json | jq -r '.[].Name')
+
+  for node in "${nodes[@]}"; do
+    ssh "$node".node.home docker pull "$image"
+  done
+}
+
+cmd_endpoint() {
+  local r resolved
+
+  mapfile -t resolved < <(resolve_all "$1")
+  [[ $resolved ]] || return 1
+
+  for r in "${resolved[@]}"; do
+    nomad alloc status -json "$r"  |
+        jq -r '"\(.NodeName)\t" + (
+            .AllocatedResources.Shared.Ports.[] |
+                "\(.Label):\thttp://\(.HostIP):\(.Value)"
+          )' |
+        column -t
+    echo
+  done
+}
+
+cmd_exec() {
+  local resolved=$(resolve_any "$1")
+  [[ $resolved ]] || return 1
+
+  nomad alloc exec -t -i "$resolved" /bin/sh
+}
+
+cmd_ui() {
+  local args=()
+
+  if [[ $1 = -show-url ]]; then
+    args+=('-show-url')
+  fi
+
+  nomad ui -authenticate "${args[@]}"
+}
+
+known_commands() {
+  mapfile -t commands < <(compgen -A function cmd_)	
+
+  printf 'Known commands:\n'
+  printf '\t%s\n' "${commands[@]#cmd_}"
+}
+
+declare -A aliases=(
+  [la]=lookupallocs
+  [ep]=endpoint
+)
+
+if [[ ${aliases["$1"]} ]]; then
+  cmd=${aliases["$1"]}
+else
+  cmd=$1
+fi
+
+shift
+
+if ! declare -f "cmd_$cmd" &>/dev/null; then
+  printf 'no such command: %s\n' "$cmd" >&2
+  known_commands
+  exit 1
+fi
+
+"cmd_$cmd" "$@"
