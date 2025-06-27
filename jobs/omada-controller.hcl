@@ -18,7 +18,9 @@ job "omada-controller" {
 
     network {
       port "http"           { static = 8088 }
-      port "https"          { static = 8043 }
+      port "manage_https"   { static = 8043 }
+      port "portal_https"   { static = 8843 }
+      port "olt"            { static = 19810 }
       port "app_discovery"  { static = 27001 }
       port "discovery"      { static = 29810 }
       port "manager_v1"     { static = 29811 }
@@ -70,9 +72,9 @@ job "omada-controller" {
         PGID               = "508"
 
         MANAGE_HTTP_PORT   = "${NOMAD_PORT_http}"
-        MANAGE_HTTPS_PORT  = "${NOMAD_PORT_https}"
+        MANAGE_HTTPS_PORT  = "${NOMAD_PORT_manage_https}"
         PORTAL_HTTP_PORT   = "${NOMAD_PORT_http}"
-        PORTAL_HTTPS_PORT  = "${NOMAD_PORT_https}"
+        PORTAL_HTTPS_PORT  = "${NOMAD_PORT_portal_https}"
         PORT_APP_DISCOVERY = "${NOMAD_PORT_app_discovery}"
         PORT_ADOPT_V1      = "${NOMAD_PORT_adopt_v1}"
         PORT_UPGRADE_V1    = "${NOMAD_PORT_upgrade_v1}"
