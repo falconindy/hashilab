@@ -33,7 +33,7 @@ job "postgres" {
       driver = "docker"
 
       config {
-        image = "postgres:17.4"
+        image = "postgres:17.5"
         ports = ["db"]
       }
 
