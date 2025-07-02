@@ -3,7 +3,7 @@
   "packageRules": [
     {
       "matchPackageNames": ["postgres"],
-      "enabled": false
+      "allowedVersions": "/^17\\..+/"
     },
     {
       "matchPackageNames": ["linuxserver/deluge"],
