@@ -64,14 +64,14 @@
         dest: /etc/nomad.d
       when:
         # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
-        usb_devices | map(attribute='id') | select('contains', '1a86:55d4')
+        "'1a86:55d4' in usb_devices | map(attribute='id')"
 
     - name: Deploy Quicksync capability marker
       ansible.builtin.copy:
         src: os/etc/nomad.meta/has_quicksync.hcl
         dest: /etc/nomad.d
       when:
-        ansible_processor | select('contains', 'Intel(R) N100')
+        "'Intel(R) N100' in ansible_processor"
 
     - name: Deploy UPS capability marker
       ansible.builtin.copy:
@@ -79,7 +79,15 @@
         dest: /etc/nomad.d
       when:
         # 051d:0003: American Power Conversion UPS
-        usb_devices | map(attribute='id') | select('contains', '051d:0003')
+        "'051d:0003' in usb_devices | map(attribute='id')"
+
+    - name: Deploy rtl_433 service
+      ansible.builtin.copy:
+        src: os/etc/systemd/system/rtl_433.service
+        dest: /etc/systemd/system/
+      when:
+        # Realtek Semiconductor Corp. RTL2838 DVB-T
+        "'0bda:2838' in usb_devices | map(attribute='id')"
 
     - name: systemd
       ansible.builtin.copy:

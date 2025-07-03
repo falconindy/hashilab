@@ -1,0 +1,9 @@
+[Unit]
+Description=rtl_433
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rtl_433 -C si -F log -F mqtt://mosquitto.service.home,user=rtl_433,pass=966ed840de43652cf527571de78b5c1f,events=rtl_433[/model][/id]
+
+[Install]
+WantedBy=multi-user.target
