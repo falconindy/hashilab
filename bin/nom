@@ -54,12 +54,33 @@ cmd_diff() {
 }
 
 cmd_dockerpull() {
-  local nodes image=$(nomad run -output "$1" | jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
+  local node nodes image=$(nomad run -output "$1" |
+      jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
   mapfile -t nodes < <(nomad node status -json | jq -r '.[].Name')
 
+  declare -A logs
   for node in "${nodes[@]}"; do
-    ssh "$node".node.home docker pull "$image"
+    (
+      if ssh "$node".node.home docker pull "$image" &>/tmp/dockerpull.$node; then
+        echo "SUCCESS: dockerpull done on $node"
+      else
+        echo "ERROR: dockerpull on $node failed; check /tmp/dockerpull.$node"
+        false
+      fi
+    ) &
+    logs[$node]=$!
   done
+
+  local r=0
+  for node in "${!logs[@]}"; do
+    if wait -n "${logs[$node]}"; then
+      rm "/tmp/dockerpull.$node"
+    else
+      r=1
+    fi
+  done
+
+  return $r
 }
 
 cmd_endpoint() {
