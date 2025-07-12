@@ -22,7 +22,7 @@ job "mosquitto" {
     task "mosquitto" {
       driver = "docker"
       config {
-        image      = "eclipse-mosquitto:2.0.21"
+        image      = "eclipse-mosquitto:2.0.22"
         privileged = true
         ports      = ["mqtt"]
       }
