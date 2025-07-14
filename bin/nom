@@ -127,6 +127,7 @@ known_commands() {
 declare -A aliases=(
   [la]=lookupallocs
   [ep]=endpoint
+  [dp]=dockerpull
 )
 
 if [[ ${aliases["$1"]} ]]; then
