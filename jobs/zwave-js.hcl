@@ -30,7 +30,7 @@ job "zwave-js" {
     }
 
     task "zwave-js" {
-      driver = "docker"
+      driver = "podman"
 
       kill_signal = "SIGINT"
 
@@ -39,11 +39,7 @@ job "zwave-js" {
         ports = ["http", "ws"]
 
         devices = [
-          {
-            host_path          = "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00"
-            container_path     = "/dev/zwave"
-            cgroup_permissions = "rw"
-          }
+          "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00:/dev/zwave:rw",
         ]
       }
 
@@ -53,8 +49,9 @@ job "zwave-js" {
       }
 
       service {
-        port = "http"
-        name = "zwave-js"
+        port         = "http"
+        name         = "zwave-js"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
