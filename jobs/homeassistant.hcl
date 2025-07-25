@@ -19,7 +19,7 @@ job "homeassistant" {
     }
 
     task "homeassistant" {
-      driver = "docker"
+      driver = "podman"
       config {
         image        = "homeassistant/home-assistant:2025.7.3"
         network_mode = "host"
@@ -36,8 +36,9 @@ job "homeassistant" {
       }
 
       service {
-        port = "http"
-        name = "homeassistant"
+        port         = "http"
+        address_mode = "host"
+        name         = "homeassistant"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
