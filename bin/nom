@@ -53,18 +53,22 @@ cmd_diff() {
   diff -u --label current --label future <(echo "$current") "$1"
 }
 
-cmd_dockerpull() {
-  local node nodes image=$(nomad run -output "$1" |
-      jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
+cmd_prepull() {
+  local driver node nodes image
+
+  image=$(nomad run -output "$1" |
+    jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
+  driver=$(nomad run -output "$1" |
+    jq -r '.Job.TaskGroups[0].Tasks[0].Driver')
   mapfile -t nodes < <(nomad node status -json | jq -r '.[].Name')
 
   declare -A logs
   for node in "${nodes[@]}"; do
     (
-      if ssh "$node".node.home docker pull "$image" &>/tmp/dockerpull.$node; then
-        echo "SUCCESS: dockerpull done on $node"
+      if ssh "$node".node.home "$driver" pull "$image" &>/tmp/prepull.$node; then
+        echo "SUCCESS: prepull done on $node"
       else
-        echo "ERROR: dockerpull on $node failed; check /tmp/dockerpull.$node"
+        echo "ERROR: prepull on $node failed; check /tmp/dockerpull.$node"
         false
       fi
     ) &
@@ -74,7 +78,7 @@ cmd_dockerpull() {
   local r=0
   for node in "${!logs[@]}"; do
     if wait -n "${logs[$node]}"; then
-      rm "/tmp/dockerpull.$node"
+      rm "/tmp/prepull.$node"
     else
       r=1
     fi
@@ -127,7 +131,7 @@ known_commands() {
 declare -A aliases=(
   [la]=lookupallocs
   [ep]=endpoint
-  [dp]=dockerpull
+  [pp]=prepull
 )
 
 if [[ ${aliases["$1"]} ]]; then

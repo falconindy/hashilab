@@ -23,6 +23,7 @@
           - vim
           - keepalived
           - docker.io
+          - podman
           - nomad
           - consul
           - vault
@@ -41,6 +42,7 @@
         - nomad.service
         - consul.service
         - vault.service
+        - podman.service
 
     - name: Setup sane editor
       alternatives:
@@ -123,6 +125,11 @@
         dest: /etc/keepalived/keepalived.conf
       notify:
         - Restart keepalived
+
+    - name: containers registries
+      ansible.builtin.copy:
+        src: os/etc/containers/registries.conf
+        dest: /etc/containers/registries.conf
 
     - name: consul
       ansible.builtin.copy:

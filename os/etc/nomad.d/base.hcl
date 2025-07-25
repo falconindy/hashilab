@@ -4,6 +4,7 @@
 # Full configuration options can be found at https://developer.hashicorp.com/nomad/docs/configuration
 
 data_dir  = "/opt/nomad/data"
+plugin_dir  = "/opt/nomad/plugins"
 bind_addr = "0.0.0.0"
 
 advertise {
