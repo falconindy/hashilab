@@ -29,7 +29,7 @@ job "esphome" {
 
 
     task "dashboard" {
-      driver = "docker"
+      driver = "podman"
       config {
         image        = "esphome/esphome:2025.7.0"
         network_mode = "host"
@@ -52,8 +52,9 @@ job "esphome" {
       }
 
       service {
-        port = "http"
-        name = "esphome"
+        port         = "http"
+        name         = "esphome"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           # http rule is still needed in order for HASS to do whatever polling
