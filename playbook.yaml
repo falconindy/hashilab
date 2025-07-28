@@ -25,6 +25,7 @@
           - docker.io
           - podman
           - nomad
+          - nomad-driver-podman
           - consul
           - vault
         dpkg_options: 'force-confdef,force-confold'
