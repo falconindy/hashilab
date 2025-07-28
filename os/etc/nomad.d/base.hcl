@@ -4,7 +4,6 @@
 # Full configuration options can be found at https://developer.hashicorp.com/nomad/docs/configuration
 
 data_dir  = "/opt/nomad/data"
-plugin_dir  = "/opt/nomad/plugins"
 bind_addr = "0.0.0.0"
 
 advertise {
@@ -66,6 +65,14 @@ plugin "docker" {
     allow_privileged = true
     allow_caps       = ["ALL"]
 
+    volumes {
+      enabled = "true"
+    }
+  }
+}
+
+plugin "nomad-driver-podman" {
+  config {
     volumes {
       enabled = "true"
     }
