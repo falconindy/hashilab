@@ -32,10 +32,14 @@ job "omada-controller" {
     }
 
     task "omada-controller" {
-      driver = "docker"
+      driver = "podman"
       config {
         image = "mbentley/omada-controller:5.15.24.18"
         network_mode = "host"
+
+        ulimit {
+          nofile = "4096:8192"
+        }
       }
 
       volume_mount {
@@ -52,6 +56,7 @@ job "omada-controller" {
 
       service {
         port = "http"
+        address_mode = "host"
         name = "omada-controller"
         tags = [
           "traefik.enable=true",
@@ -70,19 +75,6 @@ job "omada-controller" {
       env {
         PUID               = "508"
         PGID               = "508"
-
-        MANAGE_HTTP_PORT   = "${NOMAD_PORT_http}"
-        MANAGE_HTTPS_PORT  = "${NOMAD_PORT_manage_https}"
-        PORTAL_HTTP_PORT   = "${NOMAD_PORT_http}"
-        PORTAL_HTTPS_PORT  = "${NOMAD_PORT_portal_https}"
-        PORT_APP_DISCOVERY = "${NOMAD_PORT_app_discovery}"
-        PORT_ADOPT_V1      = "${NOMAD_PORT_adopt_v1}"
-        PORT_UPGRADE_V1    = "${NOMAD_PORT_upgrade_v1}"
-        PORT_MANAGER_V1    = "${NOMAD_PORT_manager_v1}"
-        PORT_MANAGER_V2    = "${NOMAD_PORT_manager_v2}"
-        PORT_DISCOVERY     = "${NOMAD_PORT_discovery}"
-        PORT_TRANSFER_V2   = "${NOMAD_PORT_transfer_v2}"
-        PORT_RTTY          = "${NOMAD_PORT_rtty}"
 
         SHOW_SERVER_LOGS   = "true"
         SHOW_MONGODB_LOGS  = "false"
