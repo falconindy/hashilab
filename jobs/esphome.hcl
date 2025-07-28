@@ -31,7 +31,7 @@ job "esphome" {
     task "dashboard" {
       driver = "podman"
       config {
-        image        = "esphome/esphome:2025.7.0"
+        image        = "esphome/esphome:2025.7.4"
         network_mode = "host"
         ports        = ["http"]
         volumes = [
