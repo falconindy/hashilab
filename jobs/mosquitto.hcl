@@ -34,8 +34,15 @@ job "mosquitto" {
       }
 
       service {
-        name = "mosquitto"
-        port = "mqtt"
+        name         = "mosquitto"
+        port         = "mqtt"
+
+        check {
+          type     = "tcp"
+          port     = "mqtt"
+          interval = "30s"
+          timeout  = "2s"
+        }
       }
 
       resources {
