@@ -54,7 +54,7 @@ job "arrstack" {
     }
 
     task "await-deluge" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image   = "busybox:latest"
@@ -77,7 +77,7 @@ job "arrstack" {
     }
 
     task "prowlarr" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "linuxserver/prowlarr:1.37.0"
@@ -104,6 +104,7 @@ job "arrstack" {
       service {
         name = "prowlarr"
         port = "prowlarr"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
@@ -124,7 +125,7 @@ job "arrstack" {
     }
 
     task "radarr" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "linuxserver/radarr:5.26.2"
@@ -151,6 +152,7 @@ job "arrstack" {
       service {
         name = "radarr"
         port = "radarr"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
@@ -171,7 +173,7 @@ job "arrstack" {
     }
 
     task "sonarr" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "linuxserver/sonarr:4.0.15"
@@ -198,6 +200,7 @@ job "arrstack" {
       service {
         port = "sonarr"
         name = "sonarr"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
