@@ -36,18 +36,14 @@ job "jellyfin" {
     }
 
     task "jellyfin" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "linuxserver/jellyfin:10.10.7"
         ports = ["http"]
 
         devices = [
-          {
-            host_path          = "/dev/dri"
-            container_path     = "/dev/dri"
-            cgroup_permissions = "rw"
-          }
+          "/dev/dri",
         ]
       }
 
@@ -71,6 +67,7 @@ job "jellyfin" {
       service {
         port = "http"
         name = "jellyfin"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",

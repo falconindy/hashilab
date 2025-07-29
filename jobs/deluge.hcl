@@ -41,7 +41,7 @@ job "deluge" {
 
 
     task "deluge" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "linuxserver/deluge:amd64-2.2.0"
@@ -68,6 +68,7 @@ job "deluge" {
       service {
         name = "deluge"
         port = "deluge"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",

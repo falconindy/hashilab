@@ -19,7 +19,7 @@ job "mqtt-explorer" {
     }
 
     task "mqtt-explorer" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "smeagolworms4/mqtt-explorer:browser-1.0.3"
@@ -28,6 +28,7 @@ job "mqtt-explorer" {
       service {
         name = "mqtt-explorer"
         port = "http"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
