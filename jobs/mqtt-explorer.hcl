@@ -26,8 +26,8 @@ job "mqtt-explorer" {
       }
 
       service {
-        name = "mqtt-explorer"
-        port = "http"
+        name         = "mqtt-explorer"
+        port         = "http"
         address_mode = "host"
         tags = [
           "traefik.enable=true",

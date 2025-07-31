@@ -47,7 +47,7 @@ job "grafana" {
       driver = "podman"
       user   = "1000:1000"
       config {
-        image       = "grafana/grafana:12.1.0"
+        image  = "grafana/grafana:12.1.0"
         userns = "host"
       }
       volume_mount {
@@ -64,8 +64,8 @@ job "grafana" {
         GF_USERS_ALLOW_SIGN_UP = "false"
       }
       service {
-        port = "http"
-        name = "grafana"
+        port         = "http"
+        name         = "grafana"
         address_mode = "host"
         tags = [
           "traefik.enable=true",

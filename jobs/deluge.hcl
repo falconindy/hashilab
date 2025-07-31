@@ -66,8 +66,8 @@ job "deluge" {
       }
 
       service {
-        name = "deluge"
-        port = "deluge"
+        name         = "deluge"
+        port         = "deluge"
         address_mode = "host"
         tags = [
           "traefik.enable=true",
