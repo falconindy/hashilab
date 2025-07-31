@@ -14,7 +14,7 @@ job "tailscale" {
     }
 
     task "tailscale" {
-      driver = "docker"
+      driver = "podman"
       config {
         image        = "tailscale/tailscale:v1.84.3"
         entrypoint   = ["/local/start.sh"]
