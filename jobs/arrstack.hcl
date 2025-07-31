@@ -102,8 +102,8 @@ job "arrstack" {
       }
 
       service {
-        name = "prowlarr"
-        port = "prowlarr"
+        name         = "prowlarr"
+        port         = "prowlarr"
         address_mode = "host"
         tags = [
           "traefik.enable=true",
@@ -150,8 +150,8 @@ job "arrstack" {
       }
 
       service {
-        name = "radarr"
-        port = "radarr"
+        name         = "radarr"
+        port         = "radarr"
         address_mode = "host"
         tags = [
           "traefik.enable=true",
@@ -198,8 +198,8 @@ job "arrstack" {
       }
 
       service {
-        port = "sonarr"
-        name = "sonarr"
+        port         = "sonarr"
+        name         = "sonarr"
         address_mode = "host"
         tags = [
           "traefik.enable=true",
