@@ -6,7 +6,7 @@ job "cloudflare-ddns" {
     count = 1
 
     task "updater" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image        = "favonia/cloudflare-ddns:1.15.1"

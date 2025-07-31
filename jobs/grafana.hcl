@@ -21,7 +21,7 @@ job "grafana" {
     }
 
     task "prep-disk" {
-      driver = "docker"
+      driver = "podman"
       volume_mount {
         volume      = "grafana"
         destination = "/volume/"
@@ -44,11 +44,11 @@ job "grafana" {
     }
 
     task "server" {
-      driver = "docker"
+      driver = "podman"
       user   = "1000:1000"
       config {
         image       = "grafana/grafana:12.1.0"
-        userns_mode = "host"
+        userns = "host"
       }
       volume_mount {
         volume      = "grafana"
@@ -66,6 +66,7 @@ job "grafana" {
       service {
         port = "http"
         name = "grafana"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
