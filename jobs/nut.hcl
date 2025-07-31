@@ -18,18 +18,14 @@ job "nut" {
     }
 
     task "nut" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "instantlinux/nut-upsd:2.8.2-r2"
         ports = ["nut"]
 
         devices = [
-          {
-            host_path          = "/dev/bus/usb"
-            container_path     = "/dev/bus/usb"
-            cgroup_permissions = "rw"
-          }
+          "/dev/bus/usb:/dev/bus/usb:rw",
         ]
       }
 
@@ -38,8 +34,9 @@ job "nut" {
       }
 
       service {
-        name = "nut"
-        port = "nut"
+        name         = "nut"
+        port         = "nut"
+        address_mode = "host"
 
         check {
           type     = "tcp"

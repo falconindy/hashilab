@@ -20,11 +20,11 @@ job "mosquitto" {
     }
 
     task "mosquitto" {
-      driver = "docker"
+      driver = "podman"
       config {
-        image      = "eclipse-mosquitto:2.0.22"
-        privileged = true
-        ports      = ["mqtt"]
+        image        = "eclipse-mosquitto:2.0.22"
+        network_mode = "host"
+        ports        = ["mqtt"]
       }
 
       volume_mount {
@@ -36,6 +36,7 @@ job "mosquitto" {
       service {
         name         = "mosquitto"
         port         = "mqtt"
+        address_mode = "host"
 
         check {
           type     = "tcp"
