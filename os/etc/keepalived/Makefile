@@ -1,7 +1,7 @@
 OUTS = \
+	keepalived.nomad0.conf \
 	keepalived.nomad1.conf \
-	keepalived.nomad2.conf \
-	keepalived.nomad0.conf
+	keepalived.nomad2.conf
 
 keepalived.nomad0.conf: keepalived.conf.tmpl
 	KEEPALIVED_STATE=MASTER \

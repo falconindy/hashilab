@@ -6,9 +6,11 @@ data_dir      = "/opt/consul"
 enable_syslog = true
 log_level     = "WARN"
 
+{% if "homelab" in group_names %}
 server             = true
 bootstrap_expect   = 3
 leave_on_terminate = true
+{% endif %}
 
 domain = "home."
 alt_domain = "consul."
@@ -26,6 +28,6 @@ connect {
 }
 
 client_addr    = "0.0.0.0"
-advertise_addr = "{{ GetInterfaceIP \"enp1s0\" }}"
-bind_addr      = "{{ GetInterfaceIP \"enp1s0\" }}"
+advertise_addr = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
+bind_addr      = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
 retry_join     = ["10.0.100.100", "10.0.100.101", "10.0.100.102"]

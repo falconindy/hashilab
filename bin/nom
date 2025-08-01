@@ -134,6 +134,12 @@ declare -A aliases=(
   [pp]=prepull
 )
 
+if [[ -z $1 ]]; then
+  known_commands
+  exit 1
+
+fi
+
 if [[ ${aliases["$1"]} ]]; then
   cmd=${aliases["$1"]}
 else
