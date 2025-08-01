@@ -1,8 +1,13 @@
 homelab:
   hosts:
-    nomad0:
+    nomad0.node.home:
       ansible_host: 10.0.100.100
-    nomad1:
+    nomad1.node.home:
       ansible_host: 10.0.100.101
-    nomad2:
+    nomad2.node.home:
       ansible_host: 10.0.100.102
+
+bastion:
+  hosts:
+    bastion.node.home:
+      ansible_host: 10.0.1.99

@@ -7,9 +7,9 @@ data_dir  = "/opt/nomad/data"
 bind_addr = "0.0.0.0"
 
 advertise {
-  http = "{{{{ GetInterfaceIP \\"{{ ansible_facts['ansible_default_ipv4.interface'] }}\\" }}}}:4646"
-  rpc  = "{{{{ GetInterfaceIP \\"{{ ansible_facts['ansible_default_ipv4.interface'] }}\\" }}}}:4647"
-  serf = "{{{{ GetInterfaceIP \\"{{ ansible_facts['ansible_default_ipv4.interface'] }}\\" }}}}:4648"
+  http = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4646"
+  rpc  = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4647"
+  serf = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4648"
 }
 
 ui {

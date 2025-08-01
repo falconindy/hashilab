@@ -132,10 +132,15 @@
         src: os/etc/containers/registries.conf
         dest: /etc/containers/registries.conf
 
-    - name: consul
-      ansible.builtin.copy:
-        src: os/etc/consul.d
-        dest: /etc
+    - name: consul.hcl
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - src: os/etc/consul.d/consul.hcl.j2
+          dest: /etc/consul.d/consul.hcl
+        - src: os/etc/consul.d/consul.env
+          dest: /etc/consul.d/consul.env
       notify:
         - Restart consul
 
@@ -147,48 +152,55 @@
         - Restart vault
 
     - name: nomad
-      ansible.builtin.copy:
-        src: os/etc/nomad.d
-        dest: /etc
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - src: os/etc/nomad.d/base.hcl.j2
+          dest: /etc/nomad.d/base.hcl
+        - src: os/etc/nomad.d/client.hcl
+          dest: /etc/nomad.d/client.hcl
+        - src: os/etc/nomad.d/server.hcl
+          dest: /etc/nomad.d/server.hcl
       notify:
         - Restart nomad
 
   handlers:
     - name: Reexec systemd
-      ansible.builtin.systemd_service:
+      systemd_service:
         daemon_reexec: true
 
     - name: Restart keepalived
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: keepalived.service
         state: restarted
 
     - name: Restart nomad
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: nomad.service
         state: restarted
 
     - name: Restart consul
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: consul.service
         state: restarted
 
     - name: Restart vault
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: vault.service
         state: restarted
 
     - name: Apply sysctl
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: systemd-sysctl.service
         state: restarted
 
     - name: Start
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: systemd-resolved.service
         state: restarted
 
     - name: Reload systemd-networkd config
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: systemd-networkd.service
         state: reloaded
