@@ -1,0 +1,38 @@
+- name: Reexec systemd
+  systemd_service:
+    daemon_reexec: true
+
+- name: Restart keepalived
+  systemd_service:
+    name: keepalived.service
+    state: restarted
+
+- name: Restart nomad
+  systemd_service:
+    name: nomad.service
+    state: restarted
+
+- name: Restart consul
+  systemd_service:
+    name: consul.service
+    state: restarted
+
+- name: Restart vault
+  systemd_service:
+    name: vault.service
+    state: restarted
+
+- name: Apply sysctl
+  systemd_service:
+    name: systemd-sysctl.service
+    state: restarted
+
+- name: Start
+  systemd_service:
+    name: systemd-resolved.service
+    state: restarted
+
+- name: Reload systemd-networkd config
+  systemd_service:
+    name: systemd-networkd.service
+    state: reloaded
