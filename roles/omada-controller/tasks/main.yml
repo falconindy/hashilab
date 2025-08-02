@@ -1,0 +1,4 @@
+- name: Deploy omada-controller quadlet
+  copy:
+    src: podman/omada-controller.container
+    dest: /etc/containers/systemd/

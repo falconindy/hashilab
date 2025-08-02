@@ -5,17 +5,17 @@
     checksum: sha256:cafb01beac341bf2a9ba89793e6dd2468110291adfbb6c62ed11a0cde6c09029
 
 - name: Configure HashiCorp APT repository
-  copy:
-    content: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com {{ hashicorp_distribution_release }} main"
-    dest: /etc/apt/sources.list.d/hashicorp.list
+  apt_repository:
+    repo: deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com {{ hashicorp_distribution_release }} main
+    filename: hashicorp
+    state: present
 
 - name: Install Apt packages
   apt:
     name:
       - consul
       - docker.io
-      - nomad
-      - nomad-driver-podman
+      - systemd-resolved
       - podman
       - vim
     dpkg_options: 'force-confdef,force-confold'
@@ -28,7 +28,6 @@
   with_list:
     - consul.service
     - docker.service
-    - nomad.service
     - podman.service
     - systemd-networkd.service
     - systemd-resolved.service
@@ -37,20 +36,20 @@
 - name: systemd
   copy:
     src: os/etc/systemd/system-environment-generators
-    dest: /etc/systemd/system-environment-generators
+    dest: /etc/systemd/
   notify:
     - Reexec systemd
   tags: systemd
 
-- name: systemd-networkd
-  copy:
-    src: os/etc/systemd/network
-    dest: /etc/systemd
+- name: Update systemd-networkd config
+  template:
+    src: os/etc/systemd/network/80-dhcp.network.j2
+    dest: /etc/systemd/network/80-dhcp.network
   notify:
     - Reload systemd-networkd config
   tags: networkd
 
-- name: systemd-resolved
+- name: Update systemd-resolved config
   copy:
     src: os/etc/systemd/resolved.conf.d
     dest: /etc/systemd
@@ -75,16 +74,3 @@
   notify:
     - Restart consul
   tags: consul
-
-- name: Update nomad client config
-  template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-  loop:
-    - src: os/etc/nomad.d/base.hcl.j2
-      dest: /etc/nomad.d/base.hcl
-    - src: os/etc/nomad.d/client.hcl
-      dest: /etc/nomad.d/client.hcl
-  notify:
-    - Restart nomad
-  tags: nomad

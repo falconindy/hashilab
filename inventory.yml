@@ -10,7 +10,7 @@ homelab:
       ansible_host: 10.0.100.102
       keepalived_priority: 82
 
-bastion:
+extra:
   hosts:
     bastion.node.home:
       ansible_host: 10.0.1.99

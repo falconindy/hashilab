@@ -6,6 +6,37 @@
     - rtl_433
     - zwave
 
+# nomad
+- name: Install nomad package
+  apt:
+    name:
+      - nomad
+      - nomad-driver-podman
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+  tags: nomad
+
+- name: Enable nomad service
+  systemd_service:
+    name: nomad.service
+    enabled: true
+  tags: nomad
+
+- name: Update nomad config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/nomad.d/base.hcl.j2
+      dest: /etc/nomad.d/base.hcl
+    - src: os/etc/nomad.d/client.hcl
+      dest: /etc/nomad.d/client.hcl
+    - src: os/etc/nomad.d/server.hcl
+      dest: /etc/nomad.d/server.hcl
+  notify:
+    - Restart nomad
+  tags: nomad
+
 # keepalived
 - name: Install keepalived package
   apt:
@@ -90,10 +121,3 @@
   notify:
     - Apply sysctl
 
-- name: Update nomad server config
-  copy:
-    src: os/etc/nomad.d/server.hcl
-    dest: /etc/nomad.d/server.hcl
-  notify:
-    - Restart nomad
-  tags: nomad
