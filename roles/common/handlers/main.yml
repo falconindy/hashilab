@@ -7,7 +7,7 @@
     name: systemd-sysctl.service
     state: restarted
 
-- name: Restart resolved
+- name: Restart systemd-resolved
   systemd_service:
     name: systemd-resolved.service
     state: restarted

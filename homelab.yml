@@ -1,8 +1,8 @@
-- name: Install packages
+- name: Deploy Homelab roles
   hosts: homelab
   become: True
   become_method: sudo
   roles:
     - common
-    - cluster_client
-    - cluster_server
+    - node_base
+    - nomad_server

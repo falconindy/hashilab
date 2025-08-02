@@ -1,0 +1,8 @@
+- name: Deploy Extra roles
+  hosts: extra
+  become: True
+  become_method: sudo
+  roles:
+    - common
+    - node_base
+    - omada-controller
