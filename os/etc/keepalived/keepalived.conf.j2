@@ -1,13 +1,8 @@
 vrrp_instance VI_1 {
-{% if ansible_hostname == "nomad0" %}
-  state MASTER
-  priority 100
-{% else %}
-  state BACKUP
-  priority {{ 100 | random(start=80) }}
-{% endif %}
+  state {{ 'MASTER' if keepalived_priority == 100 else 'BACKUP' }}
   interface enp1s0
   virtual_router_id 51
+  priority {{ keepalived_priority }}
   advert_int 1
 
   authentication {
