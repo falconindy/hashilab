@@ -1,99 +1,99 @@
-- name: Install Apt packages
-  ansible.builtin.apt:
-    name:
-      - keepalived
-      - vault
-    dpkg_options: 'force-confdef,force-confold'
-    state: latest
-
-- name: Enable systemd services
-  ansible.builtin.systemd_service:
-    name: '{{ item }}'
-    enabled: true
-  with_list:
-    - keepalived.service
-    - vault.service
-
 - name: Gather USB facts
   community.general.usb_facts:
   register: usb_facts
+  tags:
+    - nomad
+    - rtl_433
+    - zwave
 
-- name: Deploy Z-Wave capability marker
-  ansible.builtin.copy:
-    src: os/etc/nomad.meta/has_zwave.hcl
-    dest: /etc/nomad.d
-  when:
-    # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
-    "'1a86:55d4' in usb_devices | map(attribute='id')"
+# keepalived
+- name: Install keepalived package
+  apt:
+    name: keepalived
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+  tags: keepalived
 
-- name: Deploy Quicksync capability marker
-  ansible.builtin.copy:
-    src: os/etc/nomad.meta/has_quicksync.hcl
-    dest: /etc/nomad.d
-  when:
-    "'Intel(R) N100' in ansible_processor"
+- name: Enable keepalived service
+  systemd_service:
+    name: keepalived.service
+    enabled: true
+  tags: keepalived
 
-- name: Deploy UPS capability marker
-  ansible.builtin.copy:
-    src: os/etc/nomad.meta/has_ups.hcl
-    dest: /etc/nomad.d
-  when:
-    # 051d:0003: American Power Conversion UPS
-    "'051d:0003' in usb_devices | map(attribute='id')"
-
-- name: Deploy rtl_433 service
-  ansible.builtin.copy:
-    src: os/etc/systemd/system/rtl_433.service
-    dest: /etc/systemd/system/
-  when:
-    # Realtek Semiconductor Corp. RTL2838 DVB-T
-    "'0bda:2838' in usb_devices | map(attribute='id')"
-
-- name: systemd
-  ansible.builtin.copy:
-    src: os/etc/systemd/system-environment-generators
-    dest: /etc/systemd/system-environment-generators
-  notify:
-    - Reexec systemd
-
-- name: systemd-network
-  ansible.builtin.copy:
-    src: os/etc/systemd/network
-    dest: /etc/systemd
-  notify:
-    - Reload systemd-networkd config
-
-- name: systemd-resolved
-  ansible.builtin.copy:
-    src: os/etc/systemd/resolved.conf.d
-    dest: /etc/systemd
-  notify:
-    - Restart systemd-resolved
-
-- name: sysctl
-  ansible.builtin.copy:
-    src: os/etc/sysctl.d
-    dest: /etc
-  notify:
-    - Apply sysctl
-
-- name: keepalived
+- name: Update keepalived config
   template:
     src: os/etc/keepalived/keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
   notify:
     - Restart keepalived
+  tags: keepalived
 
-- name: vault
-  ansible.builtin.copy:
+# vault
+- name: Install vault package
+  apt:
+    name: vault
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+  tags: vault
+
+- name: Enable vault service
+  systemd_service:
+    name: vault.service
+    enabled: true
+  tags: vault
+
+- name: Update vault configuration
+  copy:
     src: os/etc/vault.d
     dest: /etc
   notify:
     - Restart vault
+  tags: vault
 
-- name: nomad
+- name: Deploy Z-Wave capability marker
+  copy:
+    src: os/etc/nomad.meta/has_zwave.hcl
+    dest: /etc/nomad.d
+  when:
+    # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
+    "'1a86:55d4' in usb_devices | map(attribute='id')"
+  tags: zwave
+
+- name: Deploy Quicksync capability marker
+  copy:
+    src: os/etc/nomad.meta/has_quicksync.hcl
+    dest: /etc/nomad.d
+  when:
+    "'Intel(R) N100' in ansible_processor"
+  tags: nomad
+
+- name: Deploy UPS capability marker
+  copy:
+    src: os/etc/nomad.meta/has_ups.hcl
+    dest: /etc/nomad.d
+  when:
+    # 051d:0003: American Power Conversion UPS
+    "'051d:0003' in usb_devices | map(attribute='id')"
+  tags: nomad
+
+- name: Import rtl_433 tasks
+  import_tasks:
+    file: rtl_433.yml
+  when:
+    # Realtek Semiconductor Corp. RTL2838 DVB-T
+    "'0bda:2838' in usb_devices | map(attribute='id')"
+
+- name: sysctl
+  copy:
+    src: os/etc/sysctl.d
+    dest: /etc
+  notify:
+    - Apply sysctl
+
+- name: Update nomad server config
   copy:
     src: os/etc/nomad.d/server.hcl
     dest: /etc/nomad.d/server.hcl
   notify:
     - Restart nomad
+  tags: nomad
