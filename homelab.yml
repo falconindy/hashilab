@@ -1,8 +1,0 @@
-- name: Deploy Homelab roles
-  hosts: homelab
-  become: True
-  become_method: sudo
-  roles:
-    - common
-    - node_base
-    - nomad_server

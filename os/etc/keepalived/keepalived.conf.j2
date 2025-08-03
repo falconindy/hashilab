@@ -24,7 +24,7 @@ virtual_server 10.0.100.109 {
   lb_kind NAT
   protocol TCP
 
-{% for host in groups["homelab"] %}
+{% for host in groups["dc1"] %}
   real_server {{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }} 443 {
     TCP_CHECK {
       connect_timeout 5

@@ -1,4 +1,7 @@
 job "omada-controller" {
+  datacenters = ["dc2"]
+  type        = "service"
+
   group "omada-controller" {
     volume "data" {
       type            = "csi"
@@ -34,12 +37,8 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "podman"
       config {
-        image = "mbentley/omada-controller:5.15.24.18"
+        image = "mbentley/omada-controller:5.15.24.19"
         network_mode = "host"
-
-        ulimit {
-          nofile = "4096:8192"
-        }
       }
 
       volume_mount {
@@ -62,7 +61,7 @@ job "omada-controller" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
           # "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
+          # "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
 
         check {
@@ -85,7 +84,7 @@ job "omada-controller" {
 
       resources {
         cpu    = 200
-        memory = 3072
+        memory = 2048
       }
     }
   }

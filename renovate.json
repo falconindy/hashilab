@@ -25,19 +25,6 @@
       "matchStrings": [
         "\\s*image\\s*=\\s*\\\"(?<depName>.*?):([a-z0-9]+-)?(?<currentValue>.*?)\\\""
       ]
-    },
-    {
-      "description": "Update container images in Podman Quadlet (.container) files",
-      "datasourceTemplate": "docker",
-      "versioningTemplate": "docker",
-      "fileMatch": [
-        "podman/.+\\.container$"
-      ],
-      "matchStrings": [
-        "(?<indentation>\\n\\s*)Image\\s*=\\s*(?<depName>[a-zA-Z0-9/._-]+)(?::(?<currentValue>[a-zA-Z0-9._-]+))?(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
-      ],
-      "matchStringsStrategy": "any",
-      "autoReplaceStringTemplate": "{{{indentation}}}Image={{{depName}}}{{#if newValue}}:{{{newValue}}}{{/if}}{{#if newDigest}}@{{{newDigest}}}{{/if}}"
     }
   ]
 }
