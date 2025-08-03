@@ -5,6 +5,7 @@
 
 data_dir  = "/opt/nomad/data"
 bind_addr = "0.0.0.0"
+datacenter = "{{ nomad_datacenter }}"
 
 advertise {
   http = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4646"
