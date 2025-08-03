@@ -3,14 +3,18 @@ homelab:
     nomad0.node.home:
       ansible_host: 10.0.100.100
       keepalived_priority: 100
+      nomad_datacenter: dc1
     nomad1.node.home:
       ansible_host: 10.0.100.101
       keepalived_priority: 81
+      nomad_datacenter: dc1
     nomad2.node.home:
       ansible_host: 10.0.100.102
       keepalived_priority: 82
+      nomad_datacenter: dc1
 
 extra:
   hosts:
     bastion.node.home:
       ansible_host: 10.0.1.99
+      nomad_datacenter: dc2
