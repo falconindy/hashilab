@@ -1,5 +1,5 @@
 job "csi-nfs-plugin" {
-  datacenters = ["dc1"]
+  datacenters = ["*"]
   type        = "system"
 
   group "nfs" {

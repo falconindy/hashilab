@@ -74,3 +74,24 @@
   notify:
     - Restart consul
   tags: consul
+
+- name: Update nomad config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/nomad.d/base.hcl.j2
+      dest: /etc/nomad.d/base.hcl
+    - src: os/etc/nomad.d/client.hcl
+      dest: /etc/nomad.d/client.hcl
+  notify:
+    - Restart nomad
+  tags: nomad
+
+- name: sysctl
+  copy:
+    src: os/etc/sysctl.d
+    dest: /etc
+  notify:
+    - Apply sysctl
+  tags: sysctl

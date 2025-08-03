@@ -1,0 +1,22 @@
+- name: Install vault package
+  apt:
+    name: vault
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+  tags: vault
+
+- name: Enable vault service
+  systemd_service:
+    name: vault.service
+    enabled: true
+  tags: vault
+
+- name: Update vault configuration
+  copy:
+    src: os/etc/vault.d
+    dest: /etc
+  notify:
+    - Restart vault
+  tags: vault
+
+

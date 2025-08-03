@@ -1,0 +1,8 @@
+- name: Deploy dc1 roles
+  hosts: dc1
+  become: True
+  become_method: sudo
+  roles:
+    - common
+    - nomad-client
+    - nomad-server
