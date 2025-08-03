@@ -54,12 +54,6 @@ job "traefik" {
         ]
       }
 
-      env {
-        # Workaround for https://github.com/traefik/traefik/issues/11405
-        # TODO: remove with release of traefik >3.3.
-        GODEBUG = "http2xconnect=0"
-      }
-
       vault {}
 
       identity {
@@ -185,10 +179,6 @@ http:
       headers:
         customResponseHeaders:
           X-Backend-Name: {{ env "attr.unique.hostname" }}
-
-    authelia:
-      forwardAuth:
-        address: 'http://authelia.service.home:9091/api/authz/forward-auth'
 EOF
         destination = "local/static_providers.yml"
       }
