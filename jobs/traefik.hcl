@@ -38,7 +38,7 @@ job "traefik" {
     }
 
     task "traefik" {
-      driver = "docker"
+      driver = "podman"
 
       volume_mount {
         volume      = "letsencrypt"
