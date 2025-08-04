@@ -5,6 +5,12 @@ job "cloudflare-ddns" {
   group "cloudflare-ddns" {
     count = 1
 
+    network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+    }
+
     task "updater" {
       driver = "podman"
 

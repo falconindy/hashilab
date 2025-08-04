@@ -14,6 +14,10 @@ job "mosquitto" {
     }
 
     network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "mqtt" {
         static = 1883
       }

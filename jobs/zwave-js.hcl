@@ -12,6 +12,10 @@ job "zwave-js" {
     network {
       mode = "bridge"
 
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "http" {
         to = 8091
       }

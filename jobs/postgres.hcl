@@ -12,6 +12,10 @@ job "postgres" {
     }
 
     network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "db" {
         static = 5432
       }

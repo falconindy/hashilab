@@ -5,6 +5,12 @@ job "tailscale" {
   group "networking" {
     count = 1
 
+    network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+    }
+
     volume "tailscale" {
       type            = "csi"
       read_only       = false
@@ -85,4 +91,3 @@ EOH
     }
   }
 }
-
