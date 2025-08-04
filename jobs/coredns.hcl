@@ -7,6 +7,11 @@ job "coredns" {
 
     network {
       mode = "host"
+
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "dns" {
         static = 53
       }
@@ -38,7 +43,6 @@ job "coredns" {
         data            = <<EOH
 . {
   bind {{ env "NOMAD_IP_dns" }}
-  bind 172.17.0.1
   forward . 8.8.8.8
   cache {
     serve_stale 24h
@@ -50,7 +54,6 @@ job "coredns" {
 }
 home.:53 consul.:53 {
   bind {{ env "NOMAD_IP_dns" }}
-  bind 172.17.0.1
   forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
   cache
   whoami

@@ -20,6 +20,10 @@ job "omada-controller" {
     }
 
     network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "http"           { static = 8088 }
       port "manage_https"   { static = 8043 }
       port "portal_https"   { static = 8843 }

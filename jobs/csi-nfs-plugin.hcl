@@ -3,6 +3,12 @@ job "csi-nfs-plugin" {
   type        = "system"
 
   group "nfs" {
+    network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+    }
+
     restart {
       interval = "30m"
       attempts = 10

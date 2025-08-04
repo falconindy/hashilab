@@ -4,6 +4,10 @@ job "omada-exporter" {
 
   group "omada-exporter" {
     network {
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "metrics" {}
     }
 
