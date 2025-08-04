@@ -1,4 +1,4 @@
-- name: Deploy dc1 roles
+- name: deploy dc1 roles
   hosts: dc1
   become: True
   become_method: sudo
