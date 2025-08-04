@@ -95,3 +95,43 @@
   notify:
     - Apply sysctl
   tags: sysctl
+
+- name: Gather USB facts
+  community.general.usb_facts:
+  register: usb_facts
+  tags:
+    - nomad
+    - rtl_433
+
+- name: Import rtl_433 tasks
+  import_tasks:
+    file: rtl_433.yml
+  when:
+    # Realtek Semiconductor Corp. RTL2838 DVB-T
+    "'0bda:2838' in usb_devices | map(attribute='id')"
+
+- name: Deploy Z-Wave capability marker
+  copy:
+    src: os/etc/nomad.meta/has_zwave.hcl
+    dest: /etc/nomad.d
+  when:
+    # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
+    "'1a86:55d4' in usb_devices | map(attribute='id')"
+  tags: nomad
+
+- name: Deploy Quicksync capability marker
+  copy:
+    src: os/etc/nomad.meta/has_quicksync.hcl
+    dest: /etc/nomad.d
+  when:
+    "'Intel(R) N100' in ansible_processor"
+  tags: nomad
+
+- name: Deploy UPS capability marker
+  copy:
+    src: os/etc/nomad.meta/has_ups.hcl
+    dest: /etc/nomad.d
+  when:
+    # 051d:0003: American Power Conversion UPS
+    "'051d:0003' in usb_devices | map(attribute='id')"
+  tags: nomad
