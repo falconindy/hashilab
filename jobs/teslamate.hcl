@@ -30,7 +30,7 @@ job "teslamate" {
     }
 
     task "server" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "teslamate/teslamate:2.1"
@@ -38,8 +38,9 @@ job "teslamate" {
       }
 
       service {
-        name = "teslamate"
-        port = "http"
+        name         = "teslamate"
+        port         = "http"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
