@@ -62,13 +62,18 @@ cmd_prepull() {
     jq -r '.Job.TaskGroups[0].Tasks[0].Driver')
   mapfile -t nodes < <(nomad node status -json | jq -r '.[].Name')
 
+  declare -A driver_argv=(
+    [docker]="docker"
+    [podman]="sudo podman"
+  )
+
   declare -A logs
   for node in "${nodes[@]}"; do
     (
-      if ssh "$node".node.home "$driver" pull "$image" &>/tmp/prepull.$node; then
+      if ssh "$node".node.home ${driver_argv[$driver]} pull "$image" &>/tmp/prepull.$node; then
         echo "SUCCESS: prepull done on $node"
       else
-        echo "ERROR: prepull on $node failed; check /tmp/dockerpull.$node"
+        echo "ERROR: prepull on $node failed; check /tmp/prepull.$node"
         false
       fi
     ) &
