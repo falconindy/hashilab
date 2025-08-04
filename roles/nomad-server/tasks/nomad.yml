@@ -20,29 +20,3 @@
   notify:
     - Restart nomad
   tags: nomad
-
-- name: Deploy Z-Wave capability marker
-  copy:
-    src: os/etc/nomad.meta/has_zwave.hcl
-    dest: /etc/nomad.d
-  when:
-    # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
-    "'1a86:55d4' in usb_devices | map(attribute='id')"
-  tags: nomad
-
-- name: Deploy Quicksync capability marker
-  copy:
-    src: os/etc/nomad.meta/has_quicksync.hcl
-    dest: /etc/nomad.d
-  when:
-    "'Intel(R) N100' in ansible_processor"
-  tags: nomad
-
-- name: Deploy UPS capability marker
-  copy:
-    src: os/etc/nomad.meta/has_ups.hcl
-    dest: /etc/nomad.d
-  when:
-    # 051d:0003: American Power Conversion UPS
-    "'051d:0003' in usb_devices | map(attribute='id')"
-  tags: nomad
