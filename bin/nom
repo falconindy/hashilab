@@ -3,24 +3,21 @@
 shopt -s extglob
 
 resolve_all() {
-  local r
+  local query='.[] | select(.ClientStatus == "running") | "\(.ID) \(.NodeName)"'
 
   # loosely detect and pass through UUIDs.
   if [[ $1 == +([[:xdigit:]-]) ]]; then
-    r=("$1")
+    nomad alloc status-json "$1" | jq -r "$query"
   else
-    mapfile -t r < <(nomad job allocs -json "$1" |
-        jq -r 'map(select(.ClientStatus == "running")) | .[] .ID')
+    nomad job allocs -json "$1" | jq -r "$query"
   fi
-
-  printf '%s\n' "${r[@]}"
 }
 
 resolve_any() {
   local resolved
 
   # egalitarianism
-  resolve_all "$1" | shuf -n 1
+  resolve_all "$1" | shuf -n 1 | awk '{ print $1 }'
 }
 
 resolve_only_one() {
@@ -95,7 +92,7 @@ cmd_prepull() {
 cmd_endpoint() {
   local r resolved
 
-  mapfile -t resolved < <(resolve_all "$1")
+  mapfile -t resolved < <(resolve_all "$1" | awk '{ print $1 }')
   [[ $resolved ]] || return 1
 
   for r in "${resolved[@]}"; do
