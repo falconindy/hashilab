@@ -47,7 +47,9 @@ cmd_diff() {
   local current=$(nomad job inspect -hcl "$jobname")
   [[ $current ]] || return 1
 
-  diff -u --label "$1 (current)" --label "$1 (future)" <(echo "$current") "$1"
+  diff -u \
+    --label "$1 (current)" <(echo "$current") \
+    --label "$1 (future)" "$1"
 }
 
 cmd_prepull() {
