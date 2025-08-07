@@ -47,7 +47,7 @@ cmd_diff() {
   local current=$(nomad job inspect -hcl "$jobname")
   [[ $current ]] || return 1
 
-  diff -u --label current --label future <(echo "$current") "$1"
+  diff -u --label "$1 (current)" --label "$1 (future)" <(echo "$current") "$1"
 }
 
 cmd_prepull() {
@@ -107,7 +107,14 @@ cmd_endpoint() {
 }
 
 cmd_exec() {
-  local resolved=$(resolve_any "$1")
+  local resolved
+
+  if (( $# == 2 )); then
+    resolved=$(resolve_all "$1" | awk -v h="$2" '$2 == h { print $1 }')
+  else
+    resolved=$(resolve_any "$1")
+  fi
+
   [[ $resolved ]] || return 1
 
   nomad alloc exec -t -i "$resolved" /bin/sh
