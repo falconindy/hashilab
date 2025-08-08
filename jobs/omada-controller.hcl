@@ -58,15 +58,9 @@ job "omada-controller" {
       }
 
       service {
-        port         = "http"
+        port         = "manage_https"
         address_mode = "host"
         name         = "omada-controller"
-        tags = [
-          "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          # "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
-          # "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
-        ]
 
         check {
           type     = "tcp"
