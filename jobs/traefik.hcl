@@ -129,9 +129,10 @@ providers:
 certificatesResolvers:
   letsEncrypt:
     acme:
-      tlsChallenge: true
-      email: "d@falconindy.com"
       storage: "/letsencrypt/acme.{{ env "attr.unique.hostname" }}.json"
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 10
 
   vault:
     acme:
@@ -147,7 +148,6 @@ metrics:
     addRoutersLabels: true
     entryPoint: traefik
 EOF
-
         destination = "local/traefik.yml"
       }
 
@@ -185,6 +185,17 @@ http:
           X-Backend-Name: {{ env "attr.unique.hostname" }}
 EOF
         destination = "local/static_providers.yml"
+      }
+
+      template {
+        data        = <<EOH
+          {{ with secret "kv/data/default/traefik" }}
+            CF_API_EMAIL="d@falconindy.com"
+            CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
+          {{ end }}
+        EOH
+        destination = "secrets/cloudflare.env"
+        env         = true
       }
 
       resources {
