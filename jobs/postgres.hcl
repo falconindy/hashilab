@@ -12,6 +12,8 @@ job "postgres" {
     }
 
     network {
+      mode = "bridge"
+
       dns {
         servers = ["172.17.0.1"]
       }
@@ -22,8 +24,9 @@ job "postgres" {
     }
 
     service {
-      name = "postgres"
-      port = "db"
+      name         = "postgres"
+      port         = "db"
+      address_mode = "host"
 
       check {
         type     = "tcp"
@@ -34,7 +37,7 @@ job "postgres" {
     }
 
     task "postgres" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "postgres:17.5"

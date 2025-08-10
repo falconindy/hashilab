@@ -39,6 +39,10 @@ job "homeassistant" {
         read_only   = false
       }
 
+      env {
+        TZ = "America/New_York"
+      }
+
       service {
         port         = "http"
         address_mode = "host"

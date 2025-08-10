@@ -21,7 +21,7 @@ job "coredns" {
     }
 
     task "coredns" {
-      driver = "docker"
+      driver = "podman"
       config {
         image        = "coredns/coredns:1.12.3"
         network_mode = "host"
@@ -30,8 +30,9 @@ job "coredns" {
       }
 
       service {
-        port = "dns"
-        name = "coredns"
+        port         = "dns"
+        name         = "coredns"
+        address_mode = "host"
         check {
           type     = "tcp"
           interval = "10s"

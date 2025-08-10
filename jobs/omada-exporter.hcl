@@ -4,6 +4,8 @@ job "omada-exporter" {
 
   group "omada-exporter" {
     network {
+      mode = "bridge"
+
       dns {
         servers = ["172.17.0.1"]
       }
@@ -12,7 +14,7 @@ job "omada-exporter" {
     }
 
     task "omada-exporter" {
-      driver = "docker"
+      driver = "podman"
 
       config {
         image = "chhaley/omada_exporter:0.13.1"
@@ -20,8 +22,9 @@ job "omada-exporter" {
       }
 
       service {
-        name = "omada-exporter"
-        port = "metrics"
+        name         = "omada-exporter"
+        port         = "metrics"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
