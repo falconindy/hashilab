@@ -6,6 +6,8 @@ job "prometheus" {
     count = 1
 
     network {
+      mode = "host"
+
       dns {
         servers = ["172.17.0.1"]
       }
@@ -22,7 +24,7 @@ job "prometheus" {
     }
 
     task "prometheus" {
-      driver = "docker"
+      driver = "podman"
       user   = "1000:2000"
 
       vault {}
@@ -40,8 +42,9 @@ job "prometheus" {
       }
 
       service {
-        name = "prometheus"
-        port = "http"
+        name         = "prometheus"
+        port         = "http"
+        address_mode = "host"
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",

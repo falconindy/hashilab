@@ -67,7 +67,7 @@ job "traefik" {
       }
 
       template {
-        data = <<EOF
+        data        = <<EOF
 entryPoints:
   http:
     address: ":80"
