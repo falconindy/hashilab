@@ -44,7 +44,7 @@ job "coredns" {
         data            = <<EOH
 . {
   bind {{ env "NOMAD_IP_dns" }}
-  forward . 8.8.8.8
+  forward . 8.8.8.8 8.8.4.4
   cache {
     serve_stale 24h
     prefetch 10 1m 20%
