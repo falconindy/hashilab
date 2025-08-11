@@ -55,8 +55,7 @@ job "coredns" {
 }
 home.:53 consul.:53 {
   bind {{ env "NOMAD_IP_dns" }}
-  forward . {{ sockaddr "GetInterfaceIP \"enp1s0\"" }}:8600
-  cache
+  forward . {{ env "NOMAD_HOST_IP_metrics" }}:8600
   whoami
   errors
   prometheus {{ env "NOMAD_IP_metrics" }}:9153
