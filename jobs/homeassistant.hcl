@@ -11,7 +11,10 @@ job "homeassistant" {
       }
 
       port "http" {
-        to = "8123"
+        # Would be nice to use port mapping but we can't use a true bridge
+        # without setting up an mDNS repeater or addressing ESPHome devices in
+        # another way.
+        static = "8123"
       }
     }
 
