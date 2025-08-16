@@ -5,16 +5,16 @@
     state: present
   tags: keepalived
 
-- name: Enable keepalived service
-  systemd_service:
-    name: keepalived.service
-    enabled: true
-  tags: keepalived
-
 - name: Update keepalived config
   template:
     src: os/etc/keepalived/keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
   notify:
     - Restart keepalived
+  tags: keepalived
+
+- name: Enable keepalived service
+  systemd_service:
+    name: keepalived.service
+    enabled: true
   tags: keepalived
