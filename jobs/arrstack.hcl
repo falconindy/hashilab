@@ -84,7 +84,7 @@ job "arrstack" {
       driver = "podman"
 
       config {
-        image = "linuxserver/prowlarr:1.37.0"
+        image = "linuxserver/prowlarr:2.0.5"
         ports = ["prowlarr"]
       }
 
