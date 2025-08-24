@@ -53,10 +53,11 @@ cmd_diff() {
 }
 
 cmd_prepull() {
-  local image driver node nodes
+  local images driver node nodes
 
-  image=$(nomad run -output "$1" |
-    jq -r '.Job.TaskGroups[0].Tasks[0].Config.image')
+  mapfile -t images < <(nomad run -output "$1" |
+    jq -r '.Job.TaskGroups[0].Tasks | map(.Config.image) | join("\n")')
+
   driver=$(nomad run -output "$1" |
     jq -r '.Job.TaskGroups[0].Tasks[0].Driver')
   mapfile -t nodes < <(nomad node status -json |
@@ -68,10 +69,17 @@ cmd_prepull() {
     [podman]="sudo podman"
   )
 
+  if (( ${#images[@]} > 1 )); then
+    printf 'Pulling images:\n'
+    printf ' * %s\n' "${images[@]}"
+  else
+    printf 'Pulling image: %s\n' "${images[0]}"
+  fi
+
   declare -A logs
   for node in "${nodes[@]}"; do
     (
-      if ssh "$node".node.home ${driver_argv[$driver]} pull "$image" &>/tmp/prepull.$node; then
+      if ssh "$node".node.home ${driver_argv[$driver]} pull "${images[@]}" &>/tmp/prepull.$node; then
         echo "SUCCESS: prepull done on $node"
       else
         echo "ERROR: prepull on $node failed; check /tmp/prepull.$node"
