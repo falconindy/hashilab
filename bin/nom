@@ -3,39 +3,19 @@
 shopt -s extglob
 
 resolve_all() {
-  local query='.[] | select(.ClientStatus == "running") | "\(.ID) \(.NodeName)"'
-
-  # loosely detect and pass through UUIDs.
   {
+    # loosely detect and pass through UUIDs.
     if [[ $1 == +([[:xdigit:]-]) ]]; then
-      nomad alloc status-json "$1" | jq -r "$query"
+      nomad alloc status-json "$1"
     else
-      nomad job allocs -json "$1" | jq -r "$query"
+      nomad job allocs -json "$1"
     fi
-  } | sort -k2
+  } | jq -r '.[] | select(.ClientStatus == "running") | "\(.ID) \(.NodeName)"' | sort -k2
 }
 
 resolve_any() {
-  local resolved
-
   # egalitarianism
   resolve_all "$1" | shuf -n 1 | awk '{ print $1 }'
-}
-
-resolve_only_one() {
-  local r
-
-  mapfile -t r < <(resolve_all "$1")
-
-  if (( ${#r[*]} > 1 )); then
-    {
-      echo "name resolved to more than one alloc:"
-      printf '\t%s\n' "${r[@]}"
-    } >&2
-    exit 1
-  fi
-
-  echo "${r[0]}"
 }
 
 cmd_lookupallocs() {
