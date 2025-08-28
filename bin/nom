@@ -10,7 +10,9 @@ resolve_all() {
     else
       nomad job allocs -json "$1"
     fi
-  } | jq -r '.[] | select(.ClientStatus == "running") | "\(.ID) \(.NodeName)"' | sort -k2
+  } | jq -r '[
+      .[] | select(.ClientStatus == "running") | {"\(.NodeName)": .ID}
+    ] | sort | map(keys[] as $k | "\(.[$k]) \($k)") | .[]'
 }
 
 resolve_any() {
@@ -38,7 +40,7 @@ cmd_prepull() {
   local images driver node nodes
 
   mapfile -t images < <(nomad run -output "$1" |
-    jq -r '.Job.TaskGroups[0].Tasks | map(.Config.image) | join("\n")')
+    jq -r '.Job.TaskGroups[0].Tasks | map(.Config.image) | .[]')
 
   # This assumes the same driver for all images, but generally speaking we're
   # always using podman these days.
