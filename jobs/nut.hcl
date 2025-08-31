@@ -27,7 +27,7 @@ job "nut" {
       driver = "podman"
 
       config {
-        image = "instantlinux/nut-upsd:2.8.2-r2"
+        image = "instantlinux/nut-upsd:2.8.3-r2"
         ports = ["nut"]
 
         devices = [
