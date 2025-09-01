@@ -124,7 +124,7 @@ job "arrstack" {
 
       resources {
         cpu    = 100
-        memory = 1024
+        memory = 512
       }
     }
 
@@ -172,7 +172,7 @@ job "arrstack" {
 
       resources {
         cpu    = 100
-        memory = 1024
+        memory = 512
       }
     }
 
@@ -220,7 +220,7 @@ job "arrstack" {
 
       resources {
         cpu    = 100
-        memory = 1024
+        memory = 512
       }
     }
   }
