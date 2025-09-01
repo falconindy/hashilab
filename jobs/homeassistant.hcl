@@ -27,7 +27,7 @@ job "homeassistant" {
       attachment_mode = "file-system"
     }
 
-    task "homeassistant" {
+    task "server" {
       driver = "podman"
       config {
         image        = "homeassistant/home-assistant:2025.8.3"

@@ -23,7 +23,7 @@ job "mqtt-explorer" {
       attachment_mode = "file-system"
     }
 
-    task "mqtt-explorer" {
+    task "server" {
       driver = "podman"
 
       config {

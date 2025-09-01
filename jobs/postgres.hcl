@@ -36,7 +36,7 @@ job "postgres" {
       }
     }
 
-    task "postgres" {
+    task "server" {
       driver = "podman"
 
       config {

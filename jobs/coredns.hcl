@@ -20,7 +20,7 @@ job "coredns" {
       }
     }
 
-    task "coredns" {
+    task "server" {
       driver = "podman"
       config {
         image        = "coredns/coredns:1.12.3"

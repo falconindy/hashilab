@@ -39,7 +39,7 @@ job "jellyfin" {
       attachment_mode = "file-system"
     }
 
-    task "jellyfin" {
+    task "server" {
       driver = "podman"
 
       config {

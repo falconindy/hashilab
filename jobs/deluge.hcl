@@ -44,7 +44,7 @@ job "deluge" {
     }
 
 
-    task "deluge" {
+    task "server" {
       driver = "podman"
 
       config {
@@ -75,8 +75,8 @@ job "deluge" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
         ]
         check {
           type     = "http"
