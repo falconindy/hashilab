@@ -41,7 +41,7 @@ job "traefik" {
       }
     }
 
-    task "traefik" {
+    task "server" {
       driver = "podman"
 
       volume_mount {

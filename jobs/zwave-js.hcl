@@ -33,7 +33,7 @@ job "zwave-js" {
       attachment_mode = "file-system"
     }
 
-    task "zwave-js" {
+    task "server" {
       driver = "podman"
 
       kill_signal = "SIGINT"

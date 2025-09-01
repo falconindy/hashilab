@@ -32,7 +32,7 @@ job "esphome" {
     }
 
 
-    task "dashboard" {
+    task "server" {
       driver = "podman"
       config {
         image        = "esphome/esphome:2025.8.1"

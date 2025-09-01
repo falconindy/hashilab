@@ -23,7 +23,7 @@ job "nut" {
       }
     }
 
-    task "nut" {
+    task "server" {
       driver = "podman"
 
       config {

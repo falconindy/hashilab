@@ -23,7 +23,7 @@ job "mosquitto" {
       }
     }
 
-    task "mosquitto" {
+    task "server" {
       driver = "podman"
       config {
         image        = "eclipse-mosquitto:2.0.22"
