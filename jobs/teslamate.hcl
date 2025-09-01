@@ -37,7 +37,7 @@ job "teslamate" {
       driver = "podman"
 
       config {
-        image = "teslamate/teslamate:2.1"
+        image = "teslamate/teslamate:2.1.1"
         ports = ["http"]
       }
 
