@@ -1,36 +1,58 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
+    "config:recommended",
     "docker:enableMajor"
   ],
   "commitMessagePrefix": ":arrow_up:",
   "packageRules": [
     {
-      "matchPackageNames": ["busybox"],
+      "matchPackageNames": [
+        "busybox"
+      ],
       "enabled": false
     },
     {
-      "matchPackageNames": ["postgres"],
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchPackageNames": [
+        "postgres"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
-      "matchPackageNames": ["postgres"],
-      "matchUpdateTypes": ["major"],
+      "matchPackageNames": [
+        "postgres"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "enabled": false
     },
     {
-      "matchPackageNames": ["deluge"],
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchPackageNames": [
+        "deluge"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
-      "matchPackageNames": ["deluge"],
-      "matchUpdateTypes": ["major"],
+      "matchPackageNames": [
+        "deluge"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "enabled": false
     },
     {
-      "packagePatterns": ["^ghcr.io\\/linuxserver\\/"],
-      "versioning": "regex:^(?<compatibility>.*?)-(?<major>v?\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)[\\.-]*r?(?<build>\\d+)*-*r?(?<release>\\w+)*"
+      "versioning": "regex:^(?<compatibility>.*?)-(?<major>v?\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)[\\.-]*r?(?<build>\\d+)*-*r?(?<release>\\w+)*",
+      "matchPackageNames": [
+        "/^ghcr.io\\/linuxserver\\//"
+      ]
     }
   ],
   "customManagers": [
@@ -38,8 +60,8 @@
       "description": "Update container images in Nomad Job (.hcl) files",
       "customType": "regex",
       "datasourceTemplate": "docker",
-      "fileMatch": [
-        "jobs/.+\\.hcl$"
+      "managerFilePatterns": [
+        "/jobs/.+\\.hcl$/"
       ],
       "matchStrings": [
         "\\s*image\\s*=\\s*\\\"(?<depName>.*?):([a-z0-9]+-)?(?<currentValue>.*?)\\\""
