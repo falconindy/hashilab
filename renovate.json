@@ -7,6 +7,10 @@
   "commitMessagePrefix": ":arrow_up:",
   "packageRules": [
     {
+      "matchPackageNames": ["busybox"],
+      "enabled": false
+    },
+    {
       "matchPackageNames": ["postgres"],
       "matchUpdateTypes": ["minor", "patch"]
     },
