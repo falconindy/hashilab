@@ -1,5 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor"
+  ],
   "commitMessagePrefix": ":arrow_up:",
   "packageRules": [
     {
@@ -34,7 +38,7 @@
       "description": "Update container images in Nomad Job (.hcl) files",
       "customType": "regex",
       "datasourceTemplate": "docker",
-      "managerFilePatterns": [
+      "fileMatch": [
         "jobs/.+\\.hcl$"
       ],
       "matchStrings": [
