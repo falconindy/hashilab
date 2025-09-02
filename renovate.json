@@ -1,17 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    "docker:enableMajor"
+  ],
+  "commitMessagePrefix": ":arrow_up:",
   "packageRules": [
     {
       "matchPackageNames": ["postgres"],
-      "allowedVersions": "/^17\\..+/"
+      "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "matchPackageNames": ["linuxserver/deluge"],
-      "allowedVersions": "/^amd64-.+$/"
+      "matchPackageNames": ["postgres"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     },
     {
-      "matchPackageNames": ["linuxserver/jellyfin"],
-      "allowedVersions": "/^\\d{2}\\./"
+      "packagePatterns": ["^ghcr.io\\/linuxserver\\/"],
+      "versioning": "regex:^(?<compatibility>.*?)-(?<major>v?\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)[\\.-]*r?(?<build>\\d+)*-*r?(?<release>\\w+)*"
     }
   ],
   "customManagers": [
