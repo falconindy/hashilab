@@ -48,7 +48,7 @@ job "deluge" {
       driver = "podman"
 
       config {
-        image = "linuxserver/deluge:amd64-2.2.0"
+        image = "linuxserver/deluge:amd64-18.04.1"
         ports = ["deluge", "deluge-inbound"]
       }
 
