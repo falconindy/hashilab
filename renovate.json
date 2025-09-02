@@ -20,6 +20,15 @@
       "enabled": false
     },
     {
+      "matchPackageNames": ["deluge"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchPackageNames": ["deluge"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
       "packagePatterns": ["^ghcr.io\\/linuxserver\\/"],
       "versioning": "regex:^(?<compatibility>.*?)-(?<major>v?\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)[\\.-]*r?(?<build>\\d+)*-*r?(?<release>\\w+)*"
     }
