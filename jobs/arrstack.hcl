@@ -132,7 +132,7 @@ job "arrstack" {
       driver = "podman"
 
       config {
-        image = "linuxserver/radarr:5.26.2"
+        image = "linuxserver/radarr:5.27.5"
         ports = ["radarr"]
       }
 
