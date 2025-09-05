@@ -58,8 +58,6 @@ job "zwave-js" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`${NOMAD_JOB_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
         ]
 
         check {

@@ -67,6 +67,8 @@ job "traefik" {
       }
 
       template {
+        left_delimiter = "[["
+        right_delimiter = "]]"
         data        = <<EOF
 entryPoints:
   http:
@@ -118,6 +120,7 @@ providers:
   consulCatalog:
     prefix: "traefik"
     exposedByDefault: false
+    defaultRule: "Host(`{{ .Name }}.service.home`)"
 
     endpoint:
       address: "172.17.0.1:8500"
@@ -129,7 +132,7 @@ providers:
 certificatesResolvers:
   letsEncrypt:
     acme:
-      storage: "/letsencrypt/acme.{{ env "attr.unique.hostname" }}.json"
+      storage: "/letsencrypt/acme.[[ env "attr.unique.hostname" ]].json"
       dnsChallenge:
         provider: cloudflare
         delayBeforeCheck: 10
@@ -152,6 +155,8 @@ EOF
       }
 
       template {
+        left_delimiter = "[["
+        right_delimiter = "]]"
         data        = <<EOF
 http:
   routers:
@@ -182,7 +187,7 @@ http:
     customheaders:
       headers:
         customResponseHeaders:
-          X-Backend-Name: {{ env "attr.unique.hostname" }}
+          X-Backend-Name: [[ env "attr.unique.hostname" ]]
 EOF
         destination = "local/static_providers.yml"
       }
