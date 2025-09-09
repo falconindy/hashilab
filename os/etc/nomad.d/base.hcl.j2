@@ -61,6 +61,12 @@ telemetry {
   use_node_name = false
 }
 
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+
 plugin "docker" {
   config {
     allow_privileged = true
