@@ -108,7 +108,7 @@ scrape_configs:
   - job_name: 'vault'
     metrics_path: /v1/sys/metrics
     scheme: https
-    bearer_token: "hvs.CAESILKrHCZcCUyoeSUeerh4UXFREhS-kwtGji-IMvPybHq6Gh4KHGh2cy41ODZPZ21BY21PZVNjNjIyelBobXByek0"
+    bearer_token: "hvs.CAESIHNY8eep34yYRMgjDT2w5ZCH_YistlXlMLv4hEpWvXlmGh4KHGh2cy5Vb3dWT0lwdTZaZGhwaEphUTZHeWFMcVI"
     params:
       format: ['prometheus']
     tls_config:
