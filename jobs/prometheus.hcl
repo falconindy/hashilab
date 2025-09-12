@@ -192,6 +192,7 @@ EOH
         ports        = ["http"]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
         ]
       }
 

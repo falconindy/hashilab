@@ -14,3 +14,13 @@
 - name: Set default_ipv4_interface_driver fact
   set_fact:
     default_ipv4_interface_driver: "{{ udevadm_network_interface_raw_output.stdout_lines | join }}"
+
+- name: copy .home CA certificate
+  copy:
+    src: files/home-ca.pem
+    dest: /usr/local/share/ca-certificates/home.crt
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update system CA certificates
+  when: ansible_facts['os_family'] == 'Debian'

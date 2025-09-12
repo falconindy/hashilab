@@ -36,6 +36,8 @@ job "mqtt-explorer" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=vault",
         ]
       }
 
