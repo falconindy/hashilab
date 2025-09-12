@@ -16,3 +16,7 @@
   systemd_service:
     name: systemd-networkd.service
     state: reloaded
+
+- name: Update system CA certificates
+  command: update-ca-certificates
+  when: ansible_facts['os_family'] == 'Debian'

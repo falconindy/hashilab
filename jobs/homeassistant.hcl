@@ -35,6 +35,7 @@ job "homeassistant" {
         ports        = ["http"]
         volumes = [
           "/run/dbus:/run/dbus",
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
         ]
       }
 

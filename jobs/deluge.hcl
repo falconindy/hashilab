@@ -50,6 +50,9 @@ job "deluge" {
       config {
         image = "linuxserver/deluge:amd64-2.2.0"
         ports = ["deluge", "deluge-inbound"]
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
+        ]
       }
 
       volume_mount {
@@ -75,7 +78,10 @@ job "deluge" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=vault",
         ]
+
         check {
           type     = "http"
           path     = "/"

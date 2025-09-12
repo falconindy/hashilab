@@ -166,6 +166,11 @@ http:
       tls:
         certresolver: "letsEncrypt"
       service: "nasty"
+    api-dashboard:
+      rule: "Host(`traefik.service.home`) && PathPrefix(`/api`)"
+      service: "api@internal"
+      middlewares:
+        - cors-allow-all
 
   services:
     nasty:
@@ -188,6 +193,18 @@ http:
       headers:
         customResponseHeaders:
           X-Backend-Name: [[ env "attr.unique.hostname" ]]
+
+    cors-allow-all:
+      headers:
+        accessControlAllowOriginList: ["*"]
+        accessControlAllowMethods:
+          - "GET"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
 EOF
         destination = "local/static_providers.yml"
       }

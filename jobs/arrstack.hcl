@@ -86,6 +86,9 @@ job "arrstack" {
       config {
         image = "linuxserver/prowlarr:2.0.5"
         ports = ["prowlarr"]
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
+        ]
       }
 
       volume_mount {
@@ -112,7 +115,8 @@ job "arrstack" {
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"
@@ -134,6 +138,9 @@ job "arrstack" {
       config {
         image = "linuxserver/radarr:5.27.5"
         ports = ["radarr"]
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
+        ]
       }
 
       env {
@@ -160,7 +167,8 @@ job "arrstack" {
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"
@@ -182,6 +190,9 @@ job "arrstack" {
       config {
         image = "linuxserver/sonarr:4.0.15"
         ports = ["sonarr"]
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
+        ]
       }
 
       env {
@@ -208,7 +219,8 @@ job "arrstack" {
         tags = [
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
+          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"
