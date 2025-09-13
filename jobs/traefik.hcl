@@ -67,9 +67,9 @@ job "traefik" {
       }
 
       template {
-        left_delimiter = "[["
+        left_delimiter  = "[["
         right_delimiter = "]]"
-        data        = <<EOF
+        data            = <<EOF
 entryPoints:
   http:
     address: ":80"
@@ -91,6 +91,8 @@ entryPoints:
     http:
       middlewares:
         - securedheaders@file
+      tls:
+        certresolver: vault
 
   traefik:
     address: ":9000"
@@ -151,13 +153,13 @@ metrics:
     addRoutersLabels: true
     entryPoint: traefik
 EOF
-        destination = "local/traefik.yml"
+        destination     = "local/traefik.yml"
       }
 
       template {
-        left_delimiter = "[["
+        left_delimiter  = "[["
         right_delimiter = "]]"
-        data        = <<EOF
+        data            = <<EOF
 http:
   routers:
     nasty:
@@ -206,7 +208,7 @@ http:
         accessControlMaxAge: 100
         addVaryHeader: true
 EOF
-        destination = "local/static_providers.yml"
+        destination     = "local/static_providers.yml"
       }
 
       template {
