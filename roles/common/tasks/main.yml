@@ -22,5 +22,6 @@
     owner: root
     group: root
     mode: '0644'
+  tags: cacert
   notify: Update system CA certificates
   when: ansible_facts['os_family'] == 'Debian'
