@@ -49,7 +49,7 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "podman"
       config {
-        image        = "mbentley/omada-controller:5.15.24.19"
+        image        = "mbentley/omada-controller:5.15.24.19-openj9"
         network_mode = "host"
       }
 
