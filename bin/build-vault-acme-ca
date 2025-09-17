@@ -14,7 +14,7 @@ build_root_ca() {
   vault write -field=certificate pki/root/generate/internal \
     common_name="home" \
     issuer_name="$root_issuer_name" \
-    ttl=87600h > root_ca.crt
+    ttl=87600h >root_ca.crt
 
   # Configure the cluster path and AIA path (Required by the ACME feature).
   vault write pki/config/cluster \
@@ -44,20 +44,21 @@ build_intermediate_ca() {
 
   # Generate an intermediate certificate and save the CSR under `./pki_intermediate.csr`.
   vault write -format=json pki_int/intermediate/generate/internal \
-      common_name="home Vault Intermediate Authority" \
-      issuer_name="intermediate" \
+    common_name="home Vault Intermediate Authority" \
+    issuer_name="intermediate" \
     | jq -r '.data.csr' >pki_intermediate.csr
 
   # Sign the intermediate certificate with the root CA private key, and save the generated certificate
   # under `./intermediate.cert.pem`.
   vault write -format=json pki/root/sign-intermediate \
-      issuer_ref="$root_issuer_name" \
-      csr=@pki_intermediate.csr \
-      format=pem_bundle ttl="43800h" \
+    issuer_ref="$root_issuer_name" \
+    csr=@pki_intermediate.csr \
+    format=pem_bundle ttl="43800h" \
     | jq -r '.data.certificate' >intermediate.cert.pem
 
   # Imported the signed intermediate certificate.
-  vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
+  vault write pki_int/intermediate/set-signed \
+    certificate=@intermediate.cert.pem
 
   # Configure the cluster path and AIA path (Required by the ACME feature).
   vault write pki_int/config/cluster \
@@ -90,6 +91,16 @@ build_intermediate_ca() {
 
   vault write pki_int/config/acme enabled=true
 }
+
+if vault read sys/mounts/pki &>/dev/null ||; then
+  echo "ERROR: refusing to run when the pki secrets engine already exists"
+  exit 1
+fi
+
+if vault read sys/mounts/pki_int &>/dev/null ||; then
+  echo "ERROR: refusing to run when the pki_int secrets engine already exists"
+  exit 1
+fi
 
 build_root_ca
 build_intermediate_ca
