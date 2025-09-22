@@ -1,20 +1,3 @@
-- name: Get raw udevadm info for main network interface
-  command:
-    argv:
-      - udevadm
-      - info
-      - --value
-      - --query=property
-      - --property=ID_NET_DRIVER
-      - /sys/class/net/{{ ansible_default_ipv4.interface }}
-  register: udevadm_network_interface_raw_output
-  check_mode: false
-  changed_when: false
-
-- name: Set default_ipv4_interface_driver fact
-  set_fact:
-    default_ipv4_interface_driver: "{{ udevadm_network_interface_raw_output.stdout_lines | join }}"
-
 - name: copy .home CA certificate
   copy:
     src: files/home-ca.pem

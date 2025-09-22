@@ -1,5 +1,6 @@
 [Match]
-Driver={{ default_ipv4_interface_driver }}
+Type=ether
+Kind=!veth
 
 [Network]
 DHCP=yes
