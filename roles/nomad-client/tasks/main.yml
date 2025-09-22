@@ -43,8 +43,8 @@
   tags: systemd
 
 - name: Update systemd-networkd config
-  template:
-    src: os/etc/systemd/network/80-dhcp.network.j2
+  copy:
+    src: os/etc/systemd/network/80-dhcp.network
     dest: /etc/systemd/network/80-dhcp.network
   notify:
     - Reload systemd-networkd config
