@@ -54,6 +54,7 @@ job "traefik" {
         image = "traefik:v3.5"
         ports = ["http", "https", "dashboard"]
         volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml",
         ]
       }
