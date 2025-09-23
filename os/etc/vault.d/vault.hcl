@@ -14,35 +14,32 @@ storage "raft" {
   path = "/opt/vault"
 
   retry_join {
-    auto_join_scheme        = "https"
     leader_api_addr         = "https://10.0.100.100:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-home-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-home-0-key.pem"
+    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_client_cert_file = "/opt/vault/tls/tls.crt"
+    leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
 
   retry_join {
-    auto_join_scheme        = "https"
     leader_api_addr         = "https://10.0.100.101:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-home-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-home-0-key.pem"
+    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_client_cert_file = "/opt/vault/tls/tls.crt"
+    leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
 
   retry_join {
-    auto_join_scheme        = "https"
     leader_api_addr         = "https://10.0.100.102:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-agent-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/global-server-home-0.pem"
-    leader_client_key_file  = "/opt/vault/tls/global-server-home-0-key.pem"
+    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_client_cert_file = "/opt/vault/tls/tls.crt"
+    leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
 }
 
 telemetry {
-  disable_hostname = true
+  disable_hostname          = true
   prometheus_retention_time = "12h"
 }
 
@@ -50,14 +47,18 @@ telemetry {
 listener "tcp" {
   address     = "172.17.0.1:8200"
   tls_disable = true
+
+  telemetry {
+    unauthenticated_metrics_access = "true"
+  }
 }
 
 # HTTPS listener
 listener "tcp" {
-  address            = "{{ GetInterfaceIP \"enp1s0\" }}:8200"
-  tls_cert_file      = "/opt/vault/tls/global-server-home-0.pem"
-  tls_key_file       = "/opt/vault/tls/global-server-home-0-key.pem"
-  tls_client_ca_file = "/opt/vault/tls/home-agent-ca.pem"
+  address                  = "{{ GetInterfaceIP \"enp1s0\" }}:8200"
+  tls_disable_client_certs = "true"
+  tls_cert_file            = "/opt/vault/tls/listener.pem"
+  tls_key_file             = "/opt/vault/tls/tls.key"
 }
 
 seal "gcpckms" {
