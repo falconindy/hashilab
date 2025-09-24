@@ -1,3 +1,16 @@
+- name: Install Apt packages
+  apt:
+    name:
+      - linux-sysctl-defaults
+      - vim
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+
+- name: Setup sane editor
+  alternatives:
+    name: editor
+    path: /usr/bin/vim.basic
+
 - name: copy .home CA certificate
   copy:
     src: files/home-ca.pem
