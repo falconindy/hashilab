@@ -72,6 +72,14 @@ build_intermediate_ca() {
     max_ttl="768h" \
     no_store=false
 
+  # Add another role that's used to create vault server certificates. The only
+  # difference is a longer TTL.
+  vault write pki_int/roles/vault-servers \
+    issuer_ref="$(vault read -field=default pki_int/config/issuers)" \
+    allow_any_name=true \
+    max_ttl="4380h" \
+    no_store=false
+
   # Configure the issuing certificate endpoints, CRL distribution points, and OCSP server endpoints that
   # will be encoded into issued certificates.
   vault write pki_int/config/urls \
