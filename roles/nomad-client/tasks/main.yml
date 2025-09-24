@@ -18,7 +18,6 @@
       - docker.io
       - systemd-resolved
       - podman
-      - vim
     dpkg_options: 'force-confdef,force-confold'
     state: present
 
@@ -57,11 +56,6 @@
   notify:
     - Restart systemd-resolved
   tags: resolved
-
-- name: Setup sane editor
-  alternatives:
-    name: editor
-    path: /usr/bin/vim.basic
 
 - name: Update consul client config
   template:
