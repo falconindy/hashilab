@@ -1,0 +1,46 @@
+#!/bin/bash
+
+if ! command -v vault >dev/null; then
+  echo "ERROR: no vault binary found"
+  exit 1
+fi
+
+if ! vault token lookup &>/dev/null; then
+  echo "ERROR: vault credentials expired"
+  exit 1
+fi
+
+# vault read pki_int/ca_chain is brokeass
+curl -s http://172.17.0.1:8200/v1/pki_int/ca_chain >home-ca.pem
+
+for i in 0 1 2; do
+  echo "=> Issuing new certificate for vault on nomad$i.node.home"
+
+  vault write \
+    -format=json pki_int/issue/vault-servers \
+    common_name=vault.service.home \
+    ip_sans=10.0.100.10$i,127.0.0.1 \
+    alt_names=active.vault.service.home,standby.vault.service.home,localhost \
+    ttl=4380h | tee nomad$i.node.home.certs
+
+  echo ' -> extracting...'
+  # extract certificate
+  jq -r '.data.certificate' "nomad$i.node.home.certs" >"vault$i.tls.crt"
+
+  # extract private key
+  jq -r '.data.private_key' "nomad$i.node.home.certs" >"vault$i.tls.key"
+
+  # create listener certificate chain
+  cat 'home-ca.pem' "vault$1.tls.crt" >"listener.vault$i.pem"
+
+  echo ' -> writing to vault...'
+  # write them all to vault
+  vault kv put \
+      kv/tls/vault/nomad$i.node.home \
+      private_key=@vault$i.tls.key \
+      certificate=@vault$i.tls.crt \
+      listener=@listener.vault$i.pem
+  echo ' -> SUCCESS'
+done
+
+# extract them
