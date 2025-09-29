@@ -73,22 +73,22 @@ job "traefik" {
         data            = <<EOF
 entryPoints:
   http:
-    address: ":80"
+    address: :80
     forwardedHeaders:
       insecure: false
     proxyProtocol:
       insecure: false
       trustedIPs:
-        - "172.16.0.0/12"
+        - 172.16.0.0/12
 
   https:
-    address: ":443"
+    address: :443
     forwardedHeaders:
       insecure: false
     proxyProtocol:
       insecure: false
       trustedIPs:
-        - "172.16.0.0/12"
+        - 172.16.0.0/12
     http:
       middlewares:
         - securedheaders@file
@@ -96,7 +96,7 @@ entryPoints:
         certresolver: vault
 
   traefik:
-    address: ":9000"
+    address: :9000
 
 tls:
   options:
@@ -121,13 +121,13 @@ api:
 
 providers:
   consulCatalog:
-    prefix: "traefik"
+    prefix: traefik
     exposedByDefault: false
-    defaultRule: "Host(`{{ .Name }}.service.home`)"
+    defaultRule: Host(`{{ .Name }}.service.home`)
 
     endpoint:
-      address: "172.17.0.1:8500"
-      scheme: "http"
+      address: 172.17.0.1:8500
+      scheme: http
 
   file:
     filename: "local/static_providers.yml"
@@ -135,18 +135,18 @@ providers:
 certificatesResolvers:
   letsEncrypt:
     acme:
-      storage: "/letsencrypt/acme.[[ env "attr.unique.hostname" ]].json"
+      storage: /letsencrypt/acme.[[ env "attr.unique.hostname" ]].json
       dnsChallenge:
         provider: cloudflare
         delayBeforeCheck: 10
 
   vault:
     acme:
-      email: "d@falconindy.com"
-      storage: "/letsencrypt/acme.vault.json"
-      caServer: "http://172.17.0.1:8200/v1/pki_int/acme/directory"
+      email: d@falconindy.com
+      storage: /letsencrypt/acme.vault.json
+      caServer: http://172.17.0.1:8200/v1/pki_int/acme/directory
       httpChallenge:
-        entryPoint: "http"
+        entryPoint: http
 
 metrics:
   prometheus:
@@ -164,14 +164,14 @@ EOF
 http:
   routers:
     nasty:
-      rule: "Host(`dsm.falconindy.com`)"
-      entrypoints: "https"
+      rule: Host(`dsm.falconindy.com`)
+      entrypoints: https
       tls:
-        certresolver: "letsEncrypt"
-      service: "nasty"
+        certresolver: letsEncrypt
+      service: nasty
     api-dashboard:
       rule: "Host(`traefik.service.home`) && PathPrefix(`/api`)"
-      service: "api@internal"
+      service: api@internal
       middlewares:
         - cors-allow-all
 
@@ -179,7 +179,7 @@ http:
     nasty:
       loadBalancer:
         servers:
-        - url: "http://nasty.node.home:5000"
+        - url: http://nasty.node.home:5000
 
   middlewares:
     securedheaders:
@@ -201,10 +201,10 @@ http:
       headers:
         accessControlAllowOriginList: ["*"]
         accessControlAllowMethods:
-          - "GET"
+          - GET
         accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
+          - Content-Type
+          - Authorization
         accessControlAllowCredentials: true
         accessControlMaxAge: 100
         addVaryHeader: true
