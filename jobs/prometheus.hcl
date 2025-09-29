@@ -13,6 +13,8 @@ job "prometheus" {
       }
 
       port "http" {}
+
+      port "bbexporter" {}
     }
 
     volume "prometheus" {
@@ -21,6 +23,81 @@ job "prometheus" {
       source          = "prometheus"
       access_mode     = "single-node-writer"
       attachment_mode = "file-system"
+    }
+
+    task "blackbox-exporter" {
+      driver = "podman"
+
+      config {
+        image = "prom/blackbox-exporter:v0.27.0"
+        args = [
+          "--web.listen-address", "${NOMAD_ADDR_bbexporter}",
+          "--config.file", "local/blackbox.yml",
+        ]
+        # needed in order to bind to NOMAD_ADDR_http
+        network_mode = "host"
+        ports        = ["bbexporter"]
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro"
+        ]
+      }
+
+      template {
+        data = <<EOH
+modules:
+  http_2xx:
+    prober: http
+    http:
+      preferred_ip_protocol: "ip4"
+  http_post_2xx:
+    prober: http
+    http:
+      method: POST
+  tcp_connect:
+    prober: tcp
+  pop3s_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - expect: "^+OK"
+      tls: true
+      tls_config:
+        insecure_skip_verify: false
+  grpc:
+    prober: grpc
+    grpc:
+      tls: true
+      preferred_ip_protocol: "ip4"
+  grpc_plain:
+    prober: grpc
+    grpc:
+      tls: false
+      service: "service1"
+  ssh_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - expect: "^SSH-2.0-"
+      - send: "SSH-2.0-blackbox-ssh-check"
+  irc_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - send: "NICK prober"
+      - send: "USER prober prober prober :prober"
+      - expect: "PING :([^ ]+)"
+        send: "PONG ${1}"
+      - expect: "^:[^ ]+ 001"
+  icmp:
+    prober: icmp
+  icmp_ttl5:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      ttl: 5
+EOH
+        destination   = "local/blackbox.yml"
+      }
     }
 
     task "prometheus" {
@@ -47,8 +124,9 @@ job "prometheus" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=vault",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-https.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-https.tls.certresolver=vault",
         ]
 
         check {
@@ -84,6 +162,26 @@ scrape_configs:
         target_label:  'job'
       - source_labels: ['__meta_consul_node']
         target_label:  'host'
+
+  - job_name: 'tls-expiry-check'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://vault.service.home:8200
+    # A relabeling config that lets us scrape target through the Blackbox Exporter,
+    # while labeling the resulting metrics with the probed target's URL.
+    relabel_configs:
+      # Set the "target" HTTP parameter to the target URL that we want to probe.
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Set the "instance" label to the target URL that we want to probe.
+      - source_labels: [__param_target]
+        target_label: instance
+      # Don't actually scrape the target itself, but the Blackbox Exporter.
+      - target_label: __address__
+        replacement: {{ env "NOMAD_ADDR_bbexporter" }}
 
   - job_name: 'consul-server'
     metrics_path: /v1/agent/metrics
