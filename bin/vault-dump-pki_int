@@ -1,0 +1,8 @@
+#!/bin/bash
+
+vault list -format=json pki_int/certs | jq -r '.[]' | while read -r serial; do
+  cn=$(vault read -format=json pki_int/cert/$serial |
+      jq -r .data.certificate |
+      openssl x509 -noout -subject -in /dev/stdin)
+  printf '%s: %s\n' "$cn" "$serial"
+done | column -t
