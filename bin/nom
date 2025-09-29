@@ -104,7 +104,16 @@ cmd_endpoint() {
 }
 
 cmd_exec() {
-  local resolved
+  local opts resolved task
+
+  while getopts t: opt; do
+    case $opt in
+      t)
+        opts+=('-task' "$OPTARG")
+        ;;
+    esac
+  done
+  shift $(( OPTIND -1 ))
 
   if (( $# == 2 )); then
     resolved=$(resolve_all "$1" | awk -v h="$2" '$2 == h { print $1 }')
@@ -114,7 +123,7 @@ cmd_exec() {
 
   [[ $resolved ]] || return 1
 
-  nomad alloc exec -t -i "$resolved" /bin/sh
+  nomad alloc exec "${opts[@]}" -t -i "$resolved" /bin/sh
 }
 
 cmd_ui() {
