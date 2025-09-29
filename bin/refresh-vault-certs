@@ -3,8 +3,6 @@
 # fetch the intermediate ca_chain (needed for the listener)
 
 write_new_certs_to_vault() {
-  vault read -format=raw pki_int/ca_chain >home-ca.pem
-
   for i in 0 1 2; do
     echo "=> Issuing new certificate for vault on nomad$i.node.home"
 
@@ -22,16 +20,12 @@ write_new_certs_to_vault() {
     # extract private key
     jq -r '.data.private_key' "nomad$i.node.home.certs" >"vault$i.tls.key"
 
-    # create listener certificate chain
-    cat 'home-ca.pem' "vault$1.tls.crt" >"listener.vault$i.pem"
-
     echo ' -> writing to vault...'
     # write them all to vault
     vault kv put \
         kv/tls/vault/nomad$i.node.home \
         private_key=@vault$i.tls.key \
         certificate=@vault$i.tls.crt
-        # listener=@listener.vault$i.pem
     echo ' -> SUCCESS'
   done
 }
@@ -54,8 +48,7 @@ deploy_certs_from_vault() {
       tee >(jq -r '.data.data.private_key | rtrimstr("\n")' | teeout tls.key) \
       tee >(jq -r '.data.data.certificate | rtrimstr("\n")' | teeout tls.cert)
 
-  cat /opt/vault/tls/tls.cert /opt/vault/tls/home-ca.pem |
-      teeout listener.pem
+  cat /opt/vault/tls/tls.cert /opt/vault/tls/home-ca.pem | teeout listener.pem
 }
 
 if ! command -v vault >/dev/null; then
