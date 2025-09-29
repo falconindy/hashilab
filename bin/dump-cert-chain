@@ -1,0 +1,35 @@
+#!/bin/bash
+
+verbose=0
+
+dump() {
+  local argv=()
+
+  if (( verbose )); then
+    argv=('-text')
+  fi
+
+  openssl crl2pkcs7 -nocrl -certfile "$1" | openssl pkcs7 -print_certs "${argv[@]}" -noout
+}
+
+while getopts v opt; do
+  case $opt in
+    v)
+      verbose=1
+    ;;
+    *)
+      exit 1
+    ;;
+  esac
+done
+shift $(( OPTIND - 1 ))
+
+if [[ ! -t 0 ]]; then
+  dump '/dev/stdin'
+else
+  if [[ -z $1 ]]; then
+    echo 'ERROR: no certfile supplied'
+    exit 1
+  fi
+  dump "$1"
+fi
