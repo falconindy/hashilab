@@ -49,6 +49,12 @@ modules:
     prober: http
     http:
       preferred_ip_protocol: "ip4"
+  vault_http_2xx:
+    prober: http
+    http:
+      preferred_ip_protocol: "ip4"
+      tls_config:
+        server_name: vault.service.home
   http_post_2xx:
     prober: http
     http:
@@ -166,10 +172,12 @@ scrape_configs:
   - job_name: 'tls-expiry-check'
     metrics_path: /probe
     params:
-      module: [http_2xx]
+      module: [vault_http_2xx]
     static_configs:
       - targets:
-        - https://vault.service.home:8200
+        - https://nomad0.node.home:8200
+        - https://nomad1.node.home:8200
+        - https://nomad2.node.home:8200
     # A relabeling config that lets us scrape target through the Blackbox Exporter,
     # while labeling the resulting metrics with the probed target's URL.
     relabel_configs:
