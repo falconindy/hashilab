@@ -92,19 +92,6 @@ job "omada-controller" {
         SSL_CERT_NAME     = "tls.crt"
         SSL_KEY_NAME      = "tls.key"
         TZ                = "America/New_York"
-
-        # New certs can be minted from anywhere a vault CLI has a token via
-        #
-        # vault write >out \
-        #     -format=json \
-        #     pki_int/issue/intermediate \
-        #     common_name=omada-controller.service.home \
-        #     ip_sans=10.0.1.99
-        #
-        # jq -r '.data | [.certificate], .ca_chain | join("\n")' >tls.crt <out
-        # jq -r '.data.private_key' >tls.key <out
-        #
-        # Then restart the job to pick up the new certificates.
       }
 
       resources {
