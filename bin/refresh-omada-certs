@@ -4,6 +4,11 @@ hostname=omada-controller.service.home
 ip_san=10.0.1.99
 expiration_slack_days=7
 
+log_fatal() {
+  echo "FATAL: $*"
+  exit 1
+}
+
 check_cert_expiry() {
   local datestr now
 
@@ -19,50 +24,50 @@ check_cert_expiry() {
 
 # get rid of this requirement. keep certs in mem?
 if [[ ! -w . ]]; then
-  echo "ERROR: current directory is not writeable"
-  exit 1
+  log_fatal "current directory is not writeable"
 fi
 
 if ! command -v vault >/dev/null; then
-  echo "ERROR: no vault binary found"
-  exit 1
+  log_fatal "no vault binary found"
 fi
 
 if ! vault token lookup &>/dev/null; then
-  echo "ERROR: vault credentials expired"
-  exit 1
+  log_fatal "vault credentials expired"
 fi
 
 if check_cert_expiry; then
   echo "Certificate OK: expiration more than 7 days away."
   exit 0
 else
-  echo "Certificate expires soon: renewing"
+  echo "=> Certificate expires soon: renewing"
 fi
 
 mntdir=$(mktemp -d)
-sudo mount nasty.node.home:/volume1/omada-controller "$mntdir"
+if ! sudo mount nasty.node.home:/volume1/omada-controller "$mntdir"; then
+  log_fatal "failed to mount NFS volume";
+fi
 trap 'sudo umount "$mntdir" && rmdir "$mntdir"' EXIT
 
+echo "=> Issuing new certificate"
 vault write \
     -format=json \
     pki_int/issue/intermediate \
     common_name="$hostname" \
     ip_sans="$ip_san" |
-  tee out \
+  tee > out \
       >(jq -r '.data | .certificate, .ca_chain[]' >tls.crt) \
       >(jq -r '.data.private_key' >tls.key)
 
 if (( $? != 0 )); then
-  echo "ERROR: vault failed to issue new certificate"
-  exit 1
+  log_fatal "vault failed to issue new certificate"
 fi
 
+echo "=> Verifying new certificate modulus"
 certmod=$(openssl x509 -noout -modulus -in tls.crt)
 keymod=$(openssl rsa -noout -modulus -in tls.key)
 if [[ $certmod != $keymod ]]; then
-  echo "error: modulus mismatch between cert and key, not proceeding"
-  exit 1
+  log_fatal "modulus mismatch between cert and key, not proceeding"
 fi
 
+echo "=> Rotating in new certificate. Remember to restart the job!"
 sudo cp tls.{crt,key} "$mntdir/cert/" && rm tls.{crt,key}
