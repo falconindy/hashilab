@@ -23,7 +23,7 @@ if [[ ! -w . ]]; then
   exit 1
 fi
 
-if ! command -v vault >dev/null; then
+if ! command -v vault >/dev/null; then
   echo "ERROR: no vault binary found"
   exit 1
 fi
