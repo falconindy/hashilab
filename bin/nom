@@ -137,7 +137,7 @@ cmd_ui() {
 }
 
 known_commands() {
-  mapfile -t commands < <(compgen -A function cmd_)	
+  mapfile -t commands < <(compgen -A function cmd_)
 
   printf 'Known commands:\n'
   printf '\t%s\n' "${commands[@]#cmd_}"
