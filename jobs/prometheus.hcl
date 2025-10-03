@@ -14,7 +14,7 @@ job "prometheus" {
 
       port "http" {}
 
-      port "bbexporter" {}
+      port "blackbox" {}
     }
 
     volume "prometheus" {
@@ -31,12 +31,12 @@ job "prometheus" {
       config {
         image = "prom/blackbox-exporter:v0.27.0"
         args = [
-          "--web.listen-address", "${NOMAD_ADDR_bbexporter}",
+          "--web.listen-address", "${NOMAD_ADDR_blackbox}",
           "--config.file", "local/blackbox.yml",
         ]
         # needed in order to bind to NOMAD_ADDR_http
         network_mode = "host"
-        ports        = ["bbexporter"]
+        ports        = ["blackbox"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro"
         ]
@@ -169,7 +169,27 @@ scrape_configs:
       - source_labels: ['__meta_consul_node']
         target_label:  'host'
 
-  - job_name: 'tls-expiry-check'
+  - job_name: 'tls-expiration-check'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://omada-controller.service.home:8043
+    # A relabeling config that lets us scrape target through the Blackbox Exporter,
+    # while labeling the resulting metrics with the probed target's URL.
+    relabel_configs:
+      # Set the "target" HTTP parameter to the target URL that we want to probe.
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Set the "instance" label to the target URL that we want to probe.
+      - source_labels: [__param_target]
+        target_label: instance
+      # Don't actually scrape the target itself, but the Blackbox Exporter.
+      - target_label: __address__
+        replacement: {{ env "NOMAD_ADDR_blackbox" }}
+
+  - job_name: 'vault-tls-expiration-check'
     metrics_path: /probe
     params:
       module: [vault_http_2xx]
@@ -189,7 +209,7 @@ scrape_configs:
         target_label: instance
       # Don't actually scrape the target itself, but the Blackbox Exporter.
       - target_label: __address__
-        replacement: {{ env "NOMAD_ADDR_bbexporter" }}
+        replacement: {{ env "NOMAD_ADDR_blackbox" }}
 
   - job_name: 'consul-server'
     metrics_path: /v1/agent/metrics
