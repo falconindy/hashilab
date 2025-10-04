@@ -24,6 +24,9 @@ job "traefik" {
       port "https" {
         static = 443
       }
+      port "public" {
+        static = 8443
+      }
       port "dashboard" {
         static = 9000
       }
@@ -52,7 +55,7 @@ job "traefik" {
 
       config {
         image = "traefik:v3.5"
-        ports = ["http", "https", "dashboard"]
+        ports = ["http", "https", "public", "dashboard"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml",
@@ -94,6 +97,20 @@ entryPoints:
         - securedheaders@file
       tls:
         certresolver: vault
+
+  public:
+    address: :8443
+    forwardedHeaders:
+      insecure: false
+    proxyProtocol:
+      insecure: false
+      trustedIPs:
+        - 172.16.0.0/12
+    http:
+      middlewares:
+        - securedheaders@file
+      tls:
+        certresolver: letsEncrypt
 
   traefik:
     address: :9000
