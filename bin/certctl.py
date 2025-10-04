@@ -13,19 +13,15 @@ import sys
 
 logger = logging.getLogger('certctl')
 
-def SetupLogger():
-    formatter = logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S')
 
-    # Create a handler (e.g., StreamHandler for console output)
+def SetupLogger():
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
+
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
-    global logger
-
-    # Get a logger and add the handler
-    logger.setLevel(logging.INFO)  # Set the logging level
+    logger.setLevel(logging.INFO)
     logger.addHandler(handler)
 
 
@@ -181,9 +177,6 @@ class CertGenerator:
                                    response['data']['serial_number'])
 
 
-generator = CertGenerator()
-
-
 @dataclass
 class Server:
     hostname: str
@@ -197,6 +190,7 @@ def renew_vault_certificates():
         Server('nomad2.node.home', '10.0.100.102'),
     )
 
+    generator = CertGenerator()
     for server in servers:
         cert = generator.generate(mount_point='pki_int',
                                   role='vault-servers',
@@ -223,6 +217,7 @@ def renew_omada_certificate():
     logger.info('renewing certificates for omada-controller')
     server = Server('bastion.node.home', '10.0.1.99')
 
+    generator = CertGenerator()
     cert = generator.generate(mount_point='pki_int',
                               role='vault-servers',
                               common_name='omada-controller.service.home',
