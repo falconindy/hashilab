@@ -55,14 +55,10 @@ job "homeassistant" {
         name         = "homeassistant"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-public.rule=Host(`hass.falconindy.com`)",
+          "traefik.http.routers.${NOMAD_JOB_NAME}-public.entrypoints=public",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`homeassistant.service.home`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.tls.certresolver=letsEncrypt",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-internal.rule=Host(`homeassistant.service.home`)",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-internal.entrypoints=http",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-internal-https.rule=Host(`homeassistant.service.home`)",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-internal-https.entrypoints=https",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-internal-https.tls.certresolver=vault",
         ]
 
         check {
