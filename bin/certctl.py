@@ -111,7 +111,7 @@ class SshCertDeployer:
 
     def reload_service(self, service) -> None:
         stdin, stdout, stderr = self._client.exec_command(
-            f"systemctl reload {service}")
+            f"sudo systemctl reload {service}")
 
         error = stderr.read().decode()
         if error:
@@ -192,6 +192,7 @@ def renew_vault_certificates():
 
     generator = CertGenerator()
     for server in servers:
+        logger.info(f'generating certificate for {server}')
         cert = generator.generate(mount_point='pki_int',
                                   role='vault-servers',
                                   common_name='vault.service.home',
@@ -205,11 +206,20 @@ def renew_vault_certificates():
 
         formatter = CertificateResponseFormatter(cert)
         with SshCertDeployer(server.hostname) as d:
-            d.write_file('/opt/vault/tls/home-ca.pem', formatter.ca_chain())
-            d.write_file('/opt/vault/tls/tls.crt', formatter.certificate())
-            d.write_file('/opt/vault/tls/tls.key', formatter.private_key())
+            logger.info(f'writing new certificates')
+            d.write_file('/opt/vault/tls/home-ca.pem',
+                         formatter.ca_chain(),
+                         sudo=True)
+            d.write_file('/opt/vault/tls/tls.crt',
+                         formatter.certificate(),
+                         sudo=True)
+            d.write_file('/opt/vault/tls/tls.key',
+                         formatter.private_key(),
+                         sudo=True)
             d.write_file('/opt/vault/tls/listener.pem',
-                         formatter.certificate(fullchain=True))
+                         formatter.certificate(fullchain=True),
+                         sudo=True)
+            logger.info(f'reloading vault')
             d.reload_service('vault')
 
 
