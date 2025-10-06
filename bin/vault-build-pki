@@ -125,7 +125,8 @@ build_intermediate_internal_ca() {
   vault write pki_int_internal/roles/intermediate \
     issuer_ref="$(vault read -field=default pki_int_internal/config/issuers)" \
     allow_any_name=true \
-    max_ttl="4380h"
+    max_ttl="4380h" \
+    no_store=true
 
   vault write pki_int_internal/config/urls \
     issuing_certificates={{cluster_aia_path}}/issuer/{{issuer_id}}/der \
