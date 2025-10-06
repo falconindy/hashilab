@@ -35,7 +35,7 @@ build_root_ca() {
     enable_templating=true
 }
 
-build_intermediate_ca() {
+build_intermediate_acme_ca() {
   # Enable the PKI secret engine on the `/pki_int` mount path.
   vault secrets enable -path=pki_int pki
 
@@ -72,14 +72,6 @@ build_intermediate_ca() {
     max_ttl="768h" \
     no_store=false
 
-  # Add another role that's used to create vault server certificates. The only
-  # difference is a longer TTL.
-  vault write pki_int/roles/vault-servers \
-    issuer_ref="$(vault read -field=default pki_int/config/issuers)" \
-    allow_any_name=true \
-    max_ttl="4380h" \
-    no_store=false
-
   # Configure the issuing certificate endpoints, CRL distribution points, and OCSP server endpoints that
   # will be encoded into issued certificates.
   vault write pki_int/config/urls \
@@ -100,6 +92,48 @@ build_intermediate_ca() {
   vault write pki_int/config/acme enabled=true
 }
 
+build_intermediate_internal_ca() {
+  # Enable the PKI secret engine on the `/pki_int` mount path.
+  vault secrets enable -path=pki_int_internal pki
+
+  # Tweak certificate lifespan to 5y, shorter than the root CA.
+  vault secrets tune -max-lease-ttl=43800h pki_int_internal
+
+  # Generate an intermediate certificate and save the CSR under `./pki_int_internalermediate.csr`.
+  vault write -format=json pki_int_internal/intermediate/generate/internal \
+    common_name="home Vault Intermediate Authority" \
+    issuer_name="intermediate" \
+    | jq -r '.data.csr' >pki_int_internalermediate.csr
+
+  # Sign the intermediate certificate with the root CA private key, and save the generated certificate
+  # under `./intermediate.cert.pem`.
+  vault write -format=json pki/root/sign-intermediate \
+    issuer_ref="$root_issuer_name" \
+    csr=@pki_int_internalermediate.csr \
+    format=pem_bundle ttl="43800h" \
+    | jq -r '.data.certificate' >intermediate.cert.pem
+
+  # Imported the signed intermediate certificate.
+  vault write pki_int_internal/intermediate/set-signed \
+    certificate=@intermediate.cert.pem
+
+  vault write pki_int_internal/config/cluster \
+    path=$vault_address/v1/pki_int_internal \
+    aia_path=$vault_address/v1/pki_int_internal
+
+  # Create the role that will be used for issuing certificates from the Intermediate CA.
+  vault write pki_int_internal/roles/intermediate \
+    issuer_ref="$(vault read -field=default pki_int_internal/config/issuers)" \
+    allow_any_name=true \
+    max_ttl="4380h"
+
+  vault write pki_int_internal/config/urls \
+    issuing_certificates={{cluster_aia_path}}/issuer/{{issuer_id}}/der \
+    crl_distribution_points={{cluster_aia_path}}/issuer/{{issuer_id}}/crl/der \
+    ocsp_servers={{cluster_path}}/ocsp \
+    enable_templating=true
+}
+
 if vault read sys/mounts/pki &>/dev/null ||; then
   echo "ERROR: refusing to run when the pki secrets engine already exists"
   exit 1
@@ -111,4 +145,5 @@ if vault read sys/mounts/pki_int &>/dev/null ||; then
 fi
 
 build_root_ca
-build_intermediate_ca
+build_intermediate_acme_ca
+build_intermediate_internal_ca
