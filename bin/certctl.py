@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from types import TracebackType
-from itertools import chain
 from enum import Enum, auto
 
 import ipaddress
