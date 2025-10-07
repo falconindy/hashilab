@@ -3,30 +3,6 @@ job "omada-controller" {
   type        = "service"
 
   group "omada-controller" {
-    volume "data" {
-      type            = "csi"
-      read_only       = false
-      source          = "omada-controller-data"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "logs" {
-      type            = "csi"
-      read_only       = false
-      source          = "omada-controller-logs"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "cert" {
-      type            = "csi"
-      read_only       = true
-      source          = "omada-controller-cert"
-      access_mode     = "multi-node-reader-only"
-      attachment_mode = "file-system"
-    }
-
     network {
       dns {
         servers = ["172.17.0.1"]
@@ -51,24 +27,11 @@ job "omada-controller" {
       config {
         image        = "mbentley/omada-controller:5.15.24.19-openj9"
         network_mode = "host"
-      }
-
-      volume_mount {
-        volume      = "data"
-        destination = "/opt/tplink/EAPController/data"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "logs"
-        destination = "/opt/tplink/EAPController/logs"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume = "cert"
-        destination = "/cert"
-        read_only   = false
+        volumes = [
+          "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
+          "/clusterdata/omada-controller/logs:/opt/tplink/EAPController/logs:rw",
+          "/clusterdata/omada-controller/cert:/cert:ro",
+        ]
       }
 
       service {
