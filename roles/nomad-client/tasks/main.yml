@@ -21,6 +21,26 @@
     dpkg_options: 'force-confdef,force-confold'
     state: present
 
+- name: Create clusterdata mount point
+  file:
+    state: directory
+    path: /clusterdata
+    owner: root
+    group: root
+    mode: '0755'
+  tags: mount
+
+- name: Add clusterdata mount point to fstab
+  ansible.posix.mount:
+    path: /clusterdata
+    src: nasty.node.home:/volume1/clusterdata
+    fstype: nfs4
+    opts: nolock,x-systemd.automount,x-systemd.device-timeout=60
+    dump: 0
+    passno: 0
+    state: present
+  tags: mount
+
 - name: Enable systemd services
   systemd_service:
     name: '{{ item }}'
