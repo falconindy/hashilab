@@ -3,14 +3,6 @@ job "traefik" {
   type        = "system"
 
   group "traefik" {
-    volume "letsencrypt" {
-      type            = "csi"
-      read_only       = false
-      source          = "letsencrypt"
-      access_mode     = "multi-node-multi-writer"
-      attachment_mode = "file-system"
-    }
-
     network {
       mode = "bridge"
 
@@ -47,18 +39,13 @@ job "traefik" {
     task "server" {
       driver = "podman"
 
-      volume_mount {
-        volume      = "letsencrypt"
-        destination = "/letsencrypt"
-        read_only   = false
-      }
-
       config {
         image = "traefik:v3.5"
         ports = ["http", "https", "public", "dashboard"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
-          "local/traefik.yml:/etc/traefik/traefik.yml",
+          "local/traefik.yml:/etc/traefik/traefik.yml:ro",
+          "/clusterdata/traefik:/acme:rw",
         ]
       }
 
@@ -152,7 +139,7 @@ providers:
 certificatesResolvers:
   letsEncrypt:
     acme:
-      storage: /letsencrypt/acme.[[ env "attr.unique.hostname" ]].json
+      storage: /acme/acme.[[ env "attr.unique.hostname" ]].json
       dnsChallenge:
         provider: cloudflare
         delayBeforeCheck: 10
@@ -160,7 +147,7 @@ certificatesResolvers:
   vault:
     acme:
       email: d@falconindy.com
-      storage: /letsencrypt/acme.vault.json
+      storage: /acme/acme.vault.json
       caServer: http://172.17.0.1:8200/v1/pki_int/acme/directory
       httpChallenge:
         entryPoint: http
