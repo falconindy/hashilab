@@ -18,15 +18,6 @@ job "homeassistant" {
       }
     }
 
-    volume "homeassistant" {
-      type      = "csi"
-      read_only = false
-
-      source          = "homeassistant"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "server" {
       driver = "podman"
       config {
@@ -36,13 +27,8 @@ job "homeassistant" {
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/homeassistant:/config:rw",
         ]
-      }
-
-      volume_mount {
-        volume      = "homeassistant"
-        destination = "/config"
-        read_only   = false
       }
 
       env {
