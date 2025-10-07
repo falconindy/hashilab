@@ -25,38 +25,6 @@ job "arrstack" {
       }
     }
 
-    volume "media" {
-      type            = "csi"
-      read_only       = false
-      source          = "media"
-      access_mode     = "multi-node-multi-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "sonarr-config" {
-      type            = "csi"
-      read_only       = false
-      source          = "sonarr-config"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "radarr-config" {
-      type            = "csi"
-      read_only       = false
-      source          = "radarr-config"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "prowlarr-config" {
-      type            = "csi"
-      read_only       = false
-      source          = "prowlarr-config"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "await-deluge" {
       driver = "podman"
 
@@ -87,20 +55,10 @@ job "arrstack" {
         image = "linuxserver/prowlarr:2.0.5"
         ports = ["prowlarr"]
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro"
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/media:/media",
+          "/clusterdata/prowlarr:/config",
         ]
-      }
-
-      volume_mount {
-        volume      = "media"
-        destination = "/media"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "prowlarr-config"
-        destination = "/config"
-        read_only   = false
       }
 
       env {
@@ -139,25 +97,15 @@ job "arrstack" {
         image = "linuxserver/radarr:5.27.5"
         ports = ["radarr"]
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro"
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/media:/media",
+          "/clusterdata/radarr:/config",
         ]
       }
 
       env {
         PUID = 911
         PGID = 911
-      }
-
-      volume_mount {
-        volume      = "media"
-        destination = "/media"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "radarr-config"
-        destination = "/config"
-        read_only   = false
       }
 
       service {
@@ -191,25 +139,15 @@ job "arrstack" {
         image = "linuxserver/sonarr:4.0.15"
         ports = ["sonarr"]
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro"
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/media:/media",
+          "/clusterdata/sonarr:/config",
         ]
       }
 
       env {
         PUID = 911
         PGID = 911
-      }
-
-      volume_mount {
-        volume      = "media"
-        destination = "/media"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "sonarr-config"
-        destination = "/config"
-        read_only   = false
       }
 
       service {
