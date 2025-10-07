@@ -23,28 +23,18 @@ job "jellyfin" {
       }
     }
 
-    volume "media" {
-      type            = "csi"
-      read_only       = false
-      source          = "media"
-      access_mode     = "multi-node-multi-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "jellyfin" {
-      type            = "csi"
-      read_only       = false
-      source          = "jellyfin"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "server" {
       driver = "podman"
 
       config {
         image = "linuxserver/jellyfin:10.10.7"
         ports = ["http"]
+
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/jellyfin:/config:rw",
+          "/clusterdata/media:/media:rw",
+        ]
 
         devices = [
           "/dev/dri",
@@ -54,18 +44,6 @@ job "jellyfin" {
       env {
         PUID = 911
         PGID = 911
-      }
-
-      volume_mount {
-        volume      = "jellyfin"
-        destination = "/config"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "media"
-        destination = "/media"
-        read_only   = false
       }
 
       service {
