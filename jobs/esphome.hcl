@@ -13,25 +13,6 @@ job "esphome" {
       }
     }
 
-    volume "esphome-config" {
-      type      = "csi"
-      read_only = false
-
-      source          = "esphome-config"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-    volume "esphome-cache" {
-      type      = "csi"
-      read_only = false
-
-      source          = "esphome-cache"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
-
     task "server" {
       driver = "podman"
       config {
@@ -40,19 +21,9 @@ job "esphome" {
         ports        = ["http"]
         volumes = [
           "/etc/localtime:/etc/localtime:ro",
+          "/clusterdata/esphome/cache:/cache:rw",
+          "/clusterdata/esphome/config:/config:rw",
         ]
-      }
-
-      volume_mount {
-        volume      = "esphome-config"
-        destination = "/config"
-        read_only   = false
-      }
-
-      volume_mount {
-        volume      = "esphome-cache"
-        destination = "/cache"
-        read_only   = false
       }
 
       service {
