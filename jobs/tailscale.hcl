@@ -11,14 +11,6 @@ job "tailscale" {
       }
     }
 
-    volume "tailscale" {
-      type            = "csi"
-      read_only       = false
-      source          = "tailscale"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "tailscale" {
       driver = "podman"
       config {
@@ -30,13 +22,8 @@ job "tailscale" {
         cap_add      = ["NET_ADMIN", "NET_RAW"]
         volumes = [
           "/dev/net/tun:/dev/net/tun",
+          "/clusterdata/tailscale:/var/lib/tailscale:rw"
         ]
-      }
-
-      volume_mount {
-        volume      = "tailscale"
-        destination = "/var/lib/tailscale"
-        read_only   = false
       }
 
       vault {}
