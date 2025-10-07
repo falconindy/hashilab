@@ -25,14 +25,6 @@ job "zwave-js" {
       }
     }
 
-    volume "zwavejs" {
-      type            = "csi"
-      read_only       = false
-      source          = "zwavejs"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "server" {
       driver = "podman"
 
@@ -41,6 +33,10 @@ job "zwave-js" {
       config {
         image = "zwavejs/zwave-js-ui:11.4.1"
         ports = ["http", "ws"]
+
+        volumes = [
+          "/clusterdata/zwave-js:/usr/src/app/store:rw",
+        ]
 
         devices = [
           "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00:/dev/zwave:rw",
@@ -67,12 +63,6 @@ job "zwave-js" {
           interval = "10s"
           timeout  = "2s"
         }
-      }
-
-      volume_mount {
-        volume      = "zwavejs"
-        destination = "/usr/src/app/store"
-        read_only   = false
       }
 
       vault {}
