@@ -15,19 +15,14 @@ job "mqtt-explorer" {
       port "http" {}
     }
 
-    volume "mqtt-explorer" {
-      type            = "csi"
-      read_only       = false
-      source          = "mqtt-explorer"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "server" {
       driver = "podman"
 
       config {
         image = "smeagolworms4/mqtt-explorer:browser-1.0.3"
+        volumes = [
+          "/clusterdata/mqtt-explorer:/mqtt-explorer/config:rw"
+        ]
       }
 
       service {
@@ -43,12 +38,6 @@ job "mqtt-explorer" {
 
       env {
         HTTP_PORT = "${NOMAD_PORT_http}"
-      }
-
-      volume_mount {
-        volume      = "mqtt-explorer"
-        destination = "/mqtt-explorer/config"
-        read_only   = false
       }
 
       resources {
