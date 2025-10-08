@@ -169,7 +169,7 @@ http:
   routers:
     nasty:
       rule: Host(`dsm.falconindy.com`)
-      entrypoints: https
+      entrypoints: public
       tls:
         certresolver: letsEncrypt
       service: nasty
