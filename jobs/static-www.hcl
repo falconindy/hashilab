@@ -10,14 +10,6 @@ job "static-www" {
       }
     }
 
-    volume "www" {
-      type            = "csi"
-      read_only       = true
-      source          = "www"
-      access_mode     = "single-node-reader-only"
-      attachment_mode = "file-system"
-    }
-
     task "server" {
       driver = "podman"
       config {
@@ -25,7 +17,8 @@ job "static-www" {
         ports        = ["http"]
         network_mode = "host"
         volumes = [
-          "local/nginx.conf:/etc/nginx/conf.d/default.conf"
+          "local/nginx.conf:/etc/nginx/conf.d/default.conf",
+          "/clusterdata/www:/srv/www:ro",
         ]
 
       }
@@ -38,7 +31,7 @@ job "static-www" {
             server_name d.service.home;
 
             location / {
-                root /srv/traefik-directory;
+                root /srv/www/traefik-directory;
                 index index.html;
             }
         }
@@ -47,12 +40,6 @@ job "static-www" {
         change_mode = "restart"
       }
 
-
-      volume_mount {
-        volume      = "www"
-        destination = "/srv"
-        read_only   = true
-      }
 
       resources {
         cpu    = 100

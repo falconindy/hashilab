@@ -17,14 +17,6 @@ job "prometheus" {
       port "blackbox" {}
     }
 
-    volume "prometheus" {
-      type            = "csi"
-      read_only       = false
-      source          = "prometheus"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     task "blackbox-exporter" {
       driver = "podman"
 
@@ -38,7 +30,7 @@ job "prometheus" {
         network_mode = "host"
         ports        = ["blackbox"]
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro"
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
         ]
       }
 
@@ -122,12 +114,6 @@ EOH
         name = "vault_default"
         aud  = ["vault.io"]
         ttl  = "1h"
-      }
-
-      volume_mount {
-        volume      = "prometheus"
-        destination = "/opt/prometheus"
-        read_only   = false
       }
 
       service {
@@ -348,7 +334,8 @@ EOH
         ports        = ["http"]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
-          "/etc/ssl/certs:/etc/ssl/certs:ro"
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/clusterdata/prometheus:/opt/prometheus:rw",
         ]
       }
 
