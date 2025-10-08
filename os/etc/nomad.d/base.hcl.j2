@@ -25,6 +25,18 @@ ui {
   }
 }
 
+tls {
+  http = true
+  rpc  = true
+
+  ca_file   = "/opt/nomad/tls/home-ca.pem"
+  cert_file = "/opt/nomad/tls/tls.crt"
+  key_file  = "/opt/nomad/tls/tls.key"
+
+  verify_server_hostname = true
+  verify_https_client    = false
+}
+
 consul {
   address              = "localhost:8500"
   auto_advertise       = true
