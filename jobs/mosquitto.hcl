@@ -5,14 +5,6 @@ job "mosquitto" {
   group "mosquitto" {
     count = 1
 
-    volume "mosquitto" {
-      type            = "csi"
-      read_only       = false
-      source          = "mosquitto"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     network {
       dns {
         servers = ["172.17.0.1"]
@@ -29,12 +21,10 @@ job "mosquitto" {
         image        = "eclipse-mosquitto:2.0.22"
         network_mode = "host"
         ports        = ["mqtt"]
-      }
 
-      volume_mount {
-        volume      = "mosquitto"
-        destination = "/mosquitto"
-        read_only   = false
+        volumes = [
+          "/clusterdata/mosquitto:/mosquitto:rw",
+        ]
       }
 
       service {

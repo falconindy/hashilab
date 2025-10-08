@@ -3,14 +3,6 @@ job "postgres" {
   type        = "service"
 
   group "postgres" {
-    volume "postgres" {
-      type            = "csi"
-      read_only       = false
-      source          = "postgres"
-      access_mode     = "single-node-writer"
-      attachment_mode = "file-system"
-    }
-
     network {
       mode = "bridge"
 
@@ -42,12 +34,10 @@ job "postgres" {
       config {
         image = "postgres:17.6"
         ports = ["db"]
-      }
 
-      volume_mount {
-        volume      = "postgres"
-        destination = "/appdata/postgres"
-        read_only   = false
+        volumes = [
+          "/clusterdata/postgres:/appdata/postgres",
+        ]
       }
 
       vault {}
