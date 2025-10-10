@@ -41,6 +41,12 @@ modules:
     prober: http
     http:
       preferred_ip_protocol: "ip4"
+  nomad_http_2xx:
+    prober: http
+    http:
+      preferred_ip_protocol: "ip4"
+      tls_config:
+        server_name: nomad.service.home
   consul_http_2xx:
     prober: http
     http:
@@ -168,6 +174,29 @@ scrape_configs:
     static_configs:
       - targets:
         - https://omada-controller.service.home:8043
+    # A relabeling config that lets us scrape target through the Blackbox Exporter,
+    # while labeling the resulting metrics with the probed target's URL.
+    relabel_configs:
+      # Set the "target" HTTP parameter to the target URL that we want to probe.
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Set the "instance" label to the target URL that we want to probe.
+      - source_labels: [__param_target]
+        target_label: instance
+      # Don't actually scrape the target itself, but the Blackbox Exporter.
+      - target_label: __address__
+        replacement: {{ env "NOMAD_ADDR_blackbox" }}
+
+  - job_name: 'nomad-tls-expiration-check'
+    metrics_path: /probe
+    params:
+      module: [nomad_http_2xx]
+    static_configs:
+      - targets:
+        - https://nomad0.node.home:4646
+        - https://nomad1.node.home:4646
+        - https://nomad2.node.home:4646
+        - https://bastion.node.home:4646
     # A relabeling config that lets us scrape target through the Blackbox Exporter,
     # while labeling the resulting metrics with the probed target's URL.
     relabel_configs:
