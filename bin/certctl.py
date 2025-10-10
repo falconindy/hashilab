@@ -123,6 +123,18 @@ class NfsCertDeployer:
                              stderr=subprocess.PIPE)
         p.communicate(input=contents.encode())
 
+    def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
+        formatter = CertificateResponseFormatter(cert)
+        self.write_file(f'{destdir}/home-ca.pem',
+                        formatter.ca_chain(),
+                        sudo=True)
+        self.write_file(f'{destdir}/tls.crt',
+                        formatter.certificate(fullchain=True),
+                        sudo=True)
+        self.write_file(f'{destdir}/tls.key',
+                        formatter.private_key(),
+                        sudo=True)
+
 
 class SshCertDeployer:
 
@@ -232,18 +244,15 @@ class CertGenerator:
                                    response['data']['serial_number'])
 
 
-def deploy_hcl_certs(prog, deployer, formatter) -> None:
-    tls_path = f'/opt/{prog}/tls'
+def deploy_hcl_certs(prog: str, certs: dict[Server,
+                                            CertificateResponse]) -> None:
+    for server, cert in certs.items():
+        with SshCertDeployer(server.hostname) as d:
+            logger.info(f'writing new certificates to {server.hostname}')
+            d.write_certs(f'/opt/{prog}/tls', cert)
 
-    deployer.write_file(f'{tls_path}/home-ca.pem',
-                        formatter.ca_chain(),
-                        sudo=True)
-    deployer.write_file(f'{tls_path}/tls.crt',
-                        formatter.certificate(fullchain=True),
-                        sudo=True)
-    deployer.write_file(f'{tls_path}/tls.key',
-                        formatter.private_key(),
-                        sudo=True)
+            logger.info(f'reloading vault on {server.hostname}')
+            d.reload_service('vault', os=server.os)
 
 
 def renew_nomad_certificates() -> None:
@@ -279,15 +288,7 @@ def renew_nomad_certificates() -> None:
                                                '127.0.0.1',
                                            ])
 
-    for server, cert in certs.items():
-        formatter = CertificateResponseFormatter(cert)
-
-        with SshCertDeployer(server.hostname) as d:
-            logger.info(f'writing new certificates to {server.hostname}')
-            deploy_hcl_certs('nomad', d, formatter)
-
-            logger.info(f'reloading nomad on {server.hostname}')
-            d.reload_service('nomad', os=server.os)
+    deploy_hcl_certs('nomad', certs)
 
 
 def renew_consul_certificates() -> None:
@@ -321,14 +322,7 @@ def renew_consul_certificates() -> None:
                                                'localhost',
                                            ])
 
-    for server, cert in certs.items():
-        formatter = CertificateResponseFormatter(cert)
-        with SshCertDeployer(server.hostname) as d:
-            logger.info(f'writing new certificates to {server.hostname}')
-            deploy_hcl_certs('consul', d, formatter)
-
-            logger.info(f'reloading consul on {server.hostname}')
-            d.reload_service('consul', os=server.os)
+    deploy_hcl_certs('consul', certs)
 
 
 def renew_vault_certificates() -> None:
@@ -351,14 +345,7 @@ def renew_vault_certificates() -> None:
                                                'standby.vault.service.home',
                                            ])
 
-    for server, cert in certs.items():
-        formatter = CertificateResponseFormatter(cert)
-        with SshCertDeployer(server.hostname) as d:
-            logger.info(f'writing new certificates to {server.hostname}')
-            deploy_hcl_certs('vault', d, formatter)
-
-            logger.info(f'reloading vault on {server.hostname}')
-            d.reload_service('vault', os=server.os)
+    deploy_hcl_certs('vault', certs)
 
 
 def renew_omada_certificates() -> None:
