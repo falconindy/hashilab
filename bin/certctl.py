@@ -232,6 +232,20 @@ class CertGenerator:
                                    response['data']['serial_number'])
 
 
+def deploy_hcl_certs(prog, deployer, formatter) -> None:
+    tls_path = f'/opt/{prog}/tls'
+
+    deployer.write_file(f'{tls_path}/home-ca.pem',
+                        formatter.ca_chain(),
+                        sudo=True)
+    deployer.write_file(f'{tls_path}/tls.crt',
+                        formatter.certificate(fullchain=True),
+                        sudo=True)
+    deployer.write_file(f'{tls_path}/tls.key',
+                        formatter.private_key(),
+                        sudo=True)
+
+
 def renew_nomad_certificates() -> None:
     certs = dict()
     generator = CertGenerator()
@@ -270,15 +284,8 @@ def renew_nomad_certificates() -> None:
 
         with SshCertDeployer(server.hostname) as d:
             logger.info(f'writing new certificates to {server.hostname}')
-            d.write_file('/opt/nomad/tls/home-ca.pem',
-                         formatter.ca_chain(),
-                         sudo=True)
-            d.write_file('/opt/nomad/tls/tls.crt',
-                         formatter.certificate(fullchain=True),
-                         sudo=True)
-            d.write_file('/opt/nomad/tls/tls.key',
-                         formatter.private_key(),
-                         sudo=True)
+            deploy_hcl_certs('nomad', d, formatter)
+
             logger.info(f'reloading nomad on {server.hostname}')
             d.reload_service('nomad', os=server.os)
 
@@ -318,15 +325,8 @@ def renew_consul_certificates() -> None:
         formatter = CertificateResponseFormatter(cert)
         with SshCertDeployer(server.hostname) as d:
             logger.info(f'writing new certificates to {server.hostname}')
-            d.write_file('/opt/consul/tls/home-ca.pem',
-                         formatter.ca_chain(),
-                         sudo=True)
-            d.write_file('/opt/consul/tls/tls.crt',
-                         formatter.certificate(fullchain=True),
-                         sudo=True)
-            d.write_file('/opt/consul/tls/tls.key',
-                         formatter.private_key(),
-                         sudo=True)
+            deploy_hcl_certs('consul', d, formatter)
+
             logger.info(f'reloading consul on {server.hostname}')
             d.reload_service('consul', os=server.os)
 
@@ -355,33 +355,21 @@ def renew_vault_certificates() -> None:
         formatter = CertificateResponseFormatter(cert)
         with SshCertDeployer(server.hostname) as d:
             logger.info(f'writing new certificates to {server.hostname}')
-            d.write_file('/opt/vault/tls/home-ca.pem',
-                         formatter.ca_chain(),
-                         sudo=True)
-            d.write_file('/opt/vault/tls/tls.crt',
-                         formatter.certificate(),
-                         sudo=True)
-            d.write_file('/opt/vault/tls/tls.key',
-                         formatter.private_key(),
-                         sudo=True)
-            # TODO: get rid of this and just include the intermediate cert on tls.crt
-            d.write_file('/opt/vault/tls/listener.pem',
-                         formatter.certificate(fullchain=True),
-                         sudo=True)
+            deploy_hcl_certs('vault', d, formatter)
+
             logger.info(f'reloading vault on {server.hostname}')
             d.reload_service('vault', os=server.os)
 
 
 def renew_omada_certificates() -> None:
     logger.info('renewing certificates for omada-controller')
-    server = Server('bastion.node.home', '10.0.1.99')
 
     generator = CertGenerator()
     cert = generator.generate(mount_point='pki_int',
                               role='intermediate',
                               common_name='omada-controller.service.home',
                               sans=[
-                                  server.ip_address,
+                                  '10.0.1.99',
                               ])
     logger.info('new certificates generated')
 

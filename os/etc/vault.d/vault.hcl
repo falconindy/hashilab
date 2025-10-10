@@ -57,7 +57,7 @@ listener "tcp" {
 listener "tcp" {
   address                  = "{{ GetInterfaceIP \"enp1s0\" }}:8200"
   tls_disable_client_certs = "true"
-  tls_cert_file            = "/opt/vault/tls/listener.pem"
+  tls_cert_file            = "/opt/vault/tls/tls.crt"
   tls_key_file             = "/opt/vault/tls/tls.key"
 }
 
