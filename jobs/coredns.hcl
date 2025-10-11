@@ -2,9 +2,13 @@ job "coredns" {
   datacenters = ["dc1"]
   type        = "system"
 
-  group "coredns" {
-    count = 1
+  update {
+    max_parallel = 1
+    min_healthy_time = "10s"
+    auto_revert = true
+  }
 
+  group "coredns" {
     network {
       mode = "host"
 
