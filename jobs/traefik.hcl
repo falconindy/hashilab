@@ -2,6 +2,12 @@ job "traefik" {
   datacenters = ["dc1"]
   type        = "system"
 
+  update {
+    max_parallel = 1
+    min_healthy_time = "10s"
+    auto_revert = true
+  }
+
   group "traefik" {
     network {
       mode = "bridge"
