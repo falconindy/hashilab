@@ -21,7 +21,7 @@ job "homeassistant" {
     task "server" {
       driver = "podman"
       config {
-        image        = "homeassistant/home-assistant:2025.10.1"
+        image        = "homeassistant/home-assistant:2025.10.2"
         network_mode = "host"
         ports        = ["http"]
         volumes = [
