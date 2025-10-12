@@ -8,6 +8,22 @@ job "traefik" {
     auto_revert = true
   }
 
+  ui {
+    description = "A modern HTTP reverse proxy and load balancer"
+    link {
+      label = "Upstream"
+      url = "https://traefik.io"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/traefik/traefik"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/_/traefik"
+    }
+  }
+
   group "traefik" {
     network {
       mode = "bridge"
