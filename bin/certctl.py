@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing import List
 from dataclasses import dataclass
 from types import TracebackType
 from enum import Enum, auto
@@ -74,7 +75,7 @@ def SetupLogger() -> None:
 
 @dataclass
 class CertificateResponse:
-    ca_chain: str
+    ca_chain: List[str]
     certificate: str
     private_key: str
     expiration: int
@@ -92,32 +93,28 @@ class CertificateResponseFormatter:
     def certificate(self, fullchain: bool = False) -> str:
         pem = [self._cert.certificate]
         if fullchain:
-            pem.append(self._cert.ca_chain)
+            pem.extend(self._cert.ca_chain)
         return '\n'.join(pem)
 
     def ca_chain(self) -> str:
-        return self._cert.ca_chain
+        return '\n'.join(self._cert.ca_chain)
 
 
-class NfsCertDeployer:
+class ClusterdataCertDeployer:
 
-    def __init__(self, nfs_path) -> None:
-        self._nfs_path = nfs_path
-        self._tempdir = tempfile.TemporaryDirectory()
+    def __init__(self, subdir) -> None:
+        self._path = f'/clusterdata/{subdir}'
 
     def __enter__(self):
-        cmdline = ('sudo', 'mount', self._nfs_path, self._tempdir.name)
-        subprocess.run(cmdline)
         return self
 
     def __exit__(self, exc_type: type[BaseException] | None,
                  exc_value: BaseException | None,
                  exc_traceback: TracebackType | None) -> None:
-        cmdline = ('sudo', 'umount', self._tempdir.name)
-        subprocess.run(cmdline)
+        pass
 
     def write_file(self, dest: str, contents: str) -> None:
-        p = subprocess.Popen(('sudo', 'tee', f'{self._tempdir.name}/{dest}'),
+        p = subprocess.Popen(('sudo', 'tee', f'{self._path}/{dest}'),
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -237,7 +234,7 @@ class CertGenerator:
             mount_point=mount_point,
             extra_params=extra_params)
 
-        return CertificateResponse('\n'.join(response['data']['ca_chain']),
+        return CertificateResponse(response['data']['ca_chain'],
                                    response['data']['certificate'],
                                    response['data']['private_key'],
                                    response['data']['expiration'],
@@ -361,7 +358,7 @@ def renew_omada_certificates() -> None:
     logger.info('new certificates generated')
 
     formatter = CertificateResponseFormatter(cert)
-    with NfsCertDeployer('nasty.node.home:/volume1/omada-controller') as d:
+    with ClusterdataCertDeployer('omada-controller') as d:
         d.write_file('cert/tls.crt', formatter.certificate(fullchain=True))
         d.write_file('cert/tls.key', formatter.private_key())
 
