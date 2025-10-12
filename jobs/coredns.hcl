@@ -8,6 +8,22 @@ job "coredns" {
     auto_revert = true
   }
 
+  ui {
+    description = "A plugin-driven DNS server/forwarder"
+    link {
+      label = "Upstream"
+      url = "https://coredns.io"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/coredns/coredns"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/r/coredns/coredns"
+    }
+  }
+
   group "coredns" {
     network {
       mode = "host"
