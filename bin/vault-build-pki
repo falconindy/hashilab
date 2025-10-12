@@ -101,7 +101,7 @@ build_intermediate_internal_ca() {
 
   # Generate an intermediate certificate and save the CSR under `./pki_int_internalermediate.csr`.
   vault write -format=json pki_int_internal/intermediate/generate/internal \
-    common_name="home Vault Intermediate Authority" \
+    common_name="home Vault Intermediate Authority [Internal]" \
     issuer_name="intermediate" \
     | jq -r '.data.csr' >pki_int_internalermediate.csr
 
@@ -135,16 +135,24 @@ build_intermediate_internal_ca() {
     enable_templating=true
 }
 
-if vault read sys/mounts/pki &>/dev/null ||; then
-  echo "ERROR: refusing to run when the pki secrets engine already exists"
-  exit 1
+mount_exists() {
+  vault read "sys/mounts/$1" &>/dev/null
+}
+
+if mount_exists pki; then
+  echo 'INFO: pki already exists, skipping'
+else
+  build_root_ca
 fi
 
-if vault read sys/mounts/pki_int &>/dev/null ||; then
-  echo "ERROR: refusing to run when the pki_int secrets engine already exists"
-  exit 1
+if mount_exists pki_int; then
+  echo 'INFO: pki_int already exists, skipping'
+else
+  build_intermediate_acme_ca
 fi
 
-build_root_ca
-build_intermediate_acme_ca
-build_intermediate_internal_ca
+if mount_exists pki_int_internal then
+  echo 'INFO: pki_int_internal already exists, skipping'
+else
+  build_intermediate_internal_ca
+fi
