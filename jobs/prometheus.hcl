@@ -2,6 +2,22 @@ job "prometheus" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Monitoring system and time series database"
+    link {
+      label = "Upstream"
+      url = "https://prometheus.io"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/prometheus/prometheus"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/r/prom/prometheus"
+    }
+  }
+
   group "monitoring" {
     count = 1
 
@@ -152,6 +168,7 @@ global:
 
 scrape_configs:
   - job_name: 'nomad'
+    scheme: https
     consul_sd_configs:
     - server: '{{ env "NOMAD_IP_http" }}:8500'
       services: ['nomad-client']
@@ -279,7 +296,7 @@ scrape_configs:
   - job_name: 'vault'
     metrics_path: /v1/sys/metrics
     scheme: https
-    bearer_token: "hvs.CAESIHNY8eep34yYRMgjDT2w5ZCH_YistlXlMLv4hEpWvXlmGh4KHGh2cy5Vb3dWT0lwdTZaZGhwaEphUTZHeWFMcVI"
+    bearer_token: '{{ env "VAULT_TOKEN" }}'
     params:
       format: ['prometheus']
     tls_config:
