@@ -75,52 +75,6 @@ modules:
       preferred_ip_protocol: "ip4"
       tls_config:
         server_name: vault.service.home
-  http_post_2xx:
-    prober: http
-    http:
-      method: POST
-  tcp_connect:
-    prober: tcp
-  pop3s_banner:
-    prober: tcp
-    tcp:
-      query_response:
-      - expect: "^+OK"
-      tls: true
-      tls_config:
-        insecure_skip_verify: false
-  grpc:
-    prober: grpc
-    grpc:
-      tls: true
-      preferred_ip_protocol: "ip4"
-  grpc_plain:
-    prober: grpc
-    grpc:
-      tls: false
-      service: "service1"
-  ssh_banner:
-    prober: tcp
-    tcp:
-      query_response:
-      - expect: "^SSH-2.0-"
-      - send: "SSH-2.0-blackbox-ssh-check"
-  irc_banner:
-    prober: tcp
-    tcp:
-      query_response:
-      - send: "NICK prober"
-      - send: "USER prober prober prober :prober"
-      - expect: "PING :([^ ]+)"
-        send: "PONG ${1}"
-      - expect: "^:[^ ]+ 001"
-  icmp:
-    prober: icmp
-  icmp_ttl5:
-    prober: icmp
-    timeout: 5s
-    icmp:
-      ttl: 5
 EOH
         destination   = "local/blackbox.yml"
       }
@@ -299,8 +253,6 @@ scrape_configs:
     bearer_token: '{{ env "VAULT_TOKEN" }}'
     params:
       format: ['prometheus']
-    tls_config:
-      insecure_skip_verify: true
     consul_sd_configs:
       - server: {{ env "NOMAD_IP_http" }}:8500
         services: ['vault']
