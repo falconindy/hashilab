@@ -129,7 +129,7 @@ cmd_exec() {
 cmd_ui() {
   local args=()
 
-  if [[ $1 = -show-url ]]; then
+  if [[ $SSH_CONNECTION ]] || ! command -v xdg-open || [[ $1 == -show-url ]]; then
     args+=('-show-url')
   fi
 
