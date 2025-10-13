@@ -27,23 +27,6 @@ job "deluge" {
       }
     }
 
-    #volume "media" {
-    #  type            = "csi"
-    #  read_only       = false
-    #  source          = "media"
-    #  access_mode     = "multi-node-multi-writer"
-    #  attachment_mode = "file-system"
-    #}
-
-    #volume "deluge-config" {
-    #  type            = "csi"
-    #  read_only       = false
-    #  source          = "deluge-config"
-    #  access_mode     = "single-node-writer"
-    #  attachment_mode = "file-system"
-    #}
-
-
     task "server" {
       driver = "podman"
 
@@ -56,18 +39,6 @@ job "deluge" {
           "/clusterdata/deluge:/config:rw",
         ]
       }
-
-      #volume_mount {
-      #  volume      = "media"
-      #  destination = "/media"
-      #  read_only   = false
-      #}
-
-      #volume_mount {
-      #  volume      = "deluge-config"
-      #  destination = "/config"
-      #  read_only   = false
-      #}
 
       env {
         PUID = 911
