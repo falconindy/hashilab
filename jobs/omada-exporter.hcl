@@ -19,6 +19,10 @@ job "omada-exporter" {
       config {
         image = "chhaley/omada_exporter:0.13.1"
         ports = ["metrics"]
+
+        volumes = [
+          "/etc/ssl/certs:/etc/ssl/certs:ro",
+        ]
       }
 
       service {
@@ -46,7 +50,6 @@ job "omada-exporter" {
         OMADA_USER     = "prometheus"
         OMADA_SITE     = "Default"
         OMADA_PORT     = "${NOMAD_PORT_metrics}"
-        OMADA_INSECURE = "true"
       }
 
       vault {}
