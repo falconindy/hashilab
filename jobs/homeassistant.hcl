@@ -32,7 +32,8 @@ job "homeassistant" {
       }
 
       env {
-        TZ = "America/New_York"
+        TZ                 = "America/New_York"
+        REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
       }
 
       service {
