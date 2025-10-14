@@ -1,9 +1,10 @@
 job "vault-raft-snapshotter" {
   datacenters = ["dc1"]
-  type = "batch"
+  type        = "batch"
 
   periodic {
     crons            = ["42 2 * * *"] # run every day at 2:42
+    time_zone        = "America/New_York"
     prohibit_overlap = true
   }
 
@@ -28,7 +29,7 @@ job "vault-raft-snapshotter" {
       }
 
       vault {
-        env = true
+        env  = true
         role = "raft-snapshotter"
       }
 
