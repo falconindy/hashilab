@@ -57,24 +57,6 @@ modules:
     prober: http
     http:
       preferred_ip_protocol: "ip4"
-  nomad_http_2xx:
-    prober: http
-    http:
-      preferred_ip_protocol: "ip4"
-      tls_config:
-        server_name: nomad.service.home
-  consul_http_2xx:
-    prober: http
-    http:
-      preferred_ip_protocol: "ip4"
-      tls_config:
-        server_name: consul.service.home
-  vault_http_2xx:
-    prober: http
-    http:
-      preferred_ip_protocol: "ip4"
-      tls_config:
-        server_name: vault.service.home
 EOH
         destination   = "local/blackbox.yml"
       }
@@ -137,95 +119,6 @@ scrape_configs:
       - source_labels: ['__meta_consul_node']
         target_label:  'host'
 
-  - job_name: 'tls-expiration-check'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    static_configs:
-      - targets:
-        - https://omada-controller.service.home:8043
-    # A relabeling config that lets us scrape target through the Blackbox Exporter,
-    # while labeling the resulting metrics with the probed target's URL.
-    relabel_configs:
-      # Set the "target" HTTP parameter to the target URL that we want to probe.
-      - source_labels: [__address__]
-        target_label: __param_target
-      # Set the "instance" label to the target URL that we want to probe.
-      - source_labels: [__param_target]
-        target_label: instance
-      # Don't actually scrape the target itself, but the Blackbox Exporter.
-      - target_label: __address__
-        replacement: {{ env "NOMAD_ADDR_blackbox" }}
-
-  - job_name: 'nomad-tls-expiration-check'
-    metrics_path: /probe
-    params:
-      module: [nomad_http_2xx]
-    static_configs:
-      - targets:
-        - https://nomad0.node.home:4646
-        - https://nomad1.node.home:4646
-        - https://nomad2.node.home:4646
-        - https://bastion.node.home:4646
-    # A relabeling config that lets us scrape target through the Blackbox Exporter,
-    # while labeling the resulting metrics with the probed target's URL.
-    relabel_configs:
-      # Set the "target" HTTP parameter to the target URL that we want to probe.
-      - source_labels: [__address__]
-        target_label: __param_target
-      # Set the "instance" label to the target URL that we want to probe.
-      - source_labels: [__param_target]
-        target_label: instance
-      # Don't actually scrape the target itself, but the Blackbox Exporter.
-      - target_label: __address__
-        replacement: {{ env "NOMAD_ADDR_blackbox" }}
-
-  - job_name: 'consul-tls-expiration-check'
-    metrics_path: /probe
-    params:
-      module: [consul_http_2xx]
-    static_configs:
-      - targets:
-        - https://nomad0.node.home:8501
-        - https://nomad1.node.home:8501
-        - https://nomad2.node.home:8501
-        - https://bastion.node.home:8501
-        - https://nasty.node.home:8501
-    # A relabeling config that lets us scrape target through the Blackbox Exporter,
-    # while labeling the resulting metrics with the probed target's URL.
-    relabel_configs:
-      # Set the "target" HTTP parameter to the target URL that we want to probe.
-      - source_labels: [__address__]
-        target_label: __param_target
-      # Set the "instance" label to the target URL that we want to probe.
-      - source_labels: [__param_target]
-        target_label: instance
-      # Don't actually scrape the target itself, but the Blackbox Exporter.
-      - target_label: __address__
-        replacement: {{ env "NOMAD_ADDR_blackbox" }}
-
-  - job_name: 'vault-tls-expiration-check'
-    metrics_path: /probe
-    params:
-      module: [vault_http_2xx]
-    static_configs:
-      - targets:
-        - https://nomad0.node.home:8200
-        - https://nomad1.node.home:8200
-        - https://nomad2.node.home:8200
-    # A relabeling config that lets us scrape target through the Blackbox Exporter,
-    # while labeling the resulting metrics with the probed target's URL.
-    relabel_configs:
-      # Set the "target" HTTP parameter to the target URL that we want to probe.
-      - source_labels: [__address__]
-        target_label: __param_target
-      # Set the "instance" label to the target URL that we want to probe.
-      - source_labels: [__param_target]
-        target_label: instance
-      # Don't actually scrape the target itself, but the Blackbox Exporter.
-      - target_label: __address__
-        replacement: {{ env "NOMAD_ADDR_blackbox" }}
-
   - job_name: 'consul-server'
     metrics_path: /v1/agent/metrics
     honor_labels: true
@@ -277,6 +170,32 @@ scrape_configs:
         regex: ([^:]+):.*
         replacement: $1:9000
         target_label: __address__
+
+  - job_name: 'tls-expiration'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    consul_sd_configs:
+    - server: '{{ env "NOMAD_IP_http" }}:8500'
+      services: ['nomad-client', 'consul-client', 'vault', 'omada-controller']
+      scheme: http
+    # A relabeling config that lets us scrape target through the Blackbox Exporter,
+    # while labeling the resulting metrics with the probed target's URL.
+    relabel_configs:
+      # Set the "target" HTTP parameter to the target URL that we want to probe.
+      - source_labels: [__meta_consul_address, __meta_consul_service_port]
+        target_label: __param_target
+        separator: ":"
+        replacement: https://$1
+      # Set the "instance" label to the target URL that we want to probe.
+      - source_labels: [__param_target]
+        target_label: instance
+      # Don't actually scrape the target itself, but the Blackbox Exporter.
+      - source_labels: [__meta_consul_service]
+        target_label: job
+      - target_label: __address__
+        replacement: {{ env "NOMAD_ADDR_blackbox" }}
+
 
   - job_name: 'coredns'
     metrics_path: /metrics
