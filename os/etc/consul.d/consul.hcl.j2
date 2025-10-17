@@ -19,6 +19,11 @@ encrypt                 = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
 
+client_addr    = "0.0.0.0"
+advertise_addr = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
+bind_addr      = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
+retry_join     = ["10.0.100.100", "10.0.100.101", "10.0.100.102"]
+
 tls {
   defaults {
     verify_incoming        = true
@@ -54,7 +59,16 @@ connect {
   enabled = true
 }
 
-client_addr    = "0.0.0.0"
-advertise_addr = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
-bind_addr      = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
-retry_join     = ["10.0.100.100", "10.0.100.101", "10.0.100.102"]
+service {
+  id = "consul-client"
+  name = "consul-client"
+  port = 8501
+
+  check {
+    id = "consul-client"
+    name = "Consul HTTPS"
+    http = "https://localhost:8501/v1/status/leader"
+    interval = "10s"
+    timeout = "1s"
+  }
+}
