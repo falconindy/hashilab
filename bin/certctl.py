@@ -123,14 +123,11 @@ class ClusterdataCertDeployer:
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
         self.write_file(f'{destdir}/home-ca.pem',
-                        formatter.ca_chain(),
-                        sudo=True)
+                        formatter.ca_chain())
         self.write_file(f'{destdir}/tls.crt',
-                        formatter.certificate(fullchain=True),
-                        sudo=True)
+                        formatter.certificate(fullchain=True))
         self.write_file(f'{destdir}/tls.key',
-                        formatter.private_key(),
-                        sudo=True)
+                        formatter.private_key())
 
 
 class SshCertDeployer:
@@ -156,12 +153,9 @@ class SshCertDeployer:
                  exc_traceback: TracebackType | None) -> None:
         self._client.close()
 
-    def write_file(self, dest: str, contents: str, sudo: bool = False) -> None:
-        if sudo:
-            stdin, stdout, stderr = self._client.exec_command(
-                f'sudo tee >/dev/null {dest}')
-        else:
-            stdin, stdout, stderr = self._client.exec_command(f'tee >{dest}')
+    def write_file(self, dest: str, contents: str) -> None:
+        stdin, stdout, stderr = self._client.exec_command(
+            f'sudo tee >/dev/null {dest}')
 
         stdin.write(contents.encode())
         stdin.close()
@@ -170,11 +164,20 @@ class SshCertDeployer:
         if error:
             raise subprocess.CalledProcessError(error.strip())
 
+    def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
+        formatter = CertificateResponseFormatter(cert)
+        self.write_file(f'{destdir}/home-ca.pem',
+                        formatter.ca_chain())
+        self.write_file(f'{destdir}/tls.crt',
+                        formatter.certificate(fullchain=True))
+        self.write_file(f'{destdir}/tls.key',
+                        formatter.private_key())
+
     def reload_service(self, service: str, os: OSFlavor) -> None:
         if os == OSFlavor.SYNOLOGY:
             # there's no reload verb, sadly.
             stdin, stdout, stderr = self._client.exec_command(
-                f'sudo synopkg restart {service}')
+                f'sudo /usr/syno/bin/synopkg restart {service}')
         else:  # assume debian (and sanity)
             stdin, stdout, stderr = self._client.exec_command(
                 f'sudo systemctl reload {service}')
@@ -248,8 +251,8 @@ def deploy_hcl_certs(prog: str, certs: dict[Server,
             logger.info(f'writing new certificates to {server.hostname}')
             d.write_certs(f'/opt/{prog}/tls', cert)
 
-            logger.info(f'reloading vault on {server.hostname}')
-            d.reload_service('vault', os=server.os)
+            logger.info(f'reloading {prog} on {server.hostname}')
+            d.reload_service(prog, os=server.os)
 
 
 def renew_nomad_certificates() -> None:
@@ -300,6 +303,7 @@ def renew_consul_certificates() -> None:
                                            role='intermediate',
                                            common_name='consul.service.home',
                                            sans=[
+                                               server.ip_address,
                                                'server.global.home',
                                                '127.0.0.1',
                                                'localhost',
@@ -314,6 +318,7 @@ def renew_consul_certificates() -> None:
                                            role='intermediate',
                                            common_name='consul.service.home',
                                            sans=[
+                                               server.ip_address,
                                                'client.global.home',
                                                '127.0.0.1',
                                                'localhost',
