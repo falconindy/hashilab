@@ -90,11 +90,8 @@ class CertificateResponseFormatter:
     def private_key(self) -> str:
         return self._cert.private_key
 
-    def certificate(self, fullchain: bool = False) -> str:
-        pem = [self._cert.certificate]
-        if fullchain:
-            pem.extend(self._cert.ca_chain)
-        return '\n'.join(pem)
+    def certificate(self) -> str:
+        return '\n'.join([self._cert.certificate, self._cert.ca_chain])
 
     def ca_chain(self) -> str:
         return '\n'.join(self._cert.ca_chain)
@@ -122,12 +119,9 @@ class ClusterdataCertDeployer:
 
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
-        self.write_file(f'{destdir}/home-ca.pem',
-                        formatter.ca_chain())
-        self.write_file(f'{destdir}/tls.crt',
-                        formatter.certificate(fullchain=True))
-        self.write_file(f'{destdir}/tls.key',
-                        formatter.private_key())
+        self.write_file(f'{destdir}/home-ca.pem', formatter.ca_chain())
+        self.write_file(f'{destdir}/tls.crt', formatter.certificate())
+        self.write_file(f'{destdir}/tls.key', formatter.private_key())
 
 
 class SshCertDeployer:
@@ -166,12 +160,9 @@ class SshCertDeployer:
 
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
-        self.write_file(f'{destdir}/home-ca.pem',
-                        formatter.ca_chain())
-        self.write_file(f'{destdir}/tls.crt',
-                        formatter.certificate(fullchain=True))
-        self.write_file(f'{destdir}/tls.key',
-                        formatter.private_key())
+        self.write_file(f'{destdir}/home-ca.pem', formatter.ca_chain())
+        self.write_file(f'{destdir}/tls.crt', formatter.certificate())
+        self.write_file(f'{destdir}/tls.key', formatter.private_key())
 
     def reload_service(self, service: str, os: OSFlavor) -> None:
         if os == OSFlavor.SYNOLOGY:
@@ -364,7 +355,7 @@ def renew_omada_certificates() -> None:
 
     formatter = CertificateResponseFormatter(cert)
     with ClusterdataCertDeployer('omada-controller') as d:
-        d.write_file('cert/tls.crt', formatter.certificate(fullchain=True))
+        d.write_file('cert/tls.crt', formatter.certificate())
         d.write_file('cert/tls.key', formatter.private_key())
 
     logger.info('new certificates deployed')
