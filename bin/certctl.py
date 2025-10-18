@@ -345,7 +345,7 @@ def renew_omada_certificates() -> None:
     logger.info('renewing certificates for omada-controller')
 
     generator = CertGenerator()
-    cert = generator.generate(mount_point='pki_int',
+    cert = generator.generate(mount_point='pki_int_internal',
                               role='intermediate',
                               common_name='omada-controller.service.home',
                               sans=[
