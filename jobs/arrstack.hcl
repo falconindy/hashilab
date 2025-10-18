@@ -94,7 +94,7 @@ job "arrstack" {
       driver = "podman"
 
       config {
-        image = "linuxserver/radarr:5.27.5"
+        image = "linuxserver/radarr:5.28.0"
         ports = ["radarr"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
