@@ -38,7 +38,10 @@ tls {
 }
 
 consul {
-  address              = "localhost:8500"
+  address              = "localhost:8501"
+  grpc_address         = "localhost:8503"
+  ssl                  = true
+
   auto_advertise       = true
   checks_use_advertise = true
 
