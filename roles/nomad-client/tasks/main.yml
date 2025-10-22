@@ -16,8 +16,10 @@
       - consul
       - consul-cni
       - docker.io
+      - nomad
       - systemd-resolved
       - podman
+      - vault
     dpkg_options: 'force-confdef,force-confold'
     state: present
 
@@ -40,18 +42,6 @@
     passno: 0
     state: present
   tags: mount
-
-- name: Enable systemd services
-  systemd_service:
-    name: '{{ item }}'
-    enabled: true
-  with_list:
-    - consul.service
-    - docker.service
-    - podman.service
-    - systemd-networkd.service
-    - systemd-resolved.service
-    - systemd-timesyncd.service
 
 - name: systemd
   copy:
@@ -102,6 +92,53 @@
   notify:
     - Restart nomad
   tags: nomad
+
+- name: Deploy vault-agent systemd service
+  copy:
+    src: os/etc/systemd/system/vault-agent.service
+    dest: /etc/systemd/system/vault-agent.service
+  tags: vault-agent
+
+- name: Deploy vault-agent config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/vault.d/agent.hcl.j2
+      dest: /etc/vault.d/agent.hcl
+    - src: os/etc/vault.d/agent.env.j2
+      dest: /etc/vault.d/agent.env
+    - src: os/etc/vault.d/agent.roleid
+      dest: /etc/vault.d/agent.roleid
+  tags: vault-agent
+
+- name: Deploy vault-agent templates
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/opt/shared/tls/tls.tpl
+      dest: /opt/shared/tls/tls.tpl
+    - src: os/opt/consul/tls/tls.tpl
+      dest: /opt/consul/tls/tls.tpl
+    - src: os/opt/nomad/tls/tls.tpl
+      dest: /opt/nomad/tls/tls.tpl
+    - src: os/opt/vault/tls/tls.tpl
+      dest: /opt/vault/tls/tls.tpl
+  tags: vault-agent
+
+- name: Enable systemd services
+  systemd_service:
+    name: '{{ item }}'
+    enabled: true
+  with_list:
+    - consul.service
+    - docker.service
+    - podman.service
+    - vault-agent.service
+    - systemd-networkd.service
+    - systemd-resolved.service
+    - systemd-timesyncd.service
 
 - name: sysctl
   copy:

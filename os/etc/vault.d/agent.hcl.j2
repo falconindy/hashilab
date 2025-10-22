@@ -1,0 +1,61 @@
+auto_auth {
+  method {
+    type = "approle"
+
+    config {
+      role_id_file_path = "/etc/vault.d/agent.roleid"
+    }
+  }
+}
+
+vault {
+  address = "https://vault.service.home:8200"
+}
+
+template {
+  source      = "/opt/shared/tls/tls.tpl"
+  destination = "/opt/shared/tls/home-ca.pem"
+  exec = {
+    command = [
+      "systemctl",
+      "reload",
+      "consul",
+      "nomad",
+{% if "dc1" in group_names %}
+      "vault",
+{% endif %}
+    ]
+  }
+}
+
+template {
+  source      = "/opt/consul/tls/tls.tpl"
+  destination = "/opt/consul/tls/tls.crt"
+  user        = "consul"
+  group       = "consul"
+  exec = {
+    command = ["systemctl", "reload", "consul"]
+  }
+}
+
+template {
+  source      = "/opt/nomad/tls/tls.tpl"
+  destination = "/opt/nomad/tls/tls.crt"
+  user        = "nomad"
+  group       = "nomad"
+  exec = {
+    command = ["systemctl", "reload", "nomad"]
+  }
+}
+
+{% if "dc1" in group_names %}
+template {
+  source      = "/opt/vault/tls/tls.tpl"
+  destination = "/opt/vault/tls/tls.crt"
+  user        = "vault"
+  group       = "vault"
+  exec = {
+    command = ["systemctl", "reload", "vault"]
+  }
+}
+{% endif %}

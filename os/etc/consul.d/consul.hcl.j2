@@ -12,7 +12,7 @@ bootstrap_expect   = 3
 leave_on_terminate = true
 {% endif %}
 
-domain = "home."
+domain     = "home."
 alt_domain = "consul."
 
 encrypt                 = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
@@ -30,7 +30,7 @@ tls {
     verify_outgoing        = true
     verify_server_hostname = true
 
-    ca_file   = "/opt/consul/tls/home-ca.pem"
+    ca_file   = "/opt/shared/tls/home-ca.pem"
     cert_file = "/opt/consul/tls/tls.crt"
     key_file  = "/opt/consul/tls/tls.key"
   }

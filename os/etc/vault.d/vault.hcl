@@ -16,7 +16,7 @@ storage "raft" {
   retry_join {
     leader_api_addr         = "https://10.0.100.100:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
     leader_client_cert_file = "/opt/vault/tls/tls.crt"
     leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
@@ -24,7 +24,7 @@ storage "raft" {
   retry_join {
     leader_api_addr         = "https://10.0.100.101:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
     leader_client_cert_file = "/opt/vault/tls/tls.crt"
     leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
@@ -32,7 +32,7 @@ storage "raft" {
   retry_join {
     leader_api_addr         = "https://10.0.100.102:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/vault/tls/home-ca.pem"
+    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
     leader_client_cert_file = "/opt/vault/tls/tls.crt"
     leader_client_key_file  = "/opt/vault/tls/tls.key"
   }

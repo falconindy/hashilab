@@ -1,18 +1,3 @@
-- name: Install nomad packages
-  apt:
-    name:
-      - nomad
-      - nomad-driver-podman
-    dpkg_options: 'force-confdef,force-confold'
-    state: present
-  tags: nomad
-
-- name: Enable nomad service
-  systemd_service:
-    name: nomad.service
-    enabled: true
-  tags: nomad
-
 - name: Update nomad config
   copy:
     src: os/etc/nomad.d/server.hcl
