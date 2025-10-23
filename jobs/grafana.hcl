@@ -34,7 +34,7 @@ job "grafana" {
         GF_SERVER_ROOT_URL    = "https://grafana.service.home"
         GF_PATHS_DATA         = "/var/lib/grafana"
         GF_AUTH_BASIC_ENABLED = "false"
-        GF_INSTALL_PLUGINS    = "grafana-piechart-panel"
+        GF_PLUGINS_PREINSTALL = "grafana-piechart-panel"
 
         GF_USERS_ALLOW_SIGN_UP = "false"
       }
