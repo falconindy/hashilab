@@ -1,2 +1,2 @@
-hvac==2.3.0
+hvac==2.4.0
 paramiko==4.0.0
