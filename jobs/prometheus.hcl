@@ -50,6 +50,11 @@ job "prometheus" {
         ]
       }
 
+      resources {
+        cpu    = 100
+        memory = 128
+      }
+
       template {
         data = <<EOH
 modules:
@@ -257,7 +262,7 @@ EOH
 
       resources {
         cpu    = 100
-        memory = 256
+        memory = 512
       }
     }
   }
