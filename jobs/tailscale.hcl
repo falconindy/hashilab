@@ -14,7 +14,7 @@ job "tailscale" {
     task "tailscale" {
       driver = "podman"
       config {
-        image        = "tailscale/tailscale:v1.88.4"
+        image        = "tailscale/tailscale:v1.90.5"
         entrypoint   = ["/local/start.sh"]
         network_mode = "host"
         force_pull   = true
