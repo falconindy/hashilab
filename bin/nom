@@ -86,6 +86,10 @@ cmd_prepull() {
   return $r
 }
 
+cmd_prepull_and_push() {
+  cmd_prepull "$1" && nomad run "$1"
+}
+
 cmd_endpoint() {
   local r resolved
 
@@ -147,6 +151,7 @@ declare -A aliases=(
   [la]=lookupallocs
   [ep]=endpoint
   [pp]=prepull
+  [ppp]=prepull_and_push
 )
 
 if [[ -z $1 ]]; then
