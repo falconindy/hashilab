@@ -20,12 +20,13 @@ job "omada-controller" {
       port "manager_v2" { static = 29814 }
       port "transfer_v2" { static = 29815 }
       port "rtty" { static = 29816 }
+      port "devicemonitor" { static = 29817 }
     }
 
     task "omada-controller" {
       driver = "podman"
       config {
-        image        = "mbentley/omada-controller:5.15.24.19-openj9"
+        image        = "mbentley/omada-controller:6.0.0.24-openj9"
         network_mode = "host"
         volumes = [
           "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
