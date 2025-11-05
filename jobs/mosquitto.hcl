@@ -2,6 +2,22 @@ job "mosquitto" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A message broker that implements the MQTT protocol"
+    link {
+      label = "Upstream"
+      url = "https://mosquitto.org"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/eclipse-mosquitto/mosquitto"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/_/eclipse-mosquitto"
+    }
+  }
+
   group "mosquitto" {
     count = 1
 
