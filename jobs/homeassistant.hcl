@@ -2,6 +2,22 @@ job "homeassistant" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A plugin-driven DNS server/forwarder"
+    link {
+      label = "Upstream"
+      url = "https://home-assistant.io"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/home-assistant/core"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/r/homeassistant/home-assistant"
+    }
+  }
+
   group "homeassistant" {
     network {
       mode = "bridge"
