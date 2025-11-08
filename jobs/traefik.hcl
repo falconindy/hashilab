@@ -62,7 +62,7 @@ job "traefik" {
       driver = "podman"
 
       config {
-        image = "traefik:v3.5"
+        image = "traefik:v3.6"
         ports = ["http", "https", "public", "dashboard"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
