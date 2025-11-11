@@ -136,7 +136,7 @@ job "arrstack" {
       driver = "podman"
 
       config {
-        image = "linuxserver/sonarr:4.0.15"
+        image = "linuxserver/sonarr:4.0.16"
         ports = ["sonarr"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
