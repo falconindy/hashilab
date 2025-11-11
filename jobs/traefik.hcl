@@ -92,6 +92,9 @@ entryPoints:
       insecure: false
       trustedIPs:
         - 172.16.0.0/12
+    http:
+      middlewares:
+        - customheaders@file
 
   https:
     address: :443
@@ -104,6 +107,7 @@ entryPoints:
     http:
       middlewares:
         - securedheaders@file
+        - customheaders@file
       tls:
         certresolver: vault
 
