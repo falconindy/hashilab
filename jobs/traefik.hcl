@@ -160,7 +160,7 @@ providers:
       scheme: http
 
   file:
-    filename: "local/static_providers.yml"
+    filename: local/static_providers.yml
 
 certificatesResolvers:
   letsEncrypt:
@@ -174,7 +174,7 @@ certificatesResolvers:
     acme:
       email: d@falconindy.com
       storage: /acme/acme.vault.json
-      caServer: http://172.17.0.1:8200/v1/pki_int/acme/directory
+      caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
       httpChallenge:
         entryPoint: http
 
