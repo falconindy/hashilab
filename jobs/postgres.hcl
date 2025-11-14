@@ -32,7 +32,7 @@ job "postgres" {
       driver = "podman"
 
       config {
-        image = "postgres:17.6"
+        image = "postgres:17.7"
         ports = ["db"]
 
         volumes = [
