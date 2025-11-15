@@ -1,7 +1,7 @@
 #!/bin/bash
 
 root_issuer_name=$(date +root-%Y)
-vault_address=http://172.17.0.1:8200
+vault_address=https://vault.service.home:8200
 
 build_root_ca() {
   # Enable the PKI secret engine on the `/pki` mount path.
