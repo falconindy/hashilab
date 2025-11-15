@@ -2,6 +2,22 @@ job "esphome" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A plugin-driven DNS server/forwarder"
+    link {
+      label = "Upstream"
+      url = "https://esphome.io"
+    }
+    link {
+      label = "GitHub"
+      url = "https://github.com/esphome/esphome"
+    }
+    link {
+      label = "Docker Hub"
+      url = "https://hub.docker.com/r/esphome/esphome"
+    }
+  }
+
   group "esphome" {
     network {
       dns {
