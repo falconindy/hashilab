@@ -52,7 +52,7 @@ job "arrstack" {
       driver = "podman"
 
       config {
-        image = "linuxserver/prowlarr:2.1.5"
+        image = "linuxserver/prowlarr:2.3.0"
         ports = ["prowlarr"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
