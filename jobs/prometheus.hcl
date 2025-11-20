@@ -248,7 +248,11 @@ EOH
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--web.listen-address", "${NOMAD_ADDR_http}",
-          "--storage.tsdb.retention.time", "900d"
+          "--storage.tsdb.retention.time", "900d",
+          "--enable-feature", join(",", [
+            "promql-experimental-functions",
+            "use-uncached-io",
+          ]),
         ]
         # needed in order to bind to NOMAD_ADDR_http
         network_mode = "host"
