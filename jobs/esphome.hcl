@@ -6,15 +6,15 @@ job "esphome" {
     description = "A plugin-driven DNS server/forwarder"
     link {
       label = "Upstream"
-      url = "https://esphome.io"
+      url   = "https://esphome.io"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/esphome/esphome"
+      url   = "https://github.com/esphome/esphome"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/r/esphome/esphome"
+      url   = "https://hub.docker.com/r/esphome/esphome"
     }
   }
 

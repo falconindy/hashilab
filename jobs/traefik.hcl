@@ -3,24 +3,24 @@ job "traefik" {
   type        = "system"
 
   update {
-    max_parallel = 1
+    max_parallel     = 1
     min_healthy_time = "10s"
-    auto_revert = true
+    auto_revert      = true
   }
 
   ui {
     description = "A modern HTTP reverse proxy and load balancer"
     link {
       label = "Upstream"
-      url = "https://traefik.io"
+      url   = "https://traefik.io"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/traefik/traefik"
+      url   = "https://github.com/traefik/traefik"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/_/traefik"
+      url   = "https://hub.docker.com/_/traefik"
     }
   }
 

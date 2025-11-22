@@ -46,10 +46,10 @@ job "omada-exporter" {
       }
 
       env {
-        OMADA_HOST     = "https://10.0.1.99:8043"
-        OMADA_USER     = "prometheus"
-        OMADA_SITE     = "Default"
-        OMADA_PORT     = "${NOMAD_PORT_metrics}"
+        OMADA_HOST = "https://10.0.1.99:8043"
+        OMADA_USER = "prometheus"
+        OMADA_SITE = "Default"
+        OMADA_PORT = "${NOMAD_PORT_metrics}"
       }
 
       vault {}

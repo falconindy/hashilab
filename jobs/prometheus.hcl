@@ -6,15 +6,15 @@ job "prometheus" {
     description = "Monitoring system and time series database"
     link {
       label = "Upstream"
-      url = "https://prometheus.io"
+      url   = "https://prometheus.io"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/prometheus/prometheus"
+      url   = "https://github.com/prometheus/prometheus"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/r/prom/prometheus"
+      url   = "https://hub.docker.com/r/prom/prometheus"
     }
   }
 
@@ -56,14 +56,14 @@ job "prometheus" {
       }
 
       template {
-        data = <<EOH
+        data        = <<EOH
 modules:
   http_2xx:
     prober: http
     http:
       preferred_ip_protocol: "ip4"
 EOH
-        destination   = "local/blackbox.yml"
+        destination = "local/blackbox.yml"
       }
     }
 
