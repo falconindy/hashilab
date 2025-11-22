@@ -3,24 +3,24 @@ job "coredns" {
   type        = "system"
 
   update {
-    max_parallel = 1
+    max_parallel     = 1
     min_healthy_time = "10s"
-    auto_revert = true
+    auto_revert      = true
   }
 
   ui {
     description = "A plugin-driven DNS server/forwarder"
     link {
       label = "Upstream"
-      url = "https://coredns.io"
+      url   = "https://coredns.io"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/coredns/coredns"
+      url   = "https://github.com/coredns/coredns"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/r/coredns/coredns"
+      url   = "https://hub.docker.com/r/coredns/coredns"
     }
   }
 

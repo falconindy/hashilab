@@ -6,15 +6,15 @@ job "mosquitto" {
     description = "A message broker that implements the MQTT protocol"
     link {
       label = "Upstream"
-      url = "https://mosquitto.org"
+      url   = "https://mosquitto.org"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/eclipse-mosquitto/mosquitto"
+      url   = "https://github.com/eclipse-mosquitto/mosquitto"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/_/eclipse-mosquitto"
+      url   = "https://hub.docker.com/_/eclipse-mosquitto"
     }
   }
 

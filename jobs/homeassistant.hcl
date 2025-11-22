@@ -6,15 +6,15 @@ job "homeassistant" {
     description = "A plugin-driven DNS server/forwarder"
     link {
       label = "Upstream"
-      url = "https://home-assistant.io"
+      url   = "https://home-assistant.io"
     }
     link {
       label = "GitHub"
-      url = "https://github.com/home-assistant/core"
+      url   = "https://github.com/home-assistant/core"
     }
     link {
       label = "Docker Hub"
-      url = "https://hub.docker.com/r/homeassistant/home-assistant"
+      url   = "https://hub.docker.com/r/homeassistant/home-assistant"
     }
   }
 
