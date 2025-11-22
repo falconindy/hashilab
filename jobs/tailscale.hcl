@@ -9,13 +9,14 @@ job "tailscale" {
       dns {
         servers = ["172.17.0.1"]
       }
+
+      port "health" {}
     }
 
     task "tailscale" {
       driver = "podman"
       config {
         image        = "tailscale/tailscale:v1.90.8"
-        entrypoint   = ["/local/start.sh"]
         network_mode = "host"
         force_pull   = true
         privileged   = true
@@ -37,37 +38,31 @@ job "tailscale" {
       template {
         data        = <<EOH
           {{ with secret "kv/data/default/tailscale" }}
-          TS_AUTH_KEY="{{ .Data.data.auth_key }}"
+          TS_AUTHKEY="{{ .Data.data.auth_key }}"
           {{ end }}
-      EOH
-        destination = "secrets/auth.env"
+          TS_HOSTNAME="homelab"
+          TS_ROUTES="10.0.1.0/24,10.0.20.0/24,10.0.100.0/24"
+          TS_USERSPACE="true"
+          TS_STATE_DIR="/var/lib/tailscale/tailscaled.state"
+          TS_ENABLE_HEALTH_CHECK="true"
+          TS_LOCAL_ADDR_PORT="{{ env "NOMAD_ADDR_health" }}"
+          TS_EXTRA_ARGS="--reset --advertise-exit-node"
+        EOH
+        destination = "secrets/env"
         env         = true
       }
 
-      template {
-        data        = <<EOH
-#!/bin/sh
+      service {
+        port         = "health"
+        address_mode = "host"
+        name         = "tailscale"
 
-function up() {
-    until /usr/local/bin/tailscale up \
-        --snat-subnet-routes=false \
-        --advertise-exit-node \
-        --advertise-routes=10.0.1.0/24,10.0.20.0/24,10.0.100.0/24 \
-        --hostname="homelab"
-    do
-        sleep 0.1
-    done
-
-}
-
-# send this function into the background
-up &
-
-exec tailscaled --tun=userspace-networking --statedir="/var/lib/tailscale/tailscaled.state"
-EOH
-        destination = "local/start.sh"
-        env         = false
-        perms       = 755
+        check {
+          type     = "http"
+          path     = "/healthz"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
