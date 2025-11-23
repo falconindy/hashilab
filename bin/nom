@@ -140,6 +140,31 @@ cmd_ui() {
   nomad ui -authenticate "${args[@]}"
 }
 
+cmd_drain() {
+  local node_id
+
+  read -r node_id < <(nomad node status -json -filter "Name==$1" | jq -r '.[].ID')
+  if [[ -z $node_id ]]; then
+    printf 'ERROR: no node known by name: %s\n' "$1" >&2
+    return 1
+  fi
+
+  nomad node drain -enable "$node_id"
+}
+
+cmd_undrain() {
+  local node_id
+
+  read -r node_id < <(nomad node status -json -filter "Name==$1" | jq -r '.[].ID')
+  if [[ -z $node_id ]]; then
+    printf 'ERROR: no node known by name: %s\n' "$1" >&2
+    return 1
+  fi
+
+  nomad node eligibility -enable "$node_id"
+}
+
+
 known_commands() {
   mapfile -t commands < <(compgen -A function cmd_)
 
