@@ -4,6 +4,7 @@ from typing import List
 from dataclasses import dataclass
 from types import TracebackType
 from enum import Enum, auto
+from itertools import chain
 
 import ipaddress
 import logging
@@ -91,7 +92,8 @@ class CertificateResponseFormatter:
         return self._cert.private_key
 
     def certificate(self) -> str:
-        return '\n'.join([self._cert.certificate, self._cert.ca_chain])
+        return '\n'.join(
+            chain.from_iterable([self._cert.certificate, self._cert.ca_chain]))
 
     def ca_chain(self) -> str:
         return '\n'.join(self._cert.ca_chain)
@@ -156,7 +158,7 @@ class SshCertDeployer:
 
         error = stderr.read().decode()
         if error:
-            raise subprocess.CalledProcessError(error.strip())
+            raise OSError(error.strip())
 
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
@@ -181,7 +183,7 @@ class SshCertDeployer:
 
 class CertGenerator:
 
-    DEFAULT_TTL = '4390h'
+    DEFAULT_TTL = '768h'
 
     def _is_ip_address(self, ip_string: str) -> bool:
         '''
