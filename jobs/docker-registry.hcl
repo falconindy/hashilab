@@ -21,7 +21,7 @@ job "docker-registry" {
       driver = "podman"
 
       config {
-        image = "registry:2"
+        image = "registry:3"
         volumes = [
           "local/config.yml:/etc/docker/registry/config.yml:ro",
           "/clusterdata/docker-registry:/var/lib/registry:rw",
