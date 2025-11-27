@@ -26,12 +26,7 @@ job "homeassistant" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        # Would be nice to use port mapping but we can't use a true bridge
-        # without setting up an mDNS repeater or addressing ESPHome devices in
-        # another way.
-        static = "8123"
-      }
+      port "http" {}
     }
 
     task "server" {
@@ -45,6 +40,17 @@ job "homeassistant" {
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/homeassistant:/config:rw",
         ]
+      }
+
+      template {
+        destination = "local/http.yaml"
+        data = <<EOF
+          server_port: {{ env "NOMAD_PORT_http" }}
+          use_x_forwarded_for: true
+          trusted_proxies:
+            - 10.0.100.0/24
+            - 172.16.0.0/12
+        EOF
       }
 
       env {
