@@ -50,6 +50,8 @@ job "docker-registry" {
           http:
             addr: {{ env "NOMAD_ALLOC_ADDR_http" }}
             host: https://{{ env "NOMAD_JOB_NAME" }}.service.home
+            headers:
+              X-Content-Type-Option: [nosniff]
           log:
             fields:
               service: registry
@@ -58,6 +60,8 @@ job "docker-registry" {
               blobdescriptor: inmemory
             filesystem:
               rootdirectory: /var/lib/registry
+            delete:
+              enabled: true
           proxy:
             remoteurl: https://registry-1.docker.io
             ttl: 168h
