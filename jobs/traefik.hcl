@@ -127,6 +127,9 @@ entryPoints:
 
   traefik:
     address: :[[ env "NOMAD_PORT_traefik" ]]
+    http:
+      tls:
+        certresolver: vault
 
 tls:
   options:
@@ -147,7 +150,7 @@ tls:
 
 api:
   dashboard: true
-  insecure: true
+  insecure: false
 
 providers:
   consulCatalog:
@@ -194,7 +197,8 @@ EOF
 http:
   routers:
     api-dashboard:
-      rule: "Host(`traefik.service.home`) && PathPrefix(`/api`)"
+      rule: Host(`traefik.service.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      entrypoints: traefik
       service: api@internal
       middlewares:
         - cors-allow-all
