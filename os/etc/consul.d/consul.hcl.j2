@@ -59,6 +59,11 @@ connect {
   enabled = true
 }
 
+telemetry {
+  disable_hostname = true
+  prometheus_retention_time = "72h"
+}
+
 service {
   id = "consul-client"
   name = "consul-client"
