@@ -126,6 +126,8 @@ scrape_configs:
 
   - job_name: consul
     metrics_path: /v1/agent/metrics
+    params:
+      format: [prometheus]
     honor_labels: true
     scheme: https
     tls_config:
