@@ -41,9 +41,6 @@ job "traefik" {
       port "public" {
         static = 8443
       }
-      port "traefik" {
-        static = 9000
-      }
     }
 
     service {
@@ -63,7 +60,7 @@ job "traefik" {
 
       config {
         image = "traefik:v3.6"
-        ports = ["http", "https", "public", "traefik"]
+        ports = ["http", "https", "public"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
@@ -125,12 +122,6 @@ entryPoints:
       tls:
         certresolver: letsEncrypt
 
-  traefik:
-    address: :[[ env "NOMAD_PORT_traefik" ]]
-    http:
-      tls:
-        certresolver: vault
-
 tls:
   options:
     default:
@@ -185,7 +176,7 @@ metrics:
   prometheus:
     addEntryPointsLabels: true
     addRoutersLabels: true
-    entryPoint: traefik
+    entryPoint: https
 EOF
         destination     = "local/traefik.yml"
       }
@@ -198,7 +189,7 @@ http:
   routers:
     api-dashboard:
       rule: Host(`traefik.service.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
-      entrypoints: traefik
+      entrypoints: https
       service: api@internal
       middlewares:
         - cors-allow-all

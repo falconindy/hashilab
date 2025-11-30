@@ -161,6 +161,9 @@ scrape_configs:
 
   - job_name: 'traefik'
     metrics_path: /metrics
+    scheme: https
+    tls_config:
+      server_name: traefik.service.home
     consul_sd_configs:
       - server: '{{ env "NOMAD_IP_http" }}:8500'
         services: ['traefik']
@@ -173,7 +176,7 @@ scrape_configs:
       - source_labels: [__address__]
         action: replace
         regex: ([^:]+):.*
-        replacement: $1:9000
+        replacement: $1
         target_label: __address__
 
   - job_name: 'tls-expiration'
