@@ -164,6 +164,15 @@ cmd_undrain() {
   nomad node eligibility -enable "$node_id"
 }
 
+cmd_stale() {
+  local f
+
+  for f in "$@"; do
+    if ! cmd_diff "$f" >/dev/null; then
+      printf '%s\n' "$f"
+    fi
+  done
+}
 
 known_commands() {
   mapfile -t commands < <(compgen -A function cmd_)
