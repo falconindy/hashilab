@@ -74,7 +74,6 @@ job "arrstack" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
           "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"
@@ -116,7 +115,6 @@ job "arrstack" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
           "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"
@@ -158,7 +156,6 @@ job "arrstack" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
           "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.tls.certresolver=vault",
         ]
         check {
           type     = "http"

@@ -50,7 +50,6 @@ job "esphome" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
           "traefik.http.routers.${NOMAD_JOB_NAME}-https.entrypoints=https",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-https.tls.certresolver=vault",
         ]
 
         check {
