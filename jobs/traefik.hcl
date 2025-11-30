@@ -193,23 +193,11 @@ EOF
         data            = <<EOF
 http:
   routers:
-    nasty:
-      rule: Host(`dsm.falconindy.com`)
-      entrypoints: public
-      tls:
-        certresolver: letsEncrypt
-      service: nasty
     api-dashboard:
       rule: "Host(`traefik.service.home`) && PathPrefix(`/api`)"
       service: api@internal
       middlewares:
         - cors-allow-all
-
-  services:
-    nasty:
-      loadBalancer:
-        servers:
-        - url: http://nasty.node.home:5000
 
   middlewares:
     securedheaders:
