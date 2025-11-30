@@ -107,12 +107,12 @@ global:
   # scrape_timeout is set to the global default (10s).
 
 scrape_configs:
-  - job_name: 'nomad'
+  - job_name: nomad
     scheme: https
     consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_http" }}:8500'
-      services: ['nomad-client']
-      scheme: http
+      - server: consul.service.home:8501
+        scheme: https
+        services: ['nomad-client']
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
@@ -124,13 +124,16 @@ scrape_configs:
       - source_labels: ['__meta_consul_node']
         target_label:  'host'
 
-  - job_name: 'consul-server'
+  - job_name: consul-server
     metrics_path: /v1/agent/metrics
     honor_labels: true
+    scheme: https
+    tls_config:
+      server_name: consul.service.home
     consul_sd_configs:
-      - server: '{{ env "NOMAD_IP_http" }}:8500'
-        services: ['nomad-client']
-        scheme: http
+      - server: consul.service.home:8501
+        scheme: https
+        services: ['consul']
     relabel_configs:
       - source_labels: ['__meta_consul_dc']
         target_label:  'dc'
@@ -141,17 +144,18 @@ scrape_configs:
       - source_labels: [__address__]
         action: replace
         regex: ([^:]+):.*
-        replacement: $1:8500
+        replacement: $1:8501
         target_label: __address__
 
-  - job_name: 'vault'
+  - job_name: vault
     metrics_path: /v1/sys/metrics
     scheme: https
     bearer_token: '{{ env "VAULT_TOKEN" }}'
     params:
       format: ['prometheus']
     consul_sd_configs:
-      - server: {{ env "NOMAD_IP_http" }}:8500
+      - server: consul.service.home:8501
+        scheme: https
         services: ['vault']
     relabel_configs:
       - source_labels: ['__meta_consul_dc']
@@ -159,15 +163,15 @@ scrape_configs:
       - source_labels: ['__meta_consul_node']
         target_label:  'host'
 
-  - job_name: 'traefik'
+  - job_name: traefik
     metrics_path: /metrics
     scheme: https
     tls_config:
       server_name: traefik.service.home
     consul_sd_configs:
-      - server: '{{ env "NOMAD_IP_http" }}:8500'
+      - server: consul.service.home:8501
+        scheme: https
         services: ['traefik']
-        scheme: http
     relabel_configs:
       - source_labels: ['__meta_consul_dc']
         target_label:  'dc'
@@ -179,14 +183,14 @@ scrape_configs:
         replacement: $1
         target_label: __address__
 
-  - job_name: 'tls-expiration'
+  - job_name: tls-expiration
     metrics_path: /probe
     params:
       module: [http_2xx]
     consul_sd_configs:
-    - server: '{{ env "NOMAD_IP_http" }}:8500'
-      services: ['nomad-client', 'consul-client', 'vault', 'omada-controller']
-      scheme: http
+      - server: consul.service.home:8501
+        services: ['nomad-client', 'consul-client', 'vault', 'omada-controller']
+        scheme: https
     # A relabeling config that lets us scrape target through the Blackbox Exporter,
     # while labeling the resulting metrics with the probed target's URL.
     relabel_configs:
@@ -205,13 +209,13 @@ scrape_configs:
         replacement: {{ env "NOMAD_ADDR_blackbox" }}
 
 
-  - job_name: 'coredns'
+  - job_name: coredns
     metrics_path: /metrics
     scheme: http
     consul_sd_configs:
-      - server: '{{ env "NOMAD_IP_http" }}:8500'
+      - server: consul.service.home:8501
+        scheme: https
         services: ['coredns']
-        scheme: http
     relabel_configs:
       - source_labels: ['__meta_consul_dc']
         target_label:  'dc'
@@ -223,15 +227,15 @@ scrape_configs:
         replacement: $1:9153
         target_label: __address__
 
-  - job_name: 'omada'
+  - job_name: omada
     metrics_path: /metrics
     scheme: http
     scrape_interval: 30s
     scrape_timeout: 25s
     consul_sd_configs:
-      - server: '{{ env "NOMAD_IP_http" }}:8500'
+      - server: consul.service.home:8501
+        scheme: https
         services: ['omada-exporter']
-        scheme: http
     relabel_configs:
       - source_labels: ['__meta_consul_dc']
         target_label:  'dc'
