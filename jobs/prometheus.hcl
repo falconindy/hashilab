@@ -112,19 +112,19 @@ scrape_configs:
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['nomad-client']
+        services: [nomad-client]
     metrics_path: /v1/metrics
     params:
-      format: ['prometheus']
+      format: [prometheus]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
       - source_labels: [__meta_consul_service]
-        target_label:  'job'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
+        target_label:  job
+      - source_labels: [__meta_consul_node]
+        target_label:  host
 
-  - job_name: consul-server
+  - job_name: consul
     metrics_path: /v1/agent/metrics
     honor_labels: true
     scheme: https
@@ -133,14 +133,14 @@ scrape_configs:
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['consul']
+        services: [consul]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
-      - source_labels: ['__meta_consul_tags']
-        target_label: 'tags'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
+      - source_labels: [__meta_consul_node]
+        target_label:  host
+      - source_labels: [__meta_consul_tags]
+        target_label: tags
       - source_labels: [__address__]
         action: replace
         regex: ([^:]+):.*
@@ -150,18 +150,18 @@ scrape_configs:
   - job_name: vault
     metrics_path: /v1/sys/metrics
     scheme: https
-    bearer_token: '{{ env "VAULT_TOKEN" }}'
+    bearer_token: {{ env "VAULT_TOKEN" }}
     params:
-      format: ['prometheus']
+      format: [prometheus]
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['vault']
+        services: [vault]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
+      - source_labels: [__meta_consul_node]
+        target_label:  host
 
   - job_name: traefik
     metrics_path: /metrics
@@ -171,12 +171,12 @@ scrape_configs:
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['traefik']
+        services: [traefik]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
+      - source_labels: [__meta_consul_node]
+        target_label:  host
       - source_labels: [__address__]
         action: replace
         regex: ([^:]+):.*
@@ -189,7 +189,7 @@ scrape_configs:
       module: [http_2xx]
     consul_sd_configs:
       - server: consul.service.home:8501
-        services: ['nomad-client', 'consul-client', 'vault', 'omada-controller']
+        services: [nomad-client, consul-client, vault, omada-controller]
         scheme: https
     # A relabeling config that lets us scrape target through the Blackbox Exporter,
     # while labeling the resulting metrics with the probed target's URL.
@@ -197,7 +197,7 @@ scrape_configs:
       # Set the "target" HTTP parameter to the target URL that we want to probe.
       - source_labels: [__meta_consul_address, __meta_consul_service_port]
         target_label: __param_target
-        separator: ":"
+        separator: ':'
         replacement: https://$1
       # Set the "instance" label to the target URL that we want to probe.
       - source_labels: [__param_target]
@@ -215,12 +215,12 @@ scrape_configs:
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['coredns']
+        services: [coredns]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
+      - source_labels: [__meta_consul_node]
+        target_label:  host
       - source_labels: [__address__]
         action: replace
         regex: ([^:]+):.*
@@ -235,12 +235,12 @@ scrape_configs:
     consul_sd_configs:
       - server: consul.service.home:8501
         scheme: https
-        services: ['omada-exporter']
+        services: [omada-exporter]
     relabel_configs:
-      - source_labels: ['__meta_consul_dc']
-        target_label:  'dc'
-      - source_labels: ['__meta_consul_node']
-        target_label:  'host'
+      - source_labels: [__meta_consul_dc]
+        target_label:  dc
+      - source_labels: [__meta_consul_node]
+        target_label:  host
 
 EOH
 
