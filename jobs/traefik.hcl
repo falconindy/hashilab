@@ -41,7 +41,7 @@ job "traefik" {
       port "public" {
         static = 8443
       }
-      port "dashboard" {
+      port "traefik" {
         static = 9000
       }
     }
@@ -63,7 +63,7 @@ job "traefik" {
 
       config {
         image = "traefik:v3.6"
-        ports = ["http", "https", "public", "dashboard"]
+        ports = ["http", "https", "public", "traefik"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
@@ -85,7 +85,7 @@ job "traefik" {
         data            = <<EOF
 entryPoints:
   http:
-    address: :80
+    address: :[[ env "NOMAD_PORT_http" ]]
     forwardedHeaders:
       insecure: false
     proxyProtocol:
@@ -97,7 +97,7 @@ entryPoints:
         - customheaders@file
 
   https:
-    address: :443
+    address: :[[ env "NOMAD_PORT_https" ]]
     forwardedHeaders:
       insecure: false
     proxyProtocol:
@@ -112,7 +112,7 @@ entryPoints:
         certresolver: vault
 
   public:
-    address: :8443
+    address: :[[ env "NOMAD_PORT_public" ]]
     forwardedHeaders:
       insecure: false
     proxyProtocol:
@@ -126,7 +126,7 @@ entryPoints:
         certresolver: letsEncrypt
 
   traefik:
-    address: :9000
+    address: :[[ env "NOMAD_PORT_traefik" ]]
 
 tls:
   options:
