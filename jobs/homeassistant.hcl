@@ -44,7 +44,7 @@ job "homeassistant" {
 
       template {
         destination = "local/http.yaml"
-        data = <<EOF
+        data        = <<EOF
           server_port: {{ env "NOMAD_PORT_http" }}
           use_x_forwarded_for: true
           trusted_proxies:
@@ -66,7 +66,6 @@ job "homeassistant" {
           "traefik.enable=true",
           "traefik.http.routers.${NOMAD_JOB_NAME}-public.rule=Host(`hass.falconindy.com`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}-public.entrypoints=public",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`homeassistant.service.home`)",
           "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
         ]
 
