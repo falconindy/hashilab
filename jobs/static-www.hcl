@@ -53,7 +53,7 @@ job "static-www" {
       address_mode = "host"
       tags = [
         "traefik.enable=true",
-        "traefik.http.routers.d.entrypoints=http",
+        "traefik.http.routers.d.entrypoints=https",
       ]
 
       check {
