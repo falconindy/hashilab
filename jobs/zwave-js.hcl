@@ -54,7 +54,6 @@ job "zwave-js" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
         ]
 
         check {
