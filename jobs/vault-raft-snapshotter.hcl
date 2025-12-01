@@ -4,8 +4,8 @@ job "vault-raft-snapshotter" {
 
   periodic {
     crons            = ["42 2 * * *"] # run every day at 2:42
-    time_zone        = "America/New_York"
     prohibit_overlap = true
+    time_zone        = "America/New_York"
   }
 
   group "vault-raft-snapshotter" {
@@ -50,4 +50,3 @@ job "vault-raft-snapshotter" {
     }
   }
 }
-

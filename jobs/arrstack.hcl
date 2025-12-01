@@ -72,8 +72,6 @@ job "arrstack" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
         ]
         check {
           type     = "http"
@@ -113,8 +111,6 @@ job "arrstack" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
         ]
         check {
           type     = "http"
@@ -154,8 +150,6 @@ job "arrstack" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.rule=Host(`${NOMAD_TASK_NAME}.service.home`)",
-          "traefik.http.routers.${NOMAD_TASK_NAME}.entrypoints=https",
         ]
         check {
           type     = "http"

@@ -48,8 +48,7 @@ job "esphome" {
         address_mode = "host"
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=http",
-          "traefik.http.routers.${NOMAD_JOB_NAME}-https.entrypoints=https",
+          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https,http",
         ]
 
         check {

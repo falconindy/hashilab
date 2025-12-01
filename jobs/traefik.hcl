@@ -83,6 +83,7 @@ job "traefik" {
 entryPoints:
   http:
     address: :[[ env "NOMAD_PORT_http" ]]
+    asDefault: false
     forwardedHeaders:
       insecure: false
     proxyProtocol:
@@ -95,6 +96,7 @@ entryPoints:
 
   https:
     address: :[[ env "NOMAD_PORT_https" ]]
+    asDefault: true
     forwardedHeaders:
       insecure: false
     proxyProtocol:
@@ -110,6 +112,7 @@ entryPoints:
 
   public:
     address: :[[ env "NOMAD_PORT_public" ]]
+    asDefault: false
     forwardedHeaders:
       insecure: false
     proxyProtocol:
