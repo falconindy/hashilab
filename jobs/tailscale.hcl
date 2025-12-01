@@ -29,12 +29,6 @@ job "tailscale" {
 
       vault {}
 
-      identity {
-        name = "vault_default"
-        aud  = ["vault.io"]
-        ttl  = "1h"
-      }
-
       template {
         data        = <<EOH
           {{ with secret "kv/data/default/tailscale" }}

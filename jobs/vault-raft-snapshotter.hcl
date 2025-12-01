@@ -37,12 +37,6 @@ job "vault-raft-snapshotter" {
         VAULT_ADDR = "https://active.vault.service.home:8200"
       }
 
-      identity {
-        name = "vault_default"
-        aud  = ["vault.io"]
-        ttl  = "1h"
-      }
-
       resources {
         cpu    = 100
         memory = 128

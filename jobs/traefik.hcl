@@ -70,12 +70,6 @@ job "traefik" {
 
       vault {}
 
-      identity {
-        name = "vault_default"
-        aud  = ["vault.io"]
-        ttl  = "1h"
-      }
-
       template {
         left_delimiter  = "[["
         right_delimiter = "]]"
