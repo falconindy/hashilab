@@ -73,12 +73,6 @@ EOH
 
       vault {}
 
-      identity {
-        name = "vault_default"
-        aud  = ["vault.io"]
-        ttl  = "1h"
-      }
-
       service {
         name         = "prometheus"
         port         = "http"
