@@ -27,7 +27,7 @@ job "jellyfin" {
       driver = "podman"
 
       config {
-        image = "linuxserver/jellyfin:10.11.3"
+        image = "linuxserver/jellyfin:10.11.4"
         ports = ["http"]
 
         volumes = [
