@@ -13,8 +13,8 @@ job "vault-raft-snapshotter" {
       driver = "raw_exec"
 
       config {
-        command = "bash"
-        args = ["-c", <<EOT
+        command = "/bin/sh"
+        args = ["-c", <<-EOF
             set -euo pipefail
 
             out=$(date +/clusterdata/raft-snapshots/raft-%Y%m%dT%H%M%S.snap)
@@ -24,7 +24,7 @@ job "vault-raft-snapshotter" {
 
             echo "Deleting any snapshots older than 30 days"
             find /clusterdata/raft-snapshots -name '*.snap' -type f -mtime +30 -exec rm -v {} +
-          EOT
+          EOF
         ]
       }
 

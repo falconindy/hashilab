@@ -60,13 +60,13 @@ job "teslamate" {
       vault {}
 
       template {
-        data        = <<EOH
+        data        = <<EOF
           {{ with secret "kv/data/default/teslamate" }}
             ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
             DATABASE_PASS="{{ .Data.data.postgres_password }}" 
             MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
           {{ end }}
-        EOH
+        EOF
         destination = "secrets/auth.env"
         env         = true
       }

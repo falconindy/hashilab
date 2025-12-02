@@ -52,11 +52,11 @@ job "omada-exporter" {
       vault {}
 
       template {
-        data        = <<EOH
+        data        = <<EOF
           {{ with secret "kv/data/default/omada-exporter" }}
             OMADA_PASS="{{ .Data.data.omada_password }}"
           {{ end }}
-      EOH
+        EOF
         destination = "secrets/auth.env"
         env         = true
       }

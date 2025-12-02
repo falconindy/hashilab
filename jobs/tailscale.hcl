@@ -30,9 +30,9 @@ job "tailscale" {
       vault {}
 
       template {
-        data        = <<EOH
+        data        = <<EOF
           {{ with secret "kv/data/default/tailscale" }}
-          TS_AUTHKEY="{{ .Data.data.auth_key }}"
+            TS_AUTHKEY="{{ .Data.data.auth_key }}"
           {{ end }}
 
           TS_USERSPACE="true"
@@ -45,7 +45,7 @@ job "tailscale" {
           TS_LOCAL_ADDR_PORT="{{ env "NOMAD_ADDR_http" }}"
           TS_ENABLE_HEALTH_CHECK="true"
           TS_ENABLE_METRICS="true"
-        EOH
+        EOF
         destination = "secrets/env"
         env         = true
       }

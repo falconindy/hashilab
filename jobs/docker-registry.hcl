@@ -43,7 +43,7 @@ job "docker-registry" {
       }
 
       template {
-        data          = <<EOF
+        data          = <<-EOF
           version: 0.1
           http:
             addr: {{ env "NOMAD_ALLOC_ADDR_http" }}

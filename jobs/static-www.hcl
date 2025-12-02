@@ -24,17 +24,17 @@ job "static-www" {
       }
 
       template {
-        data        = <<EOF
-        server {
-            listen {{ env "NOMAD_PORT_http" }};
+        data        = <<-EOF
+          server {
+              listen {{ env "NOMAD_PORT_http" }};
 
-            server_name d.service.home;
+              server_name d.service.home;
 
-            location / {
-                root /srv/www/traefik-directory;
-                index index.html;
-            }
-        }
+              location / {
+                  root /srv/www/traefik-directory;
+                  index index.html;
+              }
+          }
         EOF
         destination = "local/nginx.conf"
         change_mode = "restart"
