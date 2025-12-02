@@ -66,11 +66,11 @@ job "zwave-js" {
       vault {}
 
       template {
-        data        = <<EOH
+        data        = <<EOF
           {{ with secret "kv/data/default/zwave-js" }}
             SESSION_SECRET="{{ .Data.data.session_secret }}"
           {{ end }}
-      EOH
+        EOF
         destination = "secrets/auth.env"
         env         = true
       }

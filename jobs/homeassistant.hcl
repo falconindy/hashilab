@@ -44,7 +44,7 @@ job "homeassistant" {
 
       template {
         destination = "local/http.yaml"
-        data        = <<EOF
+        data        = <<-EOF
           server_port: {{ env "NOMAD_PORT_http" }}
           use_x_forwarded_for: true
           trusted_proxies:

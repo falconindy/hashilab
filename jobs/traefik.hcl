@@ -73,162 +73,162 @@ job "traefik" {
       template {
         left_delimiter  = "[["
         right_delimiter = "]]"
-        data            = <<EOF
-entryPoints:
-  http:
-    address: :[[ env "NOMAD_PORT_http" ]]
-    asDefault: false
-    forwardedHeaders:
-      insecure: false
-    proxyProtocol:
-      insecure: false
-      trustedIPs:
-        - 172.16.0.0/12
-    http:
-      middlewares:
-        - customheaders@file
+        data            = <<-EOF
+          entryPoints:
+            http:
+              address: :[[ env "NOMAD_PORT_http" ]]
+              asDefault: false
+              forwardedHeaders:
+                insecure: false
+              proxyProtocol:
+                insecure: false
+                trustedIPs:
+                  - 172.16.0.0/12
+              http:
+                middlewares:
+                  - customheaders@file
 
-  https:
-    address: :[[ env "NOMAD_PORT_https" ]]
-    asDefault: true
-    forwardedHeaders:
-      insecure: false
-    proxyProtocol:
-      insecure: false
-      trustedIPs:
-        - 172.16.0.0/12
-    http:
-      middlewares:
-        - securedheaders@file
-        - customheaders@file
-      tls:
-        certresolver: vault
+            https:
+              address: :[[ env "NOMAD_PORT_https" ]]
+              asDefault: true
+              forwardedHeaders:
+                insecure: false
+              proxyProtocol:
+                insecure: false
+                trustedIPs:
+                  - 172.16.0.0/12
+              http:
+                middlewares:
+                  - securedheaders@file
+                  - customheaders@file
+                tls:
+                  certresolver: vault
 
-  public:
-    address: :[[ env "NOMAD_PORT_public" ]]
-    asDefault: false
-    forwardedHeaders:
-      insecure: false
-    proxyProtocol:
-      insecure: false
-      trustedIPs:
-        - 172.16.0.0/12
-    http:
-      middlewares:
-        - securedheaders@file
-      tls:
-        certresolver: letsEncrypt
+            public:
+              address: :[[ env "NOMAD_PORT_public" ]]
+              asDefault: false
+              forwardedHeaders:
+                insecure: false
+              proxyProtocol:
+                insecure: false
+                trustedIPs:
+                  - 172.16.0.0/12
+              http:
+                middlewares:
+                  - securedheaders@file
+                tls:
+                  certresolver: letsEncrypt
 
-tls:
-  options:
-    default:
-      sniStrict: true
-      minVersion: VersionTLS12
-      curvePreferences:
-        - CurveP521
-        - CurveP384
-      cipherSuites:
-        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-    mintls13:
-      minVersion: VersionTLS13
+          tls:
+            options:
+              default:
+                sniStrict: true
+                minVersion: VersionTLS12
+                curvePreferences:
+                  - CurveP521
+                  - CurveP384
+                cipherSuites:
+                  - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+                  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+                  - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+                  - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+              mintls13:
+                minVersion: VersionTLS13
 
-api:
-  dashboard: true
-  insecure: false
+          api:
+            dashboard: true
+            insecure: false
 
-providers:
-  consulCatalog:
-    prefix: traefik
-    exposedByDefault: false
-    defaultRule: Host(`{{ .Name }}.service.home`)
+          providers:
+            consulCatalog:
+              prefix: traefik
+              exposedByDefault: false
+              defaultRule: Host(`{{ .Name }}.service.home`)
 
-    endpoint:
-      address: 172.17.0.1:8500
-      scheme: http
+              endpoint:
+                address: 172.17.0.1:8500
+                scheme: http
 
-  file:
-    filename: local/static_providers.yml
+            file:
+              filename: local/static_providers.yml
 
-certificatesResolvers:
-  letsEncrypt:
-    acme:
-      storage: /acme/acme.[[ env "attr.unique.hostname" ]].json
-      dnsChallenge:
-        provider: cloudflare
-        delayBeforeCheck: 10
+          certificatesResolvers:
+            letsEncrypt:
+              acme:
+                storage: /acme/acme.[[ env "attr.unique.hostname" ]].json
+                dnsChallenge:
+                  provider: cloudflare
+                  delayBeforeCheck: 10
 
-  vault:
-    acme:
-      email: d@falconindy.com
-      storage: /acme/acme.vault.json
-      caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
-      httpChallenge:
-        entryPoint: http
+            vault:
+              acme:
+                email: d@falconindy.com
+                storage: /acme/acme.vault.json
+                caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
+                httpChallenge:
+                  entryPoint: http
 
-metrics:
-  prometheus:
-    addEntryPointsLabels: true
-    addRoutersLabels: true
-    entryPoint: https
-EOF
+          metrics:
+            prometheus:
+              addEntryPointsLabels: true
+              addRoutersLabels: true
+              entryPoint: https
+        EOF
         destination     = "local/traefik.yml"
       }
 
       template {
         left_delimiter  = "[["
         right_delimiter = "]]"
-        data            = <<EOF
-http:
-  routers:
-    api-dashboard:
-      rule: Host(`traefik.service.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
-      entrypoints: https
-      service: api@internal
-      middlewares:
-        - cors-allow-all
+        data            = <<-EOF
+          http:
+            routers:
+              api-dashboard:
+                rule: Host(`traefik.service.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+                entrypoints: https
+                service: api@internal
+                middlewares:
+                  - cors-allow-all
 
-  middlewares:
-    securedheaders:
-      headers:
-        forcestsheader: true
-        sslRedirect: true
-        STSPreload: true
-        ContentTypeNosniff: true
-        BrowserXssFilter: true
-        STSIncludeSubdomains: true
-        STSSeconds: 315360000
+            middlewares:
+              securedheaders:
+                headers:
+                  forcestsheader: true
+                  sslRedirect: true
+                  STSPreload: true
+                  ContentTypeNosniff: true
+                  BrowserXssFilter: true
+                  STSIncludeSubdomains: true
+                  STSSeconds: 315360000
 
-    customheaders:
-      headers:
-        customResponseHeaders:
-          X-Backend-Name: [[ env "attr.unique.hostname" ]]
+              customheaders:
+                headers:
+                  customResponseHeaders:
+                    X-Backend-Name: [[ env "attr.unique.hostname" ]]
 
-    cors-allow-all:
-      headers:
-        accessControlAllowOriginList: ["*"]
-        accessControlAllowMethods:
-          - GET
-        accessControlAllowHeaders:
-          - Content-Type
-          - Authorization
-        accessControlAllowCredentials: true
-        accessControlMaxAge: 100
-        addVaryHeader: true
-EOF
+              cors-allow-all:
+                headers:
+                  accessControlAllowOriginList: ["*"]
+                  accessControlAllowMethods:
+                    - GET
+                  accessControlAllowHeaders:
+                    - Content-Type
+                    - Authorization
+                  accessControlAllowCredentials: true
+                  accessControlMaxAge: 100
+                  addVaryHeader: true
+        EOF
         destination     = "local/static_providers.yml"
       }
 
       template {
-        data        = <<EOH
+        data        = <<EOF
+          CF_API_EMAIL="d@falconindy.com"
           {{ with secret "kv/data/default/traefik" }}
-            CF_API_EMAIL="d@falconindy.com"
             CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
           {{ end }}
-        EOH
+        EOF
         destination = "secrets/cloudflare.env"
         env         = true
       }

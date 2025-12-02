@@ -61,26 +61,26 @@ job "coredns" {
       }
 
       template {
-        data            = <<EOH
-. {
-  bind {{ env "NOMAD_IP_dns" }}
-  forward . 8.8.8.8 8.8.4.4
-  cache {
-    serve_stale 24h
-    prefetch 10 1m 20%
-  }
-  whoami
-  errors
-  prometheus {{ env "NOMAD_IP_metrics" }}:9153
-}
-home.:53 consul.:53 {
-  bind {{ env "NOMAD_IP_dns" }}
-  forward . {{ env "NOMAD_HOST_IP_metrics" }}:8600
-  whoami
-  errors
-  prometheus {{ env "NOMAD_IP_metrics" }}:9153
-}
-EOH
+        data            = <<-EOF
+          . {
+            bind {{ env "NOMAD_IP_dns" }}
+            forward . 8.8.8.8 8.8.4.4
+            cache {
+              serve_stale 24h
+              prefetch 10 1m 20%
+            }
+            whoami
+            errors
+            prometheus {{ env "NOMAD_IP_metrics" }}:9153
+          }
+          home.:53 consul.:53 {
+            bind {{ env "NOMAD_IP_dns" }}
+            forward . {{ env "NOMAD_HOST_IP_metrics" }}:8600
+            whoami
+            errors
+            prometheus {{ env "NOMAD_IP_metrics" }}:9153
+          }
+        EOF
         destination     = "local/coredns/corefile"
         env             = false
         change_mode     = "signal"

@@ -25,11 +25,11 @@ job "cloudflare-ddns" {
       vault {}
 
       template {
-        data        = <<EOH
+        data        = <<EOF
           {{ with secret "kv/data/default/cloudflare-ddns" }}
             CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
           {{ end }}
-        EOH
+        EOF
         destination = "secrets/auth.env"
         env         = true
       }
