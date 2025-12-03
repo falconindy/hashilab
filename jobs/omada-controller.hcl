@@ -26,7 +26,7 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "podman"
       config {
-        image        = "mbentley/omada-controller:6.0.0.24-openj9"
+        image        = "mbentley/omada-controller:6.0.0.25-openj9"
         network_mode = "host"
         volumes = [
           "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
