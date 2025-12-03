@@ -56,6 +56,8 @@ job "homeassistant" {
       env {
         TZ                 = "America/New_York"
         REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
+        # ref: https://github.com/home-assistant/core/issues/155924
+        GRPC_VERBOSITY     = "NONE"
       }
 
       service {
