@@ -18,7 +18,7 @@ job "stirling" {
     task "server" {
       driver = "podman"
       config {
-        image = "stirlingtools/stirling-pdf:2.1.0-ultra-lite"
+        image = "stirlingtools/stirling-pdf:2.1.1-ultra-lite"
         ports = ["http"]
         volumes = [
           "/clusterdata/stirling/tessdata:/usr/share/tessdata:rw",
