@@ -37,7 +37,7 @@ job "prometheus" {
       driver = "podman"
 
       config {
-        image = "prom/blackbox-exporter:v0.27.0"
+        image = "prom/blackbox-exporter:v0.28.0"
         args = [
           "--web.listen-address", "${NOMAD_ADDR_blackbox}",
           "--config.file", "local/blackbox.yml",
