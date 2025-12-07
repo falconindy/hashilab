@@ -15,6 +15,7 @@ job "teslamate" {
 
     network {
       mode = "bridge"
+
       dns {
         servers = ["172.17.0.1"]
       }
