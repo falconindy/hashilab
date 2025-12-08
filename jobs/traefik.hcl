@@ -140,6 +140,11 @@ job "traefik" {
             dashboard: true
             insecure: false
 
+          log:
+            level: INFO
+
+          accessLog: {}
+
           providers:
             consulCatalog:
               prefix: traefik
