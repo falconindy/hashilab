@@ -19,11 +19,13 @@ job "tailscale" {
         image        = "tailscale/tailscale:v1.90.9"
         network_mode = "host"
         force_pull   = true
-        privileged   = true
         cap_add      = ["NET_ADMIN", "NET_RAW"]
         volumes = [
-          "/dev/net/tun:/dev/net/tun",
           "/clusterdata/tailscale:/var/lib/tailscale:rw"
+        ]
+
+        devices = [
+          "/dev/net/tun",
         ]
       }
 
