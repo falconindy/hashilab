@@ -84,8 +84,10 @@ job "traefik" {
                 insecure: false
                 trustedIPs:
                   - 172.16.0.0/12
+                  - 172.26.64.0/20
               http:
                 middlewares:
+                  - internal-only@file
                   - customheaders@file
 
             https:
@@ -97,8 +99,10 @@ job "traefik" {
                 insecure: false
                 trustedIPs:
                   - 172.16.0.0/12
+                  - 172.26.64.0/20
               http:
                 middlewares:
+                  - internal-only@file
                   - securedheaders@file
                   - customheaders@file
                 tls:
@@ -223,6 +227,14 @@ job "traefik" {
                   accessControlAllowCredentials: true
                   accessControlMaxAge: 100
                   addVaryHeader: true
+
+              internal-only:
+                ipAllowList:
+                  sourceRange:
+                    - 172.26.64.0/20
+                    - 10.0.1.0/24
+                    - 10.0.20.0/24
+                    - 10.0.100.0/24
         EOF
         destination     = "local/static_providers.yml"
       }
