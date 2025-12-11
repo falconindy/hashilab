@@ -52,7 +52,19 @@ job "frigate" {
           # You might want to use a separate tmpfs/SSD for this mount on the host.
           #"/mnt/frigate/cache:/tmp/cache",
         ]
+      }
 
+      vault {}
+
+      template {
+        data        = <<EOF
+          {{ with secret "kv/data/default/frigate" }}
+            FRIGATE_MQTT_USER="frigate"
+            FRIGATE_MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
+          {{ end }}
+        EOF
+        destination = "secrets/auth.env"
+        env         = true
       }
 
       resources {
