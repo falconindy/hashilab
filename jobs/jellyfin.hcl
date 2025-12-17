@@ -21,14 +21,18 @@ job "jellyfin" {
       port "http" {
         to = 8096
       }
+
+      port "discovery" {
+        static = 7359
+      }
     }
 
     task "server" {
       driver = "podman"
 
       config {
-        image = "linuxserver/jellyfin:10.11.5"
-        ports = ["http"]
+        image = "jellyfin/jellyfin:10.11.5"
+        ports = ["http", "discovery"]
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -42,6 +46,7 @@ job "jellyfin" {
       }
 
       env {
+        JELLYFIN_PublishedServerUrl = "https://jellyfin.service.home"
         PUID = 911
         PGID = 911
       }
