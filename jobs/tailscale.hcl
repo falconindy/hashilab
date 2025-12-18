@@ -53,9 +53,9 @@ job "tailscale" {
       }
 
       service {
+        name         = "tailscale"
         port         = "http"
         address_mode = "host"
-        name         = "tailscale"
 
         check {
           type     = "http"

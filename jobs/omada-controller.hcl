@@ -36,9 +36,9 @@ job "omada-controller" {
       }
 
       service {
+        name         = "omada-controller"
         port         = "manage_https"
         address_mode = "host"
-        name         = "omada-controller"
 
         check {
           type     = "tcp"

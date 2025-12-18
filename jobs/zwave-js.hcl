@@ -49,8 +49,8 @@ job "zwave-js" {
       }
 
       service {
-        port         = "http"
         name         = "zwave-js"
+        port         = "http"
         address_mode = "host"
         tags = [
           "traefik.enable=true",

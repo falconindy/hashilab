@@ -50,8 +50,8 @@ job "coredns" {
       }
 
       service {
-        port         = "dns"
         name         = "coredns"
+        port         = "dns"
         address_mode = "host"
         check {
           type     = "tcp"
