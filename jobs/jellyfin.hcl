@@ -47,13 +47,13 @@ job "jellyfin" {
 
       env {
         JELLYFIN_PublishedServerUrl = "https://jellyfin.service.home"
-        PUID = 911
-        PGID = 911
+        PUID                        = 911
+        PGID                        = 911
       }
 
       service {
-        port         = "http"
         name         = "jellyfin"
+        port         = "http"
         address_mode = "host"
         tags = [
           "traefik.enable=true",

@@ -40,9 +40,9 @@ job "stirling" {
     }
 
     service {
+      name         = "stirling"
       port         = "http"
       address_mode = "host"
-      name         = "stirling"
       tags = [
         "traefik.enable=true",
       ]

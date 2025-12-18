@@ -43,8 +43,8 @@ job "esphome" {
       }
 
       service {
-        port         = "http"
         name         = "esphome"
+        port         = "http"
         address_mode = "host"
         tags = [
           "traefik.enable=true",
