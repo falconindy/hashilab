@@ -47,10 +47,6 @@ job "frigate" {
         volumes = [
           "/clusterdata/frigate/config:/config",
           "/clusterdata/frigate/media:/media/frigate",
-
-          # Temporary cache for recordings - highly recommended for performance
-          # You might want to use a separate tmpfs/SSD for this mount on the host.
-          #"/mnt/frigate/cache:/tmp/cache",
         ]
       }
 
