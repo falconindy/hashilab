@@ -61,6 +61,8 @@ job "frigate" {
           {{ with secret "kv/data/default/frigate" }}
             FRIGATE_MQTT_USER="frigate"
             FRIGATE_MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
+            FRIGATE_NURSERY_PASSWORD="{{ .Data.data.nursery_password }}"
+            FRIGATE_LIVINGROOM_PASSWORD="{{ .Data.data.livingroom_password }}"
           {{ end }}
         EOF
         destination = "secrets/auth.env"
@@ -70,6 +72,10 @@ job "frigate" {
       resources {
         cpu    = 500
         memory = 2048
+      }
+
+      env {
+        TZ = "America/New_York"
       }
 
       service {
