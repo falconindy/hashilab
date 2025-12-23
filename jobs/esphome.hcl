@@ -36,7 +36,6 @@ job "esphome" {
         network_mode = "host"
         ports        = ["http"]
         volumes = [
-          "/etc/localtime:/etc/localtime:ro",
           "/clusterdata/esphome/cache:/cache:rw",
           "/clusterdata/esphome/config:/config:rw",
         ]
@@ -57,6 +56,10 @@ job "esphome" {
           interval = "10s"
           timeout  = "2s"
         }
+      }
+
+      env {
+        TZ = "America/New_York"
       }
 
       resources {
