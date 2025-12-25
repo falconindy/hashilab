@@ -174,7 +174,8 @@ job "traefik" {
               acme:
                 email: d@falconindy.com
                 storage: /acme/acme.vault.json
-                caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
+                caServer: https://[[ env "NOMAD_IP_https" ]]:8200/v1/pki_int/acme/directory
+                caServerName: vault.service.home
                 httpChallenge:
                   entryPoint: http
 
