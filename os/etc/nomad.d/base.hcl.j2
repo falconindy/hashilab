@@ -3,8 +3,8 @@
 
 # Full configuration options can be found at https://developer.hashicorp.com/nomad/docs/configuration
 
-data_dir  = "/opt/nomad/data"
-bind_addr = "0.0.0.0"
+data_dir   = "/opt/nomad/data"
+bind_addr  = "0.0.0.0"
 datacenter = "{{ nomad_datacenter }}"
 
 advertise {
@@ -38,9 +38,9 @@ tls {
 }
 
 consul {
-  address              = "localhost:8501"
-  grpc_address         = "localhost:8503"
-  ssl                  = true
+  address      = "localhost:8501"
+  grpc_address = "localhost:8503"
+  ssl          = true
 
   auto_advertise       = true
   checks_use_advertise = true
@@ -68,11 +68,11 @@ vault {
 }
 
 telemetry {
-  disable_hostname = true
-  prometheus_metrics = true
+  disable_hostname           = true
+  prometheus_metrics         = true
   publish_allocation_metrics = true
-  publish_node_metrics = true
-  use_node_name = false
+  publish_node_metrics       = true
+  use_node_name              = false
 }
 
 plugin "raw_exec" {
