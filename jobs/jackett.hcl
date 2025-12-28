@@ -36,8 +36,8 @@ job "jackett" {
       }
 
       service {
-        name = "jackett"
-        port = "http"
+        name         = "jackett"
+        port         = "http"
         address_mode = "host"
 
         tags = [
