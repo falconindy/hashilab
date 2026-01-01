@@ -49,6 +49,12 @@ ui_config {
   enabled = true
 }
 
+http_config {
+  response_headers {
+    Access-Control-Allow-Origin = "*"
+  }
+}
+
 ports {
   http     = 8500
   https    = 8501
