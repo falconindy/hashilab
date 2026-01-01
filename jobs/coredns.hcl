@@ -38,6 +38,7 @@ job "coredns" {
       port "metrics" {
         static = 9153
       }
+      port "health" {}
     }
 
     task "server" {
@@ -45,16 +46,18 @@ job "coredns" {
       config {
         image        = "coredns/coredns:1.13.2"
         network_mode = "host"
-        ports        = ["dns", "metrics"]
+        ports        = ["dns", "metrics", "health"]
         args         = ["-conf", "/local/coredns/corefile"]
       }
 
       service {
         name         = "coredns"
-        port         = "dns"
+        port         = "health"
         address_mode = "host"
+
         check {
-          type     = "tcp"
+          type     = "http"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }
@@ -63,7 +66,7 @@ job "coredns" {
       template {
         data            = <<-EOF
           . {
-            bind {{ env "NOMAD_IP_dns" }}
+            bind {$NOMAD_IP_dns}
             forward . 8.8.8.8 8.8.4.4
             cache {
               serve_stale 24h
@@ -71,14 +74,15 @@ job "coredns" {
             }
             whoami
             errors
-            prometheus {{ env "NOMAD_IP_metrics" }}:9153
+            prometheus {$NOMAD_ADDR_metrics}
+            health :{$NOMAD_PORT_health}
           }
           home.:53 consul.:53 {
-            bind {{ env "NOMAD_IP_dns" }}
-            forward . {{ env "NOMAD_HOST_IP_metrics" }}:8600
+            bind {$NOMAD_IP_dns}
+            forward . {$NOMAD_HOST_IP_metrics}:8600
             whoami
             errors
-            prometheus {{ env "NOMAD_IP_metrics" }}:9153
+            prometheus {$NOMAD_ADDR_metrics}
           }
         EOF
         destination     = "local/coredns/corefile"
