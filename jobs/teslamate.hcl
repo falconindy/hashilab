@@ -51,9 +51,9 @@ job "teslamate" {
         ]
 
         check {
-          type     = "tcp"
-          port     = "http"
-          interval = "30s"
+          type     = "http"
+          path     = "/"
+          interval = "10s"
           timeout  = "2s"
         }
       }
