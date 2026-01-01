@@ -56,8 +56,8 @@ job "caddy" {
         data        = <<-EOH
           {
               email d@falconindy.com
-              http_port {{ env "NOMAD_PORT_http" }}
-              https_port {{ env "NOMAD_PORT_https" }}
+              http_port {$NOMAD_PORT_http}
+              https_port {$NOMAD_PORT_https}
 
               on_demand_tls {
                 ask http://localhost:9123/tls-check
