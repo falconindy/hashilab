@@ -157,6 +157,24 @@ job "prometheus" {
                 - source_labels: [__meta_consul_node]
                   target_label:  host
 
+            - job_name: caddy
+              metrics_path: /metrics
+              scheme: http
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [caddy]
+              relabel_configs:
+                - source_labels: [__meta_consul_dc]
+                  target_label:  dc
+                - source_labels: [__meta_consul_node]
+                  target_label:  host
+                  # - source_labels: [__address__]
+                  #   action: replace
+                  #   regex: ([^:]+):.*
+                  #   replacement: $1
+                  #   target_label: __address__
+
             - job_name: traefik
               metrics_path: /metrics
               scheme: https
