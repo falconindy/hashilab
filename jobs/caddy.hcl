@@ -40,95 +40,18 @@ job "caddy" {
 
         args = [
           "caddy", "run",
-          "--config", "/local/Caddyfile",
+          "--config", "/etc/caddy/Caddyfile",
           "--adapter", "caddyfile",
         ]
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
-          "/clusterdata/caddy/${attr.unique.hostname}:/data:rw",
+          "/clusterdata/caddy/config:/etc/caddy:ro",
+          "/clusterdata/www:/static:ro",
         ]
       }
 
       vault {}
-
-      template {
-        data        = <<-EOH
-          {
-              email d@falconindy.com
-              http_port {$NOMAD_PORT_http}
-              https_port {$NOMAD_PORT_https}
-
-              on_demand_tls {
-                ask http://localhost:9123/tls-check
-              }
-
-              storage redis {
-                address valkey.service.home:6379
-              }
-
-              metrics {
-                per_host
-              }
-
-              debug
-          }
-
-
-          http://localhost:9123 {
-            @service_home expression `{query.domain}.endsWith(".service.home")`
-
-            route /tls-check {
-              respond @service_home "OK" 200
-            }
-
-            route * {
-              abort
-            }
-          }
-
-          (acme-service-home) {
-            tls {
-              ca https://vault.service.home:8200/v1/pki_int/acme/directory
-              on_demand
-            }
-          }
-
-          (acme-falconindy-com) {
-            tls {
-              ca https://acme-v02.api.letsencrypt.org/directory
-              dns cloudflare {env.CF_DNS_API_TOKEN}
-            }
-          }
-
-          (rproxy-via-srv) {
-            reverse_proxy {
-              dynamic srv {
-                name {args[0]}
-              }
-            }
-          }
-
-          http://jellyfin.service.home {
-            import rproxy-via-srv {host}
-          }
-
-          http://esphome.service.home {
-            import rproxy-via-srv {host}
-          }
-
-          https://hass.falconindy.com:8443 {
-            import acme-falconindy-com
-            import rproxy-via-srv homeassistant.service.home
-          }
-
-          https:// {
-            import acme-service-home
-            import rproxy-via-srv {host}
-          }
-        EOH
-        destination = "local/Caddyfile"
-      }
 
       template {
         data        = <<EOF
@@ -145,8 +68,14 @@ job "caddy" {
       }
 
       resources {
-        cpu    = 200
+        cpu    = 100
         memory = 256
+      }
+
+      service {
+        name         = "d"
+        port         = "https"
+        address_mode = "host"
       }
 
       service {
