@@ -66,12 +66,10 @@ job "radarr" {
       }
 
       service {
-        name         = "radarr"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "radarr"
+        port    = "http"
+        address = "l.service.home"
+
         check {
           type     = "http"
           path     = "/"

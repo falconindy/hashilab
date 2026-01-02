@@ -29,12 +29,9 @@ job "docker-registry" {
       }
 
       service {
-        name         = "docker-registry"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "docker-registry"
+        port    = "http"
+        address = "l.service.home"
       }
 
       resources {

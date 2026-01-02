@@ -66,12 +66,10 @@ job "sonarr" {
       }
 
       service {
-        name         = "sonarr"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "sonarr"
+        port    = "http"
+        address = "l.service.home"
+
         check {
           type     = "http"
           path     = "/"

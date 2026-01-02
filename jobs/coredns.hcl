@@ -64,7 +64,7 @@ job "coredns" {
       }
 
       template {
-        data            = <<-EOF
+        data        = <<-EOF
           . {
             bind {$NOMAD_IP_dns}
             health :{$NOMAD_PORT_health}
@@ -82,8 +82,8 @@ job "coredns" {
             forward . 8.8.8.8 8.8.4.4
           }
         EOF
-        destination     = "local/corefile"
-        env             = false
+        destination = "local/corefile"
+        env         = false
       }
 
       resources {

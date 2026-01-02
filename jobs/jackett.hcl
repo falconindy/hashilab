@@ -36,13 +36,9 @@ job "jackett" {
       }
 
       service {
-        name         = "jackett"
-        port         = "http"
-        address_mode = "host"
-
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "jackett"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

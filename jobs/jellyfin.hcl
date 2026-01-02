@@ -52,13 +52,10 @@ job "jellyfin" {
       }
 
       service {
-        name         = "jellyfin"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https,http",
-        ]
+        name    = "jellyfin"
+        port    = "http"
+        address = "l.service.home"
+
         check {
           type     = "http"
           path     = "/health"

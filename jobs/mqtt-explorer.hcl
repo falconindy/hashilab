@@ -26,12 +26,9 @@ job "mqtt-explorer" {
       }
 
       service {
-        name         = "mqtt-explorer"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "mqtt-explorer"
+        port    = "http"
+        address = "l.service.home"
       }
 
       env {
