@@ -26,12 +26,9 @@ job "omada-exporter" {
       }
 
       service {
-        name         = "omada-exporter"
-        port         = "metrics"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "omada-exporter"
+        port    = "metrics"
+        address = "l.service.home"
 
         check {
           type     = "http"

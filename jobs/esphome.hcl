@@ -42,13 +42,9 @@ job "esphome" {
       }
 
       service {
-        name         = "esphome"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https,http",
-        ]
+        name    = "esphome"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

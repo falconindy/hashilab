@@ -75,13 +75,9 @@ job "frigate" {
       }
 
       service {
-        name         = "frigate"
-        port         = "http"
-        address_mode = "host"
-
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "frigate"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

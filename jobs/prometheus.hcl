@@ -74,12 +74,9 @@ job "prometheus" {
       vault {}
 
       service {
-        name         = "prometheus"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "prometheus"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"
@@ -169,31 +166,6 @@ job "prometheus" {
                   target_label:  dc
                 - source_labels: [__meta_consul_node]
                   target_label:  host
-                  # - source_labels: [__address__]
-                  #   action: replace
-                  #   regex: ([^:]+):.*
-                  #   replacement: $1
-                  #   target_label: __address__
-
-            - job_name: traefik
-              metrics_path: /metrics
-              scheme: https
-              tls_config:
-                server_name: traefik.service.home
-              consul_sd_configs:
-                - server: consul.service.home:8501
-                  scheme: https
-                  services: [traefik]
-              relabel_configs:
-                - source_labels: [__meta_consul_dc]
-                  target_label:  dc
-                - source_labels: [__meta_consul_node]
-                  target_label:  host
-                - source_labels: [__address__]
-                  action: replace
-                  regex: ([^:]+):.*
-                  replacement: $1
-                  target_label: __address__
 
             - job_name: tls-expiration
               metrics_path: /probe

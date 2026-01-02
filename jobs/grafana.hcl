@@ -39,12 +39,9 @@ job "grafana" {
         GF_USERS_ALLOW_SIGN_UP = "false"
       }
       service {
-        name         = "grafana"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "grafana"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

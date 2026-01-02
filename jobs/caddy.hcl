@@ -73,7 +73,7 @@ job "caddy" {
       }
 
       service {
-        name         = "d"
+        name         = "l"
         port         = "https"
         address_mode = "host"
       }

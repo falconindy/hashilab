@@ -46,12 +46,9 @@ job "deluge" {
       }
 
       service {
-        name         = "deluge"
-        port         = "deluge"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "deluge"
+        port    = "deluge"
+        address = "l.service.home"
 
         check {
           type     = "http"

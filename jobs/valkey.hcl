@@ -15,8 +15,8 @@ job "valkey" {
       driver = "podman"
 
       config {
-        image = "valkey/valkey:9.0.1"
-        ports = ["db"]
+        image        = "valkey/valkey:9.0.1"
+        ports        = ["db"]
         network_mode = "host"
 
         # Uncomment to use a custom config file
@@ -28,7 +28,7 @@ job "valkey" {
 
       # Use a template to create a custom config if needed
       template {
-        data = <<-EOH
+        data        = <<-EOH
           maxmemory 256mb
           maxmemory-policy allkeys-lru
           appendonly yes
@@ -42,8 +42,8 @@ job "valkey" {
       }
 
       service {
-        name = "valkey"
-        port = "db"
+        name         = "valkey"
+        port         = "db"
         address_mode = "host"
 
         check {

@@ -61,15 +61,9 @@ job "homeassistant" {
       }
 
       service {
-        name         = "homeassistant"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-          "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
-          "traefik.http.routers.public-${NOMAD_JOB_NAME}.entrypoints=public",
-          "traefik.http.routers.public-${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
-        ]
+        name    = "homeassistant"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

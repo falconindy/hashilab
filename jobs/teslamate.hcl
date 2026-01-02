@@ -43,12 +43,9 @@ job "teslamate" {
       }
 
       service {
-        name         = "teslamate"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "teslamate"
+        port    = "http"
+        address = "l.service.home"
 
         check {
           type     = "http"

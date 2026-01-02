@@ -66,12 +66,10 @@ job "prowlarr" {
       }
 
       service {
-        name         = "prowlarr"
-        port         = "http"
-        address_mode = "host"
-        tags = [
-          "traefik.enable=true",
-        ]
+        name    = "prowlarr"
+        port    = "http"
+        address = "l.service.home"
+
         check {
           type     = "http"
           path     = "/"
