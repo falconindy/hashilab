@@ -68,15 +68,19 @@ job "coredns" {
           . {
             bind {$NOMAD_IP_dns}
             forward . 8.8.8.8 8.8.4.4
+
             cache {
-              serve_stale 24h
-              prefetch 10 1m 20%
+              success 1000
+              prefetch 5 10m
+              serve_stale 1h immediate
             }
+
             whoami
             errors
             prometheus {$NOMAD_ADDR_metrics}
             health :{$NOMAD_PORT_health}
           }
+
           home.:53 consul.:53 {
             bind {$NOMAD_IP_dns}
             forward . {$NOMAD_HOST_IP_metrics}:8600
@@ -85,17 +89,8 @@ job "coredns" {
             prometheus {$NOMAD_ADDR_metrics}
           }
         EOF
-<<<<<<< HEAD
         destination = "local/corefile"
         env         = false
-=======
-        destination     = "local/coredns/corefile"
-        env             = false
-        change_mode     = "signal"
-        change_signal   = "SIGHUP"
-        left_delimiter  = "{{"
-        right_delimiter = "}}"
->>>>>>> parent of fc04c0b (coredns: consolidate server blocks)
       }
 
       resources {
