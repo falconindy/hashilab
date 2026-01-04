@@ -47,7 +47,7 @@ job "coredns" {
         image        = "coredns/coredns:1.13.2"
         network_mode = "host"
         ports        = ["dns", "metrics", "health"]
-        args         = ["-conf", "/local/corefile"]
+        args         = ["-conf", "/local/coredns/corefile"]
       }
 
       service {
@@ -67,23 +67,35 @@ job "coredns" {
         data        = <<-EOF
           . {
             bind {$NOMAD_IP_dns}
-            health :{$NOMAD_PORT_health}
-            prometheus {$NOMAD_ADDR_metrics}
-
-            errors
-
+            forward . 8.8.8.8 8.8.4.4
             cache {
               serve_stale 24h
               prefetch 10 1m 20%
             }
-
-            forward home {$NOMAD_HOST_IP_metrics}:8600
-            forward consul {$NOMAD_HOST_IP_metrics}:8600
-            forward . 8.8.8.8 8.8.4.4
+            whoami
+            errors
+            prometheus {$NOMAD_ADDR_metrics}
+            health :{$NOMAD_PORT_health}
+          }
+          home.:53 consul.:53 {
+            bind {$NOMAD_IP_dns}
+            forward . {$NOMAD_HOST_IP_metrics}:8600
+            whoami
+            errors
+            prometheus {$NOMAD_ADDR_metrics}
           }
         EOF
+<<<<<<< HEAD
         destination = "local/corefile"
         env         = false
+=======
+        destination     = "local/coredns/corefile"
+        env             = false
+        change_mode     = "signal"
+        change_signal   = "SIGHUP"
+        left_delimiter  = "{{"
+        right_delimiter = "}}"
+>>>>>>> parent of fc04c0b (coredns: consolidate server blocks)
       }
 
       resources {
