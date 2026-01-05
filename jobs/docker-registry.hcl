@@ -28,12 +28,6 @@ job "docker-registry" {
         ]
       }
 
-      service {
-        name    = "docker-registry"
-        port    = "http"
-        address = "l.service.home"
-      }
-
       resources {
         cpu    = 100
         memory = 512
@@ -66,6 +60,12 @@ job "docker-registry" {
         change_signal = "SIGHUP"
         env           = false
       }
+    }
+
+    service {
+      name         = "docker-registry"
+      port         = "http"
+      address_mode = "host"
     }
   }
 }

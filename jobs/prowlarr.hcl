@@ -65,22 +65,22 @@ job "prowlarr" {
         PGID = 911
       }
 
-      service {
-        name    = "prowlarr"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/"
-          interval = "10s"
-          timeout  = "5s"
-        }
-      }
-
       resources {
         cpu    = 100
         memory = 512
+      }
+    }
+
+    service {
+      name         = "prowlarr"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "5s"
       }
     }
   }

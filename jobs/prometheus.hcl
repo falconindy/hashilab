@@ -73,20 +73,6 @@ job "prometheus" {
 
       vault {}
 
-      service {
-        name    = "prometheus"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/-/healthy"
-          name     = "http"
-          interval = "5s"
-          timeout  = "2s"
-        }
-      }
-
       # main configuration file
       template {
         data = <<-EOF
@@ -256,6 +242,20 @@ job "prometheus" {
       resources {
         cpu    = 100
         memory = 1024
+      }
+    }
+
+    service {
+      name         = "prometheus"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/-/healthy"
+        name     = "http"
+        interval = "5s"
+        timeout  = "2s"
       }
     }
   }

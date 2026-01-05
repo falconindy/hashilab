@@ -48,18 +48,6 @@ job "zwave-js" {
         memory = 300
       }
 
-      service {
-        name    = "zwave-js"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
       vault {}
 
       template {
@@ -70,6 +58,19 @@ job "zwave-js" {
         EOF
         destination = "secrets/auth.env"
         env         = true
+      }
+    }
+
+    service {
+      name         = "zwave-js"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

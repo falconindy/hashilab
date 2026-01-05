@@ -61,9 +61,9 @@ job "homeassistant" {
       }
 
       service {
-        name    = "homeassistant"
-        port    = "http"
-        address = "l.service.home"
+        name         = "homeassistant"
+        port         = "http"
+        address_mode = "host"
 
         check {
           type     = "http"

@@ -41,19 +41,6 @@ job "esphome" {
         ]
       }
 
-      service {
-        name    = "esphome"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/version"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
       env {
         TZ = "America/New_York"
       }
@@ -61,6 +48,19 @@ job "esphome" {
       resources {
         cpu    = 500
         memory = 4096
+      }
+    }
+
+    service {
+      name         = "esphome"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/version"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

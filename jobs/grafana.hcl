@@ -38,22 +38,23 @@ job "grafana" {
 
         GF_USERS_ALLOW_SIGN_UP = "false"
       }
-      service {
-        name    = "grafana"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/api/health"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
 
       resources {
         cpu    = 100
         memory = 128
+      }
+    }
+
+    service {
+      name         = "grafana"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/api/health"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

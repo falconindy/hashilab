@@ -16,15 +16,10 @@ job "caddy" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        static = 80
-      }
-      port "https" {
-        static = 443
-      }
       port "public" {
         static = 8443
       }
+
       port "admin" {
         static = 2019
       }
@@ -35,7 +30,7 @@ job "caddy" {
 
       config {
         image        = "docker-registry.service.home/falconindy/caddy:latest"
-        ports        = ["admin", "http", "https", "public"]
+        ports        = ["admin", "public"]
         network_mode = "host"
 
         args = [
@@ -71,23 +66,52 @@ job "caddy" {
         cpu    = 100
         memory = 256
       }
+    }
 
-      service {
-        name         = "l"
-        port         = "https"
-        address_mode = "host"
-      }
+    service {
+      name         = "caddy-https"
+      port         = 443
+      address_mode = "host"
 
-      service {
-        name         = "caddy"
-        port         = "admin"
-        address_mode = "host"
+      connect {
+        sidecar_service {}
 
-        check {
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "2s"
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
         }
+      }
+    }
+
+    service {
+      name         = "caddy-http"
+      port         = 80
+      address_mode = "host"
+
+      connect {
+        sidecar_service {}
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
+    }
+
+    service {
+      name         = "caddy"
+      port         = "admin"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/config/"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }
