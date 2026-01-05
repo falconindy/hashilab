@@ -47,7 +47,7 @@ job "coredns" {
         image        = "coredns/coredns:1.13.2"
         network_mode = "host"
         ports        = ["dns", "metrics", "health"]
-        args         = ["-conf", "/local/coredns/corefile"]
+        args         = ["-conf", "/local/corefile"]
       }
 
       service {
@@ -67,7 +67,8 @@ job "coredns" {
         data        = <<-EOF
           . {
             bind {$NOMAD_IP_dns}
-            forward . 8.8.8.8 8.8.4.4
+
+            forward . 94.140.14.14 94.140.15.15
 
             cache {
               success 1000
