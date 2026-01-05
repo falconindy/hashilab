@@ -24,6 +24,8 @@ advertise_addr = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface 
 bind_addr      = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}"
 retry_join     = ["10.0.100.100", "10.0.100.101", "10.0.100.102"]
 
+enable_local_script_checks = true
+
 tls {
   defaults {
     verify_incoming        = true
