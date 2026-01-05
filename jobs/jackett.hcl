@@ -31,21 +31,21 @@ job "jackett" {
       }
 
       resources {
-        cpu    = 200
+        cpu    = 100
         memory = 256
       }
+    }
 
-      service {
-        name    = "jackett"
-        port    = "http"
-        address = "l.service.home"
+    service {
+      name         = "jackett"
+      port         = "http"
+      address_mode = "host"
 
-        check {
-          type     = "http"
-          path     = "/health"
-          interval = "10s"
-          timeout  = "2s"
-        }
+      check {
+        type     = "http"
+        path     = "/health"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

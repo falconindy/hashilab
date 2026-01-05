@@ -42,19 +42,6 @@ job "teslamate" {
         ports = ["http"]
       }
 
-      service {
-        name    = "teslamate"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
       vault {}
 
       template {
@@ -83,6 +70,19 @@ job "teslamate" {
       resources {
         cpu    = 200
         memory = 4196
+      }
+    }
+
+    service {
+      name         = "teslamate"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

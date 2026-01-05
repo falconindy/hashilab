@@ -40,9 +40,9 @@ job "stirling" {
     }
 
     service {
-      name    = "stirling"
-      port    = "http"
-      address = "l.service.home"
+      name         = "stirling"
+      port         = "http"
+      address_mode = "host"
 
       check {
         type     = "http"

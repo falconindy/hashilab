@@ -51,22 +51,22 @@ job "jellyfin" {
         PGID                        = 911
       }
 
-      service {
-        name    = "jellyfin"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/health"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
       resources {
         cpu    = 500
         memory = 4096
+      }
+    }
+
+    service {
+      name         = "jellyfin"
+      port         = "http"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/health"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

@@ -75,9 +75,9 @@ job "frigate" {
       }
 
       service {
-        name    = "frigate"
-        port    = "http"
-        address = "l.service.home"
+        name         = "frigate"
+        port         = "http"
+        address_mode = "host"
 
         check {
           type     = "http"

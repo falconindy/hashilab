@@ -65,22 +65,22 @@ job "sonarr" {
         PGID = 911
       }
 
-      service {
-        name    = "sonarr"
-        port    = "http"
-        address = "l.service.home"
-
-        check {
-          type     = "http"
-          path     = "/"
-          interval = "10s"
-          timeout  = "5s"
-        }
-      }
-
       resources {
         cpu    = 100
         memory = 512
+      }
+    }
+
+    service {
+      name         = "sonarr"
+      port         = "http"
+      address_most = "host"
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "5s"
       }
     }
   }

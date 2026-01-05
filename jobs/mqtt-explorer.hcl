@@ -25,12 +25,6 @@ job "mqtt-explorer" {
         ]
       }
 
-      service {
-        name    = "mqtt-explorer"
-        port    = "http"
-        address = "l.service.home"
-      }
-
       env {
         HTTP_PORT = "${NOMAD_PORT_http}"
       }
@@ -38,6 +32,18 @@ job "mqtt-explorer" {
       resources {
         cpu    = 100
         memory = 128
+      }
+    }
+
+    service {
+      name = "mqtt-explorer"
+      port = "http"
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }
