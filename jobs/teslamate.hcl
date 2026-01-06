@@ -58,13 +58,13 @@ job "teslamate" {
       env {
         PORT = 8080
 
-        DATABASE_HOST = "localhost"
-        DATABASE_PORT = "3000"
+        DATABASE_HOST = "postgres.virtual.home"
+        DATABASE_PORT = "80"
         DATABASE_USER = "teslamate"
         DATABASE_NAME = "teslamate"
 
-        MQTT_HOST     = "localhost"
-        MQTT_PORT     = "3001"
+        MQTT_HOST     = "mosquitto.virtual.home"
+        MQTT_PORT     = "80"
         MQTT_USERNAME = "teslamate"
       }
 
@@ -91,16 +91,12 @@ job "teslamate" {
       connect {
         sidecar_service {
           proxy {
+            transparent_proxy {
+              # Teslamate makes calls to the outside world.
+              no_dns = true
+            }
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-            upstreams {
-              destination_name = "postgres"
-              local_bind_port  = 3000
-            }
-            upstreams {
-              destination_name = "mosquitto"
-              local_bind_port  = 3001
             }
           }
         }
