@@ -34,6 +34,11 @@ job "traefik" {
       port "envoy_metrics_public" { to = 9105 }
     }
 
+    ephemeral_disk {
+      size    = 300 # MB
+      migrate = true
+    }
+
     service {
       name         = "traefik"
       port         = 8080
@@ -271,7 +276,7 @@ job "traefik" {
           certificatesResolvers:
             letsencrypt:
               acme:
-                storage: /acme/acme.[[ env "attr.unique.hostname" ]].json
+                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.letsencrypt.json
                 dnsChallenge:
                   provider: cloudflare
                   delayBeforeCheck: 10
@@ -279,7 +284,7 @@ job "traefik" {
             vault:
               acme:
                 email: d@falconindy.com
-                storage: /acme/acme.vault.json
+                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.vault.json
                 caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
                 caServerName: vault.service.home
                 httpChallenge:
