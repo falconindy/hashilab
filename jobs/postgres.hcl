@@ -6,13 +6,6 @@ job "postgres" {
     network {
       mode = "bridge"
 
-      # dns {
-      #   servers = ["172.17.0.1"]
-      # }
-
-      # port "db" {
-      #   static = 5432
-      # }
       port "envoy_metrics" { to = 9102 }
     }
 
@@ -56,7 +49,6 @@ job "postgres" {
 
       config {
         image = "postgres:17.7"
-        # ports = ["db"]
 
         volumes = [
           "/clusterdata/postgres:/appdata/postgres",
