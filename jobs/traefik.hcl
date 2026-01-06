@@ -26,56 +26,14 @@ job "traefik" {
         servers = ["172.17.0.1"]
       }
 
-      port "api" { to = 8080 }
-
-      port "envoy_metrics_api" { to = 9102 }
-      port "envoy_metrics_http" { to = 9103 }
-      port "envoy_metrics_https" { to = 9104 }
-      port "envoy_metrics_public" { to = 9105 }
+      port "envoy_metrics_http" { to = 9102 }
+      port "envoy_metrics_https" { to = 9103 }
+      port "envoy_metrics_public" { to = 9104 }
     }
 
     ephemeral_disk {
       size    = 300 # MB
       migrate = true
-    }
-
-    service {
-      name         = "traefik"
-      port         = 8080
-      address_mode = "host"
-
-      tags = [
-        "traefik.enable=true",
-      ]
-
-      #meta {
-      #  envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_api}"
-      #}
-
-      # connect {
-      #   sidecar_service {
-      #     proxy {
-      #       config {
-      #         envoy_prometheus_bind_addr = "0.0.0.0:9102"
-      #       }
-      #     }
-      #   }
-
-      #   sidecar_task {
-      #     resources {
-      #       cpu    = 50
-      #       memory = 48
-      #     }
-      #   }
-      # }
-
-      #check {
-      #  type = "http"
-      #  path = "/ping"
-      #  interval = "5s"
-      #  timeout = "2s"
-      #  expose = true
-      #}
     }
 
     service {
@@ -91,7 +49,7 @@ job "traefik" {
         sidecar_service {
           proxy {
             config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9103"
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }
           }
         }
@@ -103,6 +61,24 @@ job "traefik" {
           }
         }
       }
+
+      check {
+        type = "http"
+        path = "/ping"
+        interval = "5s"
+        timeout = "2s"
+        expose = true
+      }
+    }
+
+    service {
+      name         = "traefik"
+      port         = 443
+      address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
     }
 
     service {
@@ -118,7 +94,7 @@ job "traefik" {
         sidecar_service {
           proxy {
             config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9104"
+              envoy_prometheus_bind_addr = "0.0.0.0:9103"
             }
           }
         }
@@ -145,7 +121,7 @@ job "traefik" {
         sidecar_service {
           proxy {
             config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9105"
+              envoy_prometheus_bind_addr = "0.0.0.0:9104"
             }
           }
         }
@@ -164,7 +140,6 @@ job "traefik" {
 
       config {
         image = "traefik:v3.6"
-        ports = ["api"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
@@ -225,9 +200,6 @@ job "traefik" {
                 tls:
                   certresolver: letsencrypt
 
-            traefik:
-              address: :8080
-
           tls:
             options:
               default:
@@ -250,7 +222,7 @@ job "traefik" {
             insecure: false
 
           ping:
-            entrypoint: traefik
+            entrypoint: http
 
           log:
             level: INFO
