@@ -20,8 +20,6 @@ job "teslamate" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {}
-
       port "envoy_metrics" { to = 9102 }
     }
 
@@ -41,7 +39,6 @@ job "teslamate" {
 
       config {
         image = "teslamate/teslamate:2.2.0"
-        ports = ["http"]
       }
 
       vault {}
@@ -59,7 +56,7 @@ job "teslamate" {
       }
 
       env {
-        PORT = "${NOMAD_PORT_http}"
+        PORT = 8080
 
         DATABASE_HOST = "localhost"
         DATABASE_PORT = "3000"
@@ -79,11 +76,12 @@ job "teslamate" {
 
     service {
       name         = "teslamate"
-      port         = "http"
+      port         = 8080
       address_mode = "host"
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
 
       meta {
@@ -120,6 +118,7 @@ job "teslamate" {
         path     = "/"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
