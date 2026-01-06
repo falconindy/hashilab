@@ -1,13 +1,18 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-# Full configuration options can be found at https://developer.hashicorp.com/nomad/docs/configuration
+# Client configuration options can be found at https://developer.hashicorp.com/nomad/docs/configuration/client
 
 client {
   enabled = true
 
   max_kill_timeout = "30s"
 
+{% if "dc1" in group_names %}
+  # 4 cores at a max frequency of 3400MHz
+  cpu_total_compute = 13600
+
+{% endif %}
   gc_interval              = "1m"
   gc_disk_usage_threshold  = 80
   gc_inode_usage_threshold = 70

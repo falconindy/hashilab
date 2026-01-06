@@ -87,7 +87,7 @@
   loop:
     - src: os/etc/nomad.d/base.hcl.j2
       dest: /etc/nomad.d/base.hcl
-    - src: os/etc/nomad.d/client.hcl
+    - src: os/etc/nomad.d/client.hcl.j2
       dest: /etc/nomad.d/client.hcl
   notify:
     - Restart nomad
