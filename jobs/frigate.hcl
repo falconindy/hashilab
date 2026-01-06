@@ -74,17 +74,22 @@ job "frigate" {
         TZ = "America/New_York"
       }
 
-      service {
-        name         = "frigate"
-        port         = "http"
-        address_mode = "host"
+    }
 
-        check {
-          type     = "http"
-          path     = "/"
-          interval = "10s"
-          timeout  = "2s"
-        }
+    service {
+      name         = "frigate"
+      port         = "http"
+      address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
+
+      check {
+        type     = "http"
+        path     = "/"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

@@ -6,24 +6,47 @@ job "postgres" {
     network {
       mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
+      # dns {
+      #   servers = ["172.17.0.1"]
+      # }
 
-      port "db" {
-        static = 5432
-      }
+      # port "db" {
+      #   static = 5432
+      # }
+      port "envoy_metrics" { to = 9102 }
     }
 
     service {
       name         = "postgres"
-      port         = "db"
+      port         = 5432
       address_mode = "host"
 
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
+
       check {
-        type     = "tcp"
-        port     = "db"
-        interval = "30s"
+        type     = "script"
+        command  = "/usr/bin/pg_isready"
+        interval = "5s"
+        task     = "server"
         timeout  = "2s"
       }
     }
@@ -33,7 +56,7 @@ job "postgres" {
 
       config {
         image = "postgres:17.7"
-        ports = ["db"]
+        # ports = ["db"]
 
         volumes = [
           "/clusterdata/postgres:/appdata/postgres",

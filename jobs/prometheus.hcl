@@ -140,18 +140,25 @@ job "prometheus" {
                 - source_labels: [__meta_consul_node]
                   target_label:  host
 
-            - job_name: caddy
+            - job_name: traefik
               metrics_path: /metrics
-              scheme: http
+              scheme: https
+              tls_config:
+                server_name: traefik.service.home
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
-                  services: [caddy]
+                  services: [traefik]
               relabel_configs:
                 - source_labels: [__meta_consul_dc]
                   target_label:  dc
                 - source_labels: [__meta_consul_node]
                   target_label:  host
+                - source_labels: [__address__]
+                  action: replace
+                  regex: ([^:]+):.*
+                  replacement: $1
+                  target_label: __address__
 
             - job_name: tls-expiration
               metrics_path: /probe
@@ -177,6 +184,37 @@ job "prometheus" {
                   target_label: job
                 - target_label: __address__
                   replacement: {{ env "NOMAD_ADDR_blackbox" }}
+
+            - job_name: envoy-consul
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+              relabel_configs:
+                - source_labels: [__meta_consul_service]
+                  action: drop
+                  regex: (.+)-sidecar-proxy
+                - source_labels: [__meta_envoy_cluster_name] # drop metrics for Envoy internal traffic
+                  action: drop
+                  regex: local_agent
+                - source_labels: [__meta_envoy_cluster_name]
+                  action: drop
+                  regex: local_app
+                - source_labels: [__meta_envoy_cluster_name]
+                  action: drop
+                  regex: self_admin
+                - source_labels: [__meta_consul_service_metadata_envoy_metrics_port]
+                  action: keep
+                  regex: (.+)
+                - source_labels: [__address__, __meta_consul_service_metadata_envoy_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+                - source_labels: [__meta_consul_node]
+                  target_label:  host
+                - source_labels: [__meta_consul_service]
+                  regex: "(.+)"
+                  replacement: $1
+                  target_label: "service_name"
 
             - job_name: coredns
               metrics_path: /metrics
@@ -249,6 +287,10 @@ job "prometheus" {
       name         = "prometheus"
       port         = "http"
       address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
 
       check {
         type     = "http"

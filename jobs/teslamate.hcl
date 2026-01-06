@@ -21,6 +21,8 @@ job "teslamate" {
       }
 
       port "http" {}
+
+      port "envoy_metrics" { to = 9102 }
     }
 
     restart {
@@ -59,11 +61,13 @@ job "teslamate" {
       env {
         PORT = "${NOMAD_PORT_http}"
 
-        DATABASE_HOST = "postgres.service.home"
+        DATABASE_HOST = "localhost"
+        DATABASE_PORT = "3000"
         DATABASE_USER = "teslamate"
         DATABASE_NAME = "teslamate"
 
-        MQTT_HOST     = "mosquitto.service.home"
+        MQTT_HOST     = "localhost"
+        MQTT_PORT     = "3001"
         MQTT_USERNAME = "teslamate"
       }
 
@@ -77,6 +81,39 @@ job "teslamate" {
       name         = "teslamate"
       port         = "http"
       address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+            upstreams {
+              destination_name = "postgres"
+              local_bind_port  = 3000
+            }
+            upstreams {
+              destination_name = "mosquitto"
+              local_bind_port  = 3001
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
