@@ -74,7 +74,11 @@ job "sonarr" {
     service {
       name         = "sonarr"
       port         = "http"
-      address_most = "host"
+      address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
 
       check {
         type     = "http"

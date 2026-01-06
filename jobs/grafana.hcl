@@ -50,6 +50,10 @@ job "grafana" {
       port         = "http"
       address_mode = "host"
 
+      tags = [
+        "traefik.enable=true",
+      ]
+
       check {
         type     = "http"
         path     = "/api/health"

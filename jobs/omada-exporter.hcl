@@ -25,20 +25,6 @@ job "omada-exporter" {
         ]
       }
 
-      service {
-        name         = "omada-exporter"
-        port         = "metrics"
-        address_mode = "host"
-
-        check {
-          type     = "http"
-          path     = "/"
-          name     = "http"
-          interval = "5s"
-          timeout  = "2s"
-        }
-      }
-
       env {
         OMADA_HOST = "https://10.0.1.99:8043"
         OMADA_USER = "prometheus"
@@ -56,6 +42,24 @@ job "omada-exporter" {
         EOF
         destination = "secrets/auth.env"
         env         = true
+      }
+    }
+
+    service {
+      name         = "omada-exporter"
+      port         = "metrics"
+      address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+      ]
+
+      check {
+        type     = "http"
+        path     = "/"
+        name     = "http"
+        interval = "5s"
+        timeout  = "2s"
       }
     }
   }

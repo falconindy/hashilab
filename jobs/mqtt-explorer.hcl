@@ -39,6 +39,10 @@ job "mqtt-explorer" {
       name = "mqtt-explorer"
       port = "http"
 
+      tags = [
+        "traefik.enable=true",
+      ]
+
       check {
         type     = "http"
         path     = "/"

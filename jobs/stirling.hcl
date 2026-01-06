@@ -44,6 +44,10 @@ job "stirling" {
       port         = "http"
       address_mode = "host"
 
+      tags = [
+        "traefik.enable=true",
+      ]
+
       check {
         type     = "http"
         path     = "/api/v1/info/status"

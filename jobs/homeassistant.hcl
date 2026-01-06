@@ -60,22 +60,29 @@ job "homeassistant" {
         GRPC_VERBOSITY = "NONE"
       }
 
-      service {
-        name         = "homeassistant"
-        port         = "http"
-        address_mode = "host"
-
-        check {
-          type     = "http"
-          path     = "/manifest.json"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
       resources {
         cpu    = 500
         memory = 2048
+      }
+    }
+
+    service {
+      name         = "homeassistant"
+      port         = "http"
+      address_mode = "host"
+
+      tags = [
+        "traefik.enable=true",
+        "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
+        "traefik.http.routers.public-${NOMAD_JOB_NAME}.entrypoints=public",
+        "traefik.http.routers.public-${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
+      ]
+
+      check {
+        type     = "http"
+        path     = "/manifest.json"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }

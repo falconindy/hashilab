@@ -56,6 +56,10 @@ job "deluge" {
       port         = "deluge"
       address_mode = "host"
 
+      tags = [
+        "traefik.enable=true",
+      ]
+
       check {
         type     = "http"
         path     = "/"
