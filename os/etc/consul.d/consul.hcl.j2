@@ -39,6 +39,9 @@ tls {
   https {
     verify_incoming = false
   }
+  grpc {
+    verify_incoming = false
+  }
 }
 
 {% if "dc1" in group_names %}
