@@ -30,10 +30,6 @@ job "teslamate" {
       mode     = "fail"
     }
 
-    ephemeral_disk {
-      size = 300
-    }
-
     task "server" {
       driver = "podman"
 
