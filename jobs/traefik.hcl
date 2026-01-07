@@ -244,7 +244,6 @@ job "traefik" {
 
             file:
               filename: local/static_providers.yml
-              watch: true
 
           certificatesResolvers:
             letsencrypt:
@@ -270,8 +269,6 @@ job "traefik" {
               entryPoint: https
         EOF
         destination     = "local/traefik.yml"
-        change_mode     = "signal"
-        change_signal   = "SIGHUP"
       }
 
       template {
@@ -325,7 +322,6 @@ job "traefik" {
                     - 10.0.100.0/24
         EOF
         destination     = "local/static_providers.yml"
-        change_mode     = "noop"
       }
 
       template {
