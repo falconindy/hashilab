@@ -12,9 +12,7 @@ job "radarr" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        to = 7878
-      }
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "await-deluge" {
@@ -52,7 +50,6 @@ job "radarr" {
 
       config {
         image = "linuxserver/radarr:6.0.4"
-        ports = ["http"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/media:/media",
@@ -73,18 +70,41 @@ job "radarr" {
 
     service {
       name         = "radarr"
-      port         = "http"
+      port         = 7878
       address_mode = "host"
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/"
         interval = "10s"
         timeout  = "5s"
+        expose   = true
       }
     }
   }

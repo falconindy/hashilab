@@ -6,9 +6,7 @@ job "jackett" {
     network {
       mode = "bridge"
 
-      port "http" {
-        to = 9117
-      }
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -16,7 +14,6 @@ job "jackett" {
 
       config {
         image = "lscr.io/linuxserver/jackett:0.24.521"
-        ports = ["http"]
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -38,18 +35,41 @@ job "jackett" {
 
     service {
       name         = "jackett"
-      port         = "http"
+      port         = 9117
       address_mode = "host"
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/health"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
