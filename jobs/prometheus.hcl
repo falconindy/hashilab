@@ -257,7 +257,7 @@ job "prometheus" {
       }
 
       config {
-        image = "prom/prometheus:v3.9.0"
+        image = "prom/prometheus:v3.9.1"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--web.listen-address", "${NOMAD_ADDR_http}",
