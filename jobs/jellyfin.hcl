@@ -18,13 +18,11 @@ job "jellyfin" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        to = 8096
-      }
-
       port "discovery" {
         static = 7359
       }
+
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -32,7 +30,7 @@ job "jellyfin" {
 
       config {
         image = "jellyfin/jellyfin:10.11.5"
-        ports = ["http", "discovery"]
+        ports = ["discovery"]
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -59,19 +57,42 @@ job "jellyfin" {
 
     service {
       name         = "jellyfin"
-      port         = "http"
+      port         = 8096
       address_mode = "host"
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
         "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https,http",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/health"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
