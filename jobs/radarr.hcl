@@ -16,27 +16,24 @@ job "radarr" {
     }
 
     task "await-deluge" {
-      driver = "podman"
+      driver = "raw_exec"
 
       config {
-        image   = "busybox:latest"
         command = "/bin/sh"
         args = [
           "-c", <<-EOF
-            echo -n 'Waiting for deluge'
-            until nslookup deluge.service.home 2>&1 >/dev/null; do
-              echo -n .
+            echo 'Waiting for deluge'
+            until nslookup deluge.service.home 172.17.0.1; do
               sleep 2
             done
-            echo
             echo done
           EOF
         ]
       }
 
       resources {
-        cpu    = 100
-        memory = 128
+        cpu    = 50
+        memory = 64
       }
 
       lifecycle {
