@@ -35,7 +35,7 @@ job "consul-ingress" {
               protocol = "tcp"
 
               service {
-                name = "traefik-http"
+                name = "traefik-insecure"
               }
             }
 
@@ -44,7 +44,7 @@ job "consul-ingress" {
               protocol = "tcp"
 
               service {
-                name = "traefik-https"
+                name = "traefik"
               }
             }
 
