@@ -67,7 +67,6 @@ job "radarr" {
     service {
       name         = "radarr"
       port         = 7878
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

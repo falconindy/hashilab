@@ -67,7 +67,6 @@ job "sonarr" {
     service {
       name         = "sonarr"
       port         = 8989
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",
