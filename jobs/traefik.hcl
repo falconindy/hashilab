@@ -37,7 +37,7 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik-http"
+      name         = "traefik-insecure"
       port         = 80
       address_mode = "host"
 
@@ -79,12 +79,6 @@ job "traefik" {
       tags = [
         "traefik.enable=true",
       ]
-    }
-
-    service {
-      name         = "traefik-https"
-      port         = 443
-      address_mode = "host"
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_https}"
@@ -111,7 +105,7 @@ job "traefik" {
     service {
       name         = "traefik-public"
       port         = 8443
-      address_mode = "host"
+      # address_mode = "host"
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_http}"
