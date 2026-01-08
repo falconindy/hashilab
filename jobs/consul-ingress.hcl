@@ -3,12 +3,12 @@ job "consul-ingress" {
   type        = "system"
 
   group "consul-ingress" {
-
     network {
       mode = "bridge"
 
       port "http" { static = 80 }
       port "https" { static = 443 }
+      port "deluge-inbound" { static = 6881 }
       port "external-https" { static = 8443 }
 
       port "envoy_metrics" { to = 9102 }
@@ -54,6 +54,15 @@ job "consul-ingress" {
 
               service {
                 name = "traefik-public"
+              }
+            }
+
+            listener {
+              port     = 6881
+              protocol = "tcp"
+
+              service {
+                name = "deluge-inbound"
               }
             }
           }
