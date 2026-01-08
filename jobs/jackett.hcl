@@ -35,7 +35,6 @@ job "jackett" {
     service {
       name         = "jackett"
       port         = 9117
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

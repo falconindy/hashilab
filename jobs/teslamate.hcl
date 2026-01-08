@@ -73,7 +73,6 @@ job "teslamate" {
     service {
       name         = "teslamate"
       port         = 8080
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

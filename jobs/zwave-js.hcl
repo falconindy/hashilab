@@ -62,7 +62,6 @@ job "zwave-js" {
     service {
       name         = "zwave-js"
       port         = 8091
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

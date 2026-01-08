@@ -58,7 +58,6 @@ job "jellyfin" {
     service {
       name         = "jellyfin"
       port         = 8096
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

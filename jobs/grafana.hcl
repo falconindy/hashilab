@@ -46,7 +46,6 @@ job "grafana" {
     service {
       name         = "grafana"
       port         = 3000
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

@@ -51,7 +51,6 @@ job "deluge" {
     service {
       name         = "deluge"
       port         = 8112
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",
