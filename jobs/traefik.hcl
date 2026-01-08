@@ -235,7 +235,7 @@ job "traefik" {
               connectaware: true
               watch: true
               exposedByDefault: false
-              servicename: traefik-home-api
+              servicename: traefik
               defaultRule: Host(`{{ .Name }}.service.home`)
 
               endpoint:
