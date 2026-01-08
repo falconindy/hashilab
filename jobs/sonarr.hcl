@@ -48,7 +48,6 @@ job "sonarr" {
       config {
         image = "linuxserver/sonarr:4.0.16"
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/media:/media",
           "/clusterdata/sonarr:/config",
         ]
@@ -82,6 +81,10 @@ job "sonarr" {
       connect {
         sidecar_service {
           proxy {
+            transparent_proxy {
+              # Sonarr makes calls to the outside world.
+              no_dns = true
+            }
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }

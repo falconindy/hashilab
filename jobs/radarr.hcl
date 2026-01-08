@@ -48,7 +48,6 @@ job "radarr" {
       config {
         image = "linuxserver/radarr:6.0.4"
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/media:/media",
           "/clusterdata/radarr:/config",
         ]
@@ -82,6 +81,10 @@ job "radarr" {
       connect {
         sidecar_service {
           proxy {
+            transparent_proxy {
+              # Sonarr makes calls to the outside world.
+              no_dns = true
+            }
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }

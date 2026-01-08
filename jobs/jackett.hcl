@@ -16,7 +16,6 @@ job "jackett" {
         image = "lscr.io/linuxserver/jackett:0.24.521"
 
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/jackett:/config:rw",
         ]
       }
