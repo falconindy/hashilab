@@ -3,16 +3,10 @@ job "mqtt-explorer" {
   type        = "service"
 
   group "mqtt-explorer" {
-    count = 1
-
     network {
       mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
-      port "http" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -25,10 +19,6 @@ job "mqtt-explorer" {
         ]
       }
 
-      env {
-        HTTP_PORT = "${NOMAD_PORT_http}"
-      }
-
       resources {
         cpu    = 100
         memory = 128
@@ -37,17 +27,41 @@ job "mqtt-explorer" {
 
     service {
       name = "mqtt-explorer"
-      port = "http"
+      port = 4000
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            transparent_proxy {}
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
