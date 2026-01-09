@@ -42,8 +42,18 @@ job "mqtt-explorer" {
         sidecar_service {
           proxy {
             transparent_proxy {}
+
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            expose {
+              path {
+                path = "/metrics"
+                protocol = "http"
+                local_path_port = 9102
+                listener_port = "envoy_metrics"
+              }
             }
           }
         }

@@ -10,16 +10,14 @@ job "stirling" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        to = 8080
-      }
+      port "envoy_metrics" {}
     }
 
     task "server" {
       driver = "podman"
+
       config {
         image = "stirlingtools/stirling-pdf:2.1.5-ultra-lite"
-        ports = ["http"]
         volumes = [
           "/clusterdata/stirling/tessdata:/usr/share/tessdata:rw",
           "/clusterdata/stirling/configs:/configs:rw",
@@ -41,18 +39,41 @@ job "stirling" {
 
     service {
       name         = "stirling"
-      port         = "http"
+      port         = 8080
       address_mode = "host"
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/api/v1/info/status"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
