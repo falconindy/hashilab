@@ -65,8 +65,8 @@ job "sonarr" {
     }
 
     service {
-      name         = "sonarr"
-      port         = 8989
+      name = "sonarr"
+      port = 8989
 
       tags = [
         "traefik.enable=true",
@@ -74,7 +74,7 @@ job "sonarr" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+        envoy_metrics_port = "0.0.0.0:9102"
       }
 
       connect {
@@ -85,7 +85,7 @@ job "sonarr" {
               no_dns = true
             }
             config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+              envoy_prometheus_bind_addr = "${NOMAD_ALLOC_ADDR_envoy_metrics}"
             }
           }
         }

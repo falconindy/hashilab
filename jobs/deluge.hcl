@@ -37,8 +37,8 @@ job "deluge" {
     }
 
     service {
-      name         = "deluge"
-      port         = 8112
+      name = "deluge"
+      port = 8112
 
       tags = [
         "traefik.enable=true",
@@ -76,8 +76,8 @@ job "deluge" {
     }
 
     service {
-      name         = "deluge-inbound"
-      port         = 6881
+      name = "deluge-inbound"
+      port = 6881
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_inbound}"

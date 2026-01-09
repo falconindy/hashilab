@@ -71,8 +71,8 @@ job "teslamate" {
     }
 
     service {
-      name         = "teslamate"
-      port         = 8080
+      name = "teslamate"
+      port = 8080
 
       tags = [
         "traefik.enable=true",

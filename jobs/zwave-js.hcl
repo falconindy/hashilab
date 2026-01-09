@@ -60,8 +60,8 @@ job "zwave-js" {
     }
 
     service {
-      name         = "zwave-js"
-      port         = 8091
+      name = "zwave-js"
+      port = 8091
 
       tags = [
         "traefik.enable=true",
