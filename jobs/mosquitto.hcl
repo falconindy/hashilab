@@ -77,12 +77,14 @@ job "mosquitto" {
         }
       }
 
-      #check {
-      #  type     = "tcp"
-      #  port     = "mqtt"
-      #  interval = "30s"
-      #  timeout  = "2s"
-      #}
+      check {
+        type     = "script"
+        command  = "/usr/bin/mosquitto_sub"
+        args     = ["-h", "localhost", "-p", "1883", "-t", "$$SYS/#", "-E", "-i", "probe"]
+        interval = "30s"
+        task     = "server"
+        timeout  = "2s"
+      }
     }
   }
 }
