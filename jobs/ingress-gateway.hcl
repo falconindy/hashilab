@@ -1,8 +1,8 @@
-job "consul-ingress" {
+job "ingress-gateway" {
   datacenters = ["dc1"]
   type        = "system"
 
-  group "consul-ingress" {
+  group "ingress-gateway" {
     network {
       mode = "bridge"
 
