@@ -49,9 +49,19 @@ auto_encrypt {
   allow_tls = true
 }
 
-{% endif %}
 ui_config {
   enabled = true
+
+  metrics_provider = "prometheus"
+  metrics_proxy {
+    base_url = "https://prometheus.service.home"
+    add_headers = [
+      {
+        name = "Host"
+        value = "prometheus.service.home"
+      },
+    ]
+  }
 }
 
 http_config {
@@ -60,6 +70,7 @@ http_config {
   }
 }
 
+{% endif %}
 ports {
   http     = 8500
   https    = 8501
