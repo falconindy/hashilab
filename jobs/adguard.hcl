@@ -50,7 +50,7 @@ job "adguard" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}" 
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
       }
 
       connect {

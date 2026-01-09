@@ -65,8 +65,8 @@ job "radarr" {
     }
 
     service {
-      name         = "radarr"
-      port         = 7878
+      name = "radarr"
+      port = 7878
 
       tags = [
         "traefik.enable=true",

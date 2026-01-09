@@ -56,8 +56,8 @@ job "jellyfin" {
     }
 
     service {
-      name         = "jellyfin"
-      port         = 8096
+      name = "jellyfin"
+      port = 8096
 
       tags = [
         "traefik.enable=true",

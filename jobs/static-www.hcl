@@ -12,7 +12,7 @@ job "static-www" {
       driver = "podman"
 
       config {
-        image        = "nginx"
+        image = "nginx"
         volumes = [
           "local/nginx.conf:/etc/nginx/conf.d/default.conf",
           "/clusterdata/www:/srv/www:ro",
@@ -43,8 +43,8 @@ job "static-www" {
     }
 
     service {
-      name         = "d"
-      port         = 8080
+      name = "d"
+      port = 8080
 
       tags = [
         "traefik.enable=true",

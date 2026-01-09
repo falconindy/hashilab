@@ -33,8 +33,8 @@ job "jackett" {
     }
 
     service {
-      name         = "jackett"
-      port         = 9117
+      name = "jackett"
+      port = 9117
 
       tags = [
         "traefik.enable=true",

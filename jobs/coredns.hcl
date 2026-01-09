@@ -64,7 +64,7 @@ job "coredns" {
       }
 
       template {
-        data        = <<-EOF
+        data          = <<-EOF
           . {
             bind {$NOMAD_IP_dns}
 

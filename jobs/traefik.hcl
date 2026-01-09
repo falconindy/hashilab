@@ -63,11 +63,11 @@ job "traefik" {
       }
 
       check {
-        type = "http"
-        path = "/ping"
+        type     = "http"
+        path     = "/ping"
         interval = "5s"
-        timeout = "2s"
-        expose = true
+        timeout  = "2s"
+        expose   = true
       }
     }
 
@@ -103,8 +103,8 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik-public"
-      port         = 8443
+      name = "traefik-public"
+      port = 8443
       # address_mode = "host"
 
       meta {

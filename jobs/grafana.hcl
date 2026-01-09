@@ -44,8 +44,8 @@ job "grafana" {
     }
 
     service {
-      name         = "grafana"
-      port         = 3000
+      name = "grafana"
+      port = 3000
 
       tags = [
         "traefik.enable=true",
