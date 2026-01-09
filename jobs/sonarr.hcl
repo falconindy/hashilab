@@ -74,7 +74,7 @@ job "sonarr" {
       ]
 
       meta {
-        envoy_metrics_port = "0.0.0.0:9102"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
       }
 
       connect {
@@ -84,8 +84,18 @@ job "sonarr" {
               # Sonarr makes calls to the outside world.
               no_dns = true
             }
+
             config {
-              envoy_prometheus_bind_addr = "${NOMAD_ALLOC_ADDR_envoy_metrics}"
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            expose {
+              path {
+                path = "/metrics"
+                protocol = "http"
+                local_path_port = 9102
+                listener_port = "envoy_metrics"
+              }
             }
           }
         }
