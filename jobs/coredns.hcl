@@ -68,7 +68,12 @@ job "coredns" {
           . {
             bind {$NOMAD_IP_dns}
 
-            forward . 94.140.14.14 94.140.15.15
+            {{- /* generate forward entry */}}
+            {{- $dns_forward := "94.140.14.14" }}
+            {{- range service "adguard-dns" }}
+              {{- $dns_forward = print .Address ":" .Port }}
+            {{- end}} 
+            forward . {{ $dns_forward }}
 
             cache {
               success 1000
@@ -90,8 +95,9 @@ job "coredns" {
             prometheus {$NOMAD_ADDR_metrics}
           }
         EOF
-        destination = "local/corefile"
-        env         = false
+        destination   = "local/corefile"
+        change_mode   = "signal"
+        change_signal = "SIGUSR1"
       }
 
       resources {
