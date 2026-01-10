@@ -1,4 +1,4 @@
-job "vault-raft-snapshotter" {
+job "cluster-config-snapshotter" {
   datacenters = ["dc1"]
   type        = "batch"
 
@@ -8,7 +8,7 @@ job "vault-raft-snapshotter" {
     time_zone        = "America/New_York"
   }
 
-  group "vault-raft-snapshotter" {
+  group "vault" {
     task "snapshotter" {
       driver = "raw_exec"
 
@@ -35,6 +35,33 @@ job "vault-raft-snapshotter" {
 
       env {
         VAULT_ADDR = "https://active.vault.service.home:8200"
+      }
+
+      resources {
+        cpu    = 100
+        memory = 128
+      }
+    }
+  }
+
+  group "consul" {
+    task "snapshotter" {
+      driver = "raw_exec"
+
+      config {
+        command = "/bin/sh"
+        args = ["-c", <<-EOF
+            set -euo pipefail
+
+            out=$(date +/clusterdata/consul-snapshots/consul-%Y%m%dT%H%M%S.snap)
+
+            echo "Saving snapshot to $out..."
+            consul snapshot save -stale "$out"
+
+            echo "Deleting any snapshots older than 30 days"
+            find /clusterdata/consul-snapshots -name '*.snap' -type f -mtime +30 -exec rm -v {} +
+          EOF
+        ]
       }
 
       resources {
