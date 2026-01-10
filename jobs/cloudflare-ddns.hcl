@@ -16,7 +16,6 @@ job "cloudflare-ddns" {
 
       config {
         image        = "favonia/cloudflare-ddns:1.15.1"
-        force_pull   = true
         network_mode = "host"
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
@@ -25,7 +24,7 @@ job "cloudflare-ddns" {
       vault {}
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with secret "kv/data/default/cloudflare-ddns" }}
             CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
           {{ end }}
