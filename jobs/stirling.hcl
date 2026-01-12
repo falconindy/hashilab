@@ -10,7 +10,7 @@ job "stirling" {
         servers = ["172.17.0.1"]
       }
 
-      port "envoy_metrics" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -40,7 +40,6 @@ job "stirling" {
     service {
       name         = "stirling"
       port         = 8080
-      address_mode = "host"
 
       tags = [
         "traefik.enable=true",

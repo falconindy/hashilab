@@ -47,7 +47,6 @@ job "postgres" {
     service {
       name         = "postgres"
       port         = 5432
-      address_mode = "host"
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
