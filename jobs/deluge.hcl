@@ -10,7 +10,7 @@ job "deluge" {
         servers = ["172.17.0.1"]
       }
 
-      port "envoy_metrics" { to = 9102 }
+      port "envoy_metrics_deluge" { to = 9102 }
       port "envoy_metrics_inbound" { to = 9103 }
     }
 
@@ -46,7 +46,7 @@ job "deluge" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_deluge}"
       }
 
       connect {
