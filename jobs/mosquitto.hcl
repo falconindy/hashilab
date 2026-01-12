@@ -26,10 +26,6 @@ job "mosquitto" {
         servers = ["172.17.0.1"]
       }
 
-      port "mqtt" {
-        static = 1883
-      }
-
       port "envoy_metrics" { to = 9102 }
     }
 
@@ -37,8 +33,6 @@ job "mosquitto" {
       driver = "podman"
       config {
         image        = "eclipse-mosquitto:2.0.22"
-        network_mode = "host"
-        ports        = ["mqtt"]
 
         volumes = [
           "/clusterdata/mosquitto:/mosquitto:rw",
@@ -53,8 +47,7 @@ job "mosquitto" {
 
     service {
       name         = "mosquitto"
-      port         = "mqtt"
-      address_mode = "host"
+      port         = 1883
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
@@ -81,7 +74,7 @@ job "mosquitto" {
         type     = "script"
         command  = "/usr/bin/mosquitto_sub"
         args     = ["-h", "localhost", "-p", "1883", "-t", "$$SYS/#", "-E", "-i", "probe"]
-        interval = "30s"
+        interval = "10s"
         task     = "server"
         timeout  = "2s"
       }

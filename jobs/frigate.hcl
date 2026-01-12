@@ -16,10 +16,6 @@ job "frigate" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        to = 5000
-      }
-
       port "rtsp" {
         static = 8554
       }
@@ -27,6 +23,8 @@ job "frigate" {
       port "webrtc" {
         static = 8555
       }
+
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "frigate" {
@@ -36,7 +34,7 @@ job "frigate" {
         image = "ghcr.io/blakeblackshear/frigate:0.16.3"
 
         network_mode = "host"
-        ports        = ["http", "rtsp", "webrtc"]
+        ports        = ["rtsp", "webrtc"]
 
         shm_size = "1g"
 
@@ -73,23 +71,49 @@ job "frigate" {
       env {
         TZ = "America/New_York"
       }
-
     }
 
     service {
       name         = "frigate"
-      port         = "http"
-      address_mode = "host"
+      port         = 5000
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            upstreams {
+              destination_name = "mosquitto"
+              local_bind_port = 1883
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
