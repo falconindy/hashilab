@@ -27,6 +27,8 @@ job "homeassistant" {
       }
 
       port "http" {}
+
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -48,6 +50,7 @@ job "homeassistant" {
           server_port: {{ env "NOMAD_PORT_http" }}
           use_x_forwarded_for: true
           trusted_proxies:
+            - 127.0.0.1/32
             - 10.0.100.0/24
             - 172.16.0.0/12
         EOF
@@ -71,12 +74,39 @@ job "homeassistant" {
       port         = "http"
       address_mode = "host"
 
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
         "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
         "traefik.http.routers.public-${NOMAD_JOB_NAME}.entrypoints=public",
         "traefik.http.routers.public-${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
       ]
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            upstreams {
+              destination_name = "mosquitto"
+              local_bind_port = 1883
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"

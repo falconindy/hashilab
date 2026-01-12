@@ -153,14 +153,6 @@
   register: usb_facts
   tags:
     - nomad
-    - rtl_433
-
-- name: Import rtl_433 tasks
-  import_tasks:
-    file: rtl_433.yml
-  when:
-    # Realtek Semiconductor Corp. RTL2838 DVB-T
-    "'0bda:2838' in usb_devices | map(attribute='id')"
 
 - name: Deploy Z-Wave capability marker
   copy:
@@ -210,4 +202,21 @@
   when:
     # 051d:0003: American Power Conversion UPS
     "'051d:0003' in usb_devices | map(attribute='id')"
+  tags: nomad
+
+- name: Deploy rtl_433 capability marker
+  copy:
+    content: |
+      client {
+        meta {
+          has_rtl433 = "true"
+        }
+      }
+    dest: /etc/nomad.d/has_rtl433.hcl
+    mode: '0644'
+    owner: 'nomad'
+    group: 'nomad'
+  when:
+    # Realtek Semiconductor Corp. RTL2838 DVB-T
+    "'0bda:2838' in usb_devices | map(attribute='id')"
   tags: nomad
