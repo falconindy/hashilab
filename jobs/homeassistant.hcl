@@ -26,8 +26,6 @@ job "homeassistant" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {}
-
       port "envoy_metrics" { to = 9102 }
     }
 
@@ -36,7 +34,6 @@ job "homeassistant" {
       config {
         image        = "homeassistant/home-assistant:2026.1.0"
         network_mode = "host"
-        ports        = ["http"]
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -47,7 +44,7 @@ job "homeassistant" {
       template {
         destination = "local/http.yaml"
         data        = <<-EOF
-          server_port: {{ env "NOMAD_PORT_http" }}
+          server_port: 8123
           use_x_forwarded_for: true
           trusted_proxies:
             - 127.0.0.1/32
@@ -71,8 +68,7 @@ job "homeassistant" {
 
     service {
       name         = "homeassistant"
-      port         = "http"
-      address_mode = "host"
+      port         = 8123
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
@@ -113,6 +109,7 @@ job "homeassistant" {
         path     = "/manifest.json"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
