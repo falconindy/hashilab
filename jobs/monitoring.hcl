@@ -1,4 +1,4 @@
-job "prometheus" {
+job "monitoring" {
   datacenters = ["dc1"]
   type        = "service"
 
@@ -18,33 +18,21 @@ job "prometheus" {
     }
   }
 
-  group "monitoring" {
-    count = 1
-
+  group "blackbox-exporter" {
     network {
-      mode = "host"
+      mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
-      port "http" {}
-
-      port "blackbox" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
-    task "blackbox-exporter" {
+    task "server" {
       driver = "podman"
 
       config {
         image = "prom/blackbox-exporter:v0.28.0"
         args = [
-          "--web.listen-address", "${NOMAD_ADDR_blackbox}",
           "--config.file", "local/blackbox.yml",
         ]
-        # needed in order to bind to NOMAD_ADDR_http
-        network_mode = "host"
-        ports        = ["blackbox"]
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
         ]
@@ -65,6 +53,44 @@ job "prometheus" {
         EOF
         destination = "local/blackbox.yml"
       }
+    }
+
+    service {
+      name = "blackbox-exporter"
+      port = 9115
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
+    }
+  }
+
+  group "prometheus" {
+    network {
+      mode = "bridge"
+
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "prometheus" {
@@ -183,7 +209,7 @@ job "prometheus" {
                 - source_labels: [__meta_consul_service]
                   target_label: job
                 - target_label: __address__
-                  replacement: {{ env "NOMAD_ADDR_blackbox" }}
+                  replacement: 127.0.0.1:9115
 
             - job_name: envoy-consul
               consul_sd_configs:
@@ -260,16 +286,12 @@ job "prometheus" {
         image = "prom/prometheus:v3.9.1"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
-          "--web.listen-address", "${NOMAD_ADDR_http}",
           "--storage.tsdb.retention.time", "900d",
           "--enable-feature", join(",", [
             "promql-experimental-functions",
             "use-uncached-io",
           ]),
         ]
-        # needed in order to bind to NOMAD_ADDR_http
-        network_mode = "host"
-        ports        = ["http"]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -285,12 +307,34 @@ job "prometheus" {
 
     service {
       name         = "prometheus"
-      port         = "http"
-      address_mode = "host"
+      port         = 9090
 
       tags = [
         "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
       ]
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            upstreams {
+              destination_name = "blackbox-exporter"
+              local_bind_port = 9115
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
@@ -298,6 +342,7 @@ job "prometheus" {
         name     = "http"
         interval = "5s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
