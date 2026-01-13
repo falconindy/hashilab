@@ -93,6 +93,10 @@ job "homeassistant" {
               destination_name = "mosquitto"
               local_bind_port = 1883
             }
+            upstreams {
+              destination_name = "frigate"
+              local_bind_port = 5000
+            }
           }
         }
 
