@@ -142,7 +142,6 @@ job "traefik" {
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
-          "/clusterdata/traefik:/acme:rw",
         ]
       }
 
