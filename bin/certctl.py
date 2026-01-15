@@ -4,7 +4,6 @@ from typing import List
 from dataclasses import dataclass
 from types import TracebackType
 from enum import Enum, auto
-from itertools import chain
 
 import ipaddress
 import logging
@@ -92,8 +91,7 @@ class CertificateResponseFormatter:
         return self._cert.private_key
 
     def certificate(self) -> str:
-        return '\n'.join(
-            chain.from_iterable([self._cert.certificate, self._cert.ca_chain]))
+        return '\n'.join([self._cert.certificate, *self._cert.ca_chain])
 
     def ca_chain(self) -> str:
         return '\n'.join(self._cert.ca_chain)
