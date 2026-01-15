@@ -18,7 +18,15 @@ job "traefik" {
     }
   }
 
+  update {
+    max_parallel     = 1
+    min_healthy_time = "10s"
+    auto_revert      = true
+  }
+
   group "traefik" {
+    count = 2
+
     network {
       mode = "bridge"
 
@@ -37,8 +45,8 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik-insecure"
-      port         = 80
+      name = "traefik-insecure"
+      port = 80
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_http}"
@@ -71,8 +79,8 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik"
-      port         = 443
+      name = "traefik"
+      port = 443
 
       tags = [
         "traefik.enable=true",
