@@ -44,7 +44,7 @@ job "coredns" {
     task "server" {
       driver = "podman"
       config {
-        image        = "coredns/coredns:1.14.0"
+        image        = "coredns/coredns:1.14.1"
         network_mode = "host"
         ports        = ["dns", "metrics", "health"]
         args         = ["-conf", "/local/corefile"]
