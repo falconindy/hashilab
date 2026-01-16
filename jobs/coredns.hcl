@@ -35,14 +35,17 @@ job "coredns" {
       port "dns" {
         static = 53
       }
+
       port "metrics" {
         static = 9153
       }
+
       port "health" {}
     }
 
     task "server" {
       driver = "podman"
+
       config {
         image        = "coredns/coredns:1.14.1"
         network_mode = "host"
@@ -72,7 +75,7 @@ job "coredns" {
             {{- $dns_forward := "94.140.14.14" }}
             {{- range service "adguard-dns" }}
               {{- $dns_forward = print .Address ":" .Port }}
-            {{- end}} 
+            {{- end }}
             forward . {{ $dns_forward }}
 
             cache {
@@ -89,7 +92,16 @@ job "coredns" {
 
           home.:53 consul.:53 {
             bind {$NOMAD_IP_dns}
-            forward . {$NOMAD_HOST_IP_metrics}:8600
+
+            {{ range services -}}
+              {{- if in .Tags "traefik.enable=true" }}
+                {{- if not (.Name | contains "sidecar") }}
+                rewrite name exact {{ .Name }}.service.home ingress-gateway.service.home
+                {{- end }}
+              {{- end }}
+            {{- end }}
+
+            forward . {$NOMAD_HOST_IP_dns}:8600
             whoami
             errors
             prometheus {$NOMAD_ADDR_metrics}
