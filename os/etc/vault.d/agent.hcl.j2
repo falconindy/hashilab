@@ -12,6 +12,10 @@ vault {
   address = "https://vault.service.home:8200"
 }
 
+template_config {
+  lease_renewal_threshold = 0.7
+}
+
 template {
   source      = "/opt/shared/tls/tls.tpl"
   destination = "/opt/shared/tls/home-ca.pem"
