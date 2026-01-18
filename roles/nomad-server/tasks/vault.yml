@@ -5,8 +5,8 @@
   tags: vault
 
 - name: Update vault configuration
-  copy:
-    src: os/etc/vault.d/vault.hcl
+  template:
+    src: os/etc/vault.d/vault.hcl.j2
     dest: /etc/vault.d/vault.hcl
   notify:
     - Restart vault

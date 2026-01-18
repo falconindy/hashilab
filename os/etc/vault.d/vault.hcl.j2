@@ -7,35 +7,21 @@ ui = true
 
 disable_mlock = true
 
-api_addr     = "https://{{ GetInterfaceIP \"enp1s0\" }}:8200"
-cluster_addr = "https://{{ GetInterfaceIP \"enp1s0\" }}:8201"
+api_addr     = "https://{{ ansible_default_ipv4.address }}:8200"
+cluster_addr = "https://{{ ansible_default_ipv4.address }}:8201"
 
 storage "raft" {
   path = "/opt/vault"
+{% for host in groups["dc1"] %}{% if hostvars[host].vault.server | default(False) %}
 
   retry_join {
-    leader_api_addr         = "https://10.0.100.100:8200"
+    leader_api_addr         = "https://{{ hostvars[host].ansible_host }}:8200"
     leader_tls_servername   = "vault.service.home"
     leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
     leader_client_cert_file = "/opt/vault/tls/tls.crt"
     leader_client_key_file  = "/opt/vault/tls/tls.key"
   }
-
-  retry_join {
-    leader_api_addr         = "https://10.0.100.101:8200"
-    leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/tls.crt"
-    leader_client_key_file  = "/opt/vault/tls/tls.key"
-  }
-
-  retry_join {
-    leader_api_addr         = "https://10.0.100.102:8200"
-    leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/tls.crt"
-    leader_client_key_file  = "/opt/vault/tls/tls.key"
-  }
+{% endif %}{% endfor %}
 }
 
 telemetry {
@@ -55,7 +41,7 @@ listener "tcp" {
 
 # HTTPS listener
 listener "tcp" {
-  address                  = "{{ GetInterfaceIP \"enp1s0\" }}:8200"
+  address                  = "{{ ansible_default_ipv4.address }}:8200"
   tls_disable_client_certs = "true"
   tls_cert_file            = "/opt/vault/tls/tls.crt"
   tls_key_file             = "/opt/vault/tls/tls.key"
