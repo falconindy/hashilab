@@ -2,6 +2,4 @@
   copy:
     src: os/etc/nomad.d/server.hcl
     dest: /etc/nomad.d/server.hcl
-  notify:
-    - Restart nomad
   tags: nomad

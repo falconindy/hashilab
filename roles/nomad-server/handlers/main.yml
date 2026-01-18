@@ -2,8 +2,3 @@
   systemd_service:
     name: keepalived.service
     state: restarted
-
-- name: Restart vault
-  systemd_service:
-    name: vault.service
-    state: restarted

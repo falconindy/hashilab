@@ -1,9 +1,0 @@
-- name: Restart nomad
-  systemd_service:
-    name: nomad.service
-    state: restarted
-
-- name: Restart consul
-  systemd_service:
-    name: consul.service
-    state: restarted
