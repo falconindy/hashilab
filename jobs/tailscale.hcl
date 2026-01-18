@@ -39,7 +39,7 @@ job "tailscale" {
 
           TS_USERSPACE="true"
           TS_STATE_DIR="/var/lib/tailscale/tailscaled.state"
-          TS_EXTRA_ARGS="--reset --advertise-exit-node"
+          TS_EXTRA_ARGS="--reset --advertise-exit-node --advertise-tags=tag:homelab"
 
           TS_HOSTNAME="homelab"
           TS_ROUTES="10.0.1.0/24,10.0.20.0/24,10.0.100.0/24"
