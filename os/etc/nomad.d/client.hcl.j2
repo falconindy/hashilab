@@ -8,9 +8,9 @@ client {
 
   max_kill_timeout = "30s"
 
-{% if "dc1" in group_names %}
+{% if nomad.cpu_total_compute | default(0) > 0 %}
   # 4 cores at a max frequency of 3400MHz
-  cpu_total_compute = 13600
+  cpu_total_compute = {{ nomad.cpu_total_compute }}
 
 {% endif %}
   gc_interval              = "1m"

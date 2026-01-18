@@ -5,12 +5,39 @@ dc1:
     nomad0.node.home:
       ansible_host: 10.0.100.100
       keepalived_priority: 100
+      nomad:
+        server: True
+        client: True
+        cpu_total_compute: 13600
+      consul:
+        server: True
+        client: True
+      vault:
+        server: True
     nomad1.node.home:
       ansible_host: 10.0.100.101
       keepalived_priority: 81
+      nomad:
+        server: True
+        client: True
+        cpu_total_compute: 13600
+      consul:
+        server: True
+        client: True
+      vault:
+        server: True
     nomad2.node.home:
       ansible_host: 10.0.100.102
       keepalived_priority: 82
+      nomad:
+        server: True
+        client: True
+        cpu_total_compute: 13600
+      consul:
+        server: True
+        client: True
+      vault:
+        server: True
 
 dc2:
   vars:
@@ -18,3 +45,7 @@ dc2:
   hosts:
     bastion.node.home:
       ansible_host: 10.0.1.99
+      consul:
+        client: True
+      nomad:
+        client: True
