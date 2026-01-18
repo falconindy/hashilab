@@ -25,7 +25,7 @@ template {
       "reload",
       "consul",
       "nomad",
-{% if "dc1" in group_names %}
+{% if vault.server | default(False) %}
       "vault",
 {% endif %}
     ]
@@ -52,7 +52,7 @@ template {
   }
 }
 
-{% if "dc1" in group_names %}
+{% if vault.server | default(False) %}
 template {
   source      = "/opt/vault/tls/tls.tpl"
   destination = "/opt/vault/tls/tls.crt"
