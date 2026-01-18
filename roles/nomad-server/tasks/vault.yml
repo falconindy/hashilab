@@ -8,6 +8,4 @@
   template:
     src: os/etc/vault.d/vault.hcl.j2
     dest: /etc/vault.d/vault.hcl
-  notify:
-    - Restart vault
   tags: vault

@@ -76,8 +76,6 @@
       dest: /etc/consul.d/consul.hcl
     - src: os/etc/consul.d/consul.env
       dest: /etc/consul.d/consul.env
-  notify:
-    - Restart consul
   tags: consul
 
 - name: Update nomad config
@@ -89,8 +87,6 @@
       dest: /etc/nomad.d/base.hcl
     - src: os/etc/nomad.d/client.hcl.j2
       dest: /etc/nomad.d/client.hcl
-  notify:
-    - Restart nomad
   tags: nomad
 
 - name: Deploy vault-agent systemd service
