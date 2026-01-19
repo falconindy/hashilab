@@ -29,7 +29,7 @@ job "jellyfin" {
       driver = "podman"
 
       config {
-        image = "jellyfin/jellyfin:10.11.5"
+        image = "jellyfin/jellyfin:10.11.6"
         ports = ["discovery"]
 
         volumes = [
