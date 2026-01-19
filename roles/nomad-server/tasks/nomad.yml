@@ -1,5 +1,0 @@
-- name: Update nomad config
-  copy:
-    src: os/etc/nomad.d/server.hcl
-    dest: /etc/nomad.d/server.hcl
-  tags: nomad

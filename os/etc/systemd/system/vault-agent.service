@@ -3,14 +3,14 @@ Description="HashiCorp Vault Agent - A tool for injecting Vault managed secrets"
 Documentation=https://www.vaultproject.io/docs/
 Requires=network-online.target
 After=network-online.target
-ConditionFileNotEmpty=/etc/vault.d/agent.hcl
+ConditionFileNotEmpty=/etc/vault-agent.d/agent.hcl
 StartLimitIntervalSec=60
 StartLimitBurst=3
 
 [Service]
 Type=notify
-EnvironmentFile=-/etc/vault.d/agent.env
-ExecStart=/usr/bin/vault agent -config=/etc/vault.d/agent.hcl
+EnvironmentFile=-/etc/vault-agent.d/agent.env
+ExecStart=/usr/bin/vault agent -config=/etc/vault-agent.d
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGINT

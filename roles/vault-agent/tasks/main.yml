@@ -1,0 +1,66 @@
+- name: Deploy systemd service
+  copy:
+    src: os/etc/systemd/system/vault-agent.service
+    dest: /etc/systemd/system/vault-agent.service
+
+- name: Create config directory
+  file:
+    path: /etc/vault-agent.d
+    state: directory
+    mode: '0755'
+
+- name: Deploy config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/vault-agent.d/agent.hcl.j2
+      dest: /etc/vault-agent.d/agent.hcl
+    - src: os/etc/vault-agent.d/agent.env.j2
+      dest: /etc/vault-agent.d/agent.env
+    - src: os/etc/vault-agent.d/agent.roleid
+      dest: /etc/vault-agent.d/agent.roleid
+
+- name: Deploy consul vault-agent config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/consul.d/tls.tpl
+      dest: /etc/consul.d/tls.tpl
+    - src: os/etc/consul.d/tls.tpl
+      dest: /etc/consul.d/tls.tpl
+    - src: os/etc/vault-agent.d/consul-tls.hcl
+      dest: /etc/vault-agent.d/consul-tls.hcl
+  when: "'consul_clients' in group_names or 'consul_servers' in group_names"
+
+- name: Deploy nomad vault-agent config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/nomad.d/tls.tpl
+      dest: /etc/nomad.d/tls.tpl
+    - src: os/etc/nomad.d/tls.tpl
+      dest: /etc/nomad.d/tls.tpl
+    - src: os/etc/vault-agent.d/nomad-tls.hcl
+      dest: /etc/vault-agent.d/nomad-tls.hcl
+  when: "'nomad_clients' in group_names or 'nomad_servers' in group_names"
+
+- name: Deploy vault vault-agent config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/vault.d/tls.tpl
+      dest: /etc/vault.d/tls.tpl
+    - src: os/etc/vault.d/tls.tpl
+      dest: /etc/vault.d/tls.tpl
+    - src: os/etc/vault-agent.d/vault-tls.hcl
+      dest: /etc/vault-agent.d/vault-tls.hcl
+  when: "'vault_servers' in group_names"
+
+- name: Enable systemd services
+  systemd_service:
+    name: vault-agent.service
+    enabled: true

@@ -1,0 +1,7 @@
+ansible_host: 10.0.1.99
+ansible_python_interpreter: /usr/bin/python3
+
+consul_role: client
+
+nomad_role: client
+nomad_datacenter: dc2
