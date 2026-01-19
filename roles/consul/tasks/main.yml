@@ -1,0 +1,20 @@
+- name: Install consul packages
+  apt:
+    name:
+      - consul
+      - consul-cni
+
+- name: Update consul client config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/consul.d/consul.hcl.j2
+      dest: /etc/consul.d/consul.hcl
+    - src: os/etc/consul.d/consul.env
+      dest: /etc/consul.d/consul.env
+
+- name: Enable systemd service
+  systemd_service:
+    name: consul.service
+    enabled: true

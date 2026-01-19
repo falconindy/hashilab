@@ -1,0 +1,4 @@
+- name: Apply sysctl
+  systemd_service:
+    name: systemd-sysctl.service
+    state: restarted

@@ -1,0 +1,17 @@
+auto_auth {
+  method {
+    type = "approle"
+
+    config {
+      role_id_file_path = "/etc/vault-agent.d/agent.roleid"
+    }
+  }
+}
+
+vault {
+  address = "https://vault.service.home:8200"
+}
+
+template_config {
+  lease_renewal_threshold = 0.7
+}

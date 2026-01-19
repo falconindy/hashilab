@@ -12,16 +12,16 @@ cluster_addr = "https://{{ ansible_default_ipv4.address }}:8201"
 
 storage "raft" {
   path = "/opt/vault"
-{% for host in groups["dc1"] %}{% if hostvars[host].vault.server | default(False) %}
+{% for host in groups["vault_servers"] %}
 
   retry_join {
     leader_api_addr         = "https://{{ hostvars[host].ansible_host }}:8200"
     leader_tls_servername   = "vault.service.home"
-    leader_ca_cert_file     = "/opt/shared/tls/home-ca.pem"
-    leader_client_cert_file = "/opt/vault/tls/tls.crt"
-    leader_client_key_file  = "/opt/vault/tls/tls.key"
+    leader_ca_cert_file     = "/etc/ssl/certs/home.pem"
+    leader_client_cert_file = "/etc/vault.d/tls.crt"
+    leader_client_key_file  = "/etc/vault.d/tls.key"
   }
-{% endif %}{% endfor %}
+{% endfor %}
 }
 
 telemetry {
@@ -43,8 +43,8 @@ listener "tcp" {
 listener "tcp" {
   address                  = "{{ ansible_default_ipv4.address }}:8200"
   tls_disable_client_certs = "true"
-  tls_cert_file            = "/opt/vault/tls/tls.crt"
-  tls_key_file             = "/opt/vault/tls/tls.key"
+  tls_cert_file            = "/etc/vault.d/tls.crt"
+  tls_key_file             = "/etc/vault.d/tls.key"
 }
 
 seal "gcpckms" {

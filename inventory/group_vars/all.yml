@@ -1,0 +1,5 @@
+nomad_is_server: False
+nomad_is_client: False
+vault_is_server: False
+consul_is_client: False
+consul_is_server: False

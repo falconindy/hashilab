@@ -1,0 +1,58 @@
+- name: Install Apt packages
+  apt:
+    name:
+      - nomad
+      - docker.io
+      - podman
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+
+- name: Perform hardware discovery
+  include_tasks: discovery.yml
+
+- name: Deploy hardware meta markers
+  copy:
+    content: |
+      client {
+        meta {
+          has_{{ item }} = "true"
+        }
+      }
+    dest: /etc/nomad.d/has_{{ item }}.hcl
+    mode: '0644'
+    owner: 'nomad'
+    group: 'nomad'
+  loop: "{{ hardware_capabilities }}"
+
+- name: Update nomad client config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: os/etc/nomad.d/base.hcl.j2
+      dest: /etc/nomad.d/base.hcl
+    - src: os/etc/nomad.d/client.hcl.j2
+      dest: /etc/nomad.d/client.hcl
+  when: "'nomad_clients' in group_names"
+
+- name: Update nomad server config
+  copy:
+    src: os/etc/nomad.d/server.hcl
+    dest: /etc/nomad.d/server.hcl
+  when: "'nomad_servers' in group_names"
+
+- name: Enable systemd services
+  systemd_service:
+    name: '{{ item }}'
+    enabled: true
+  with_list:
+    - docker.service
+    - podman.service
+    - nomad.service
+
+- name: Deploy sysctl settings
+  copy:
+    src: os/etc/sysctl.d/bridge.conf
+    dest: /etc/sysctl.d
+  notify:
+    - Apply sysctl

@@ -1,7 +1,0 @@
-- name: deploy dc2 roles
-  hosts: dc2
-  become: True
-  become_method: sudo
-  roles:
-    - common
-    - nomad-client

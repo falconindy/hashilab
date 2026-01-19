@@ -1,0 +1,12 @@
+- name: Deploy All
+  hosts: all
+  become: True
+  become_method: sudo
+  roles:
+    - { role: base, tags: ['base'] }
+    - { role: keepalived, tags: ['keepalived'], when: keepalived_priority is defined }
+    - { role: consul, tags: ['consul'] }
+    - { role: nomad, tags: ['nomad'] }
+    - { role: vault, tags: ['vault'], when: "'vault_servers' in group_names" }
+    - { role: vault-agent, tags: ['vault-agent'] }
+    - { role: systemd, tags: ['systemd'] }

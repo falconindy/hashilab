@@ -6,7 +6,7 @@ data_dir      = "/opt/consul"
 enable_syslog = true
 log_level     = "WARN"
 
-{% if consul.server | default(False) %}
+{% if 'consul_servers' in group_names %}
 server             = true
 bootstrap_expect   = 3
 leave_on_terminate = true
@@ -32,9 +32,9 @@ tls {
     verify_outgoing        = true
     verify_server_hostname = true
 
-    ca_file   = "/opt/shared/tls/home-ca.pem"
-    cert_file = "/opt/consul/tls/tls.crt"
-    key_file  = "/opt/consul/tls/tls.key"
+    ca_file   = "/etc/ssl/certs/home.pem"
+    cert_file = "/etc/consul.d/tls.crt"
+    key_file  = "/etc/consul.d/tls.key"
   }
   https {
     verify_incoming = false
@@ -44,7 +44,7 @@ tls {
   }
 }
 
-{% if consul.server | default(False) %}
+{% if 'consul_servers' in group_names %}
 auto_encrypt {
   allow_tls = true
 }
@@ -87,6 +87,7 @@ telemetry {
   prometheus_retention_time = "72h"
 }
 
+{% if 'consul_clients' in group_names %}
 service {
   id = "consul-client"
   name = "consul-client"
@@ -100,3 +101,4 @@ service {
     timeout = "1s"
   }
 }
+{% endif %}

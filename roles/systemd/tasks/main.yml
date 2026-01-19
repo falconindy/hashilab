@@ -1,0 +1,29 @@
+- name: Install Apt packages
+  apt:
+    name:
+      - systemd-resolved
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+
+- name: Update systemd-networkd config
+  copy:
+    src: os/etc/systemd/network/80-dhcp.network
+    dest: /etc/systemd/network/80-dhcp.network
+  notify:
+    - Reload systemd-networkd config
+
+- name: Update systemd-resolved config
+  copy:
+    src: os/etc/systemd/resolved.conf.d
+    dest: /etc/systemd
+  notify:
+    - Restart systemd-resolved
+
+- name: Enable systemd services
+  systemd_service:
+    name: '{{ item }}'
+    enabled: true
+  with_list:
+    - systemd-networkd.service
+    - systemd-resolved.service
+    - systemd-timesyncd.service

@@ -1,0 +1,74 @@
+- name: Install Apt packages
+  apt:
+    name:
+      - linux-sysctl-defaults
+      - vim
+      - systemd-resolved
+    dpkg_options: 'force-confdef,force-confold'
+    state: present
+
+- name: Setup sane editor
+  alternatives:
+    name: editor
+    path: /usr/bin/vim.basic
+
+- name: Create clusterdata mount point
+  file:
+    state: directory
+    path: /clusterdata
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Add clusterdata mount point to fstab
+  ansible.posix.mount:
+    path: /clusterdata
+    src: nasty.node.home:/volume1/clusterdata
+    fstype: nfs4
+    opts: nolock,x-systemd.automount,x-systemd.device-timeout=60
+    dump: 0
+    passno: 0
+    state: present
+
+- name: Update systemd-networkd config
+  copy:
+    src: os/etc/systemd/network/80-dhcp.network
+    dest: /etc/systemd/network/80-dhcp.network
+  notify:
+    - Reload systemd-networkd config
+
+- name: Update systemd-resolved config
+  copy:
+    src: os/etc/systemd/resolved.conf.d
+    dest: /etc/systemd
+  notify:
+    - Restart systemd-resolved
+
+- name: Enable systemd services
+  systemd_service:
+    name: '{{ item }}'
+    enabled: true
+  with_list:
+    - systemd-networkd.service
+    - systemd-resolved.service
+    - systemd-timesyncd.service
+
+- name: Fetch Root CA Public Certificate from Vault
+  community.hashi_vault.vault_read:
+    url: https://vault.service.home:8200
+    path: pki/cert/ca
+    auth_method: none
+  register: root_ca_info
+  delegate_to: localhost
+  run_once: true
+
+- name: Install Root CA
+  become: true
+  block:
+    - name: Copy CA cert to trusted anchors
+      copy:
+        content: "{{ root_ca_info.data.data.certificate }}"
+        dest: /usr/local/share/ca-certificates/home.crt
+        mode: '0644'
+    - name: Update CA store
+      command: update-ca-certificates
