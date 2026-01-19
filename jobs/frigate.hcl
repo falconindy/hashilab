@@ -64,7 +64,7 @@ job "frigate" {
       }
 
       resources {
-        cpu    = 500
+        cpu    = 5000
         memory = 2048
       }
 
