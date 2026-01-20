@@ -1,0 +1,29 @@
+server             = true
+bootstrap_expect   = {{ groups["consul_servers"] | length }}
+leave_on_terminate = true
+
+auto_encrypt {
+  allow_tls = true
+}
+
+ui_config {
+  enabled = true
+
+  metrics_provider = "prometheus"
+  metrics_proxy {
+    base_url = "https://prometheus.service.home"
+    add_headers = [
+      {
+        name = "Host"
+        value = "prometheus.service.home"
+      },
+    ]
+  }
+}
+
+http_config {
+  response_headers {
+    Access-Control-Allow-Origin = "*"
+  }
+}
+
