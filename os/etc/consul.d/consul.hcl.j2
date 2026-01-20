@@ -6,15 +6,10 @@ data_dir      = "/opt/consul"
 enable_syslog = true
 log_level     = "WARN"
 
-{% if 'consul_servers' in group_names %}
-server             = true
-bootstrap_expect   = 3
-leave_on_terminate = true
-{% endif %}
-
 domain     = "home."
 alt_domain = "consul."
 
+# not the real gossip key -- managed via `consul keyring`.
 encrypt                 = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
@@ -44,33 +39,6 @@ tls {
   }
 }
 
-{% if 'consul_servers' in group_names %}
-auto_encrypt {
-  allow_tls = true
-}
-
-ui_config {
-  enabled = true
-
-  metrics_provider = "prometheus"
-  metrics_proxy {
-    base_url = "https://prometheus.service.home"
-    add_headers = [
-      {
-        name = "Host"
-        value = "prometheus.service.home"
-      },
-    ]
-  }
-}
-
-http_config {
-  response_headers {
-    Access-Control-Allow-Origin = "*"
-  }
-}
-
-{% endif %}
 ports {
   http     = 8500
   https    = 8501
@@ -86,19 +54,3 @@ telemetry {
   disable_hostname = true
   prometheus_retention_time = "72h"
 }
-
-{% if 'consul_clients' in group_names %}
-service {
-  id = "consul-client"
-  name = "consul-client"
-  port = 8501
-
-  check {
-    id = "consul-client"
-    name = "Consul HTTPS"
-    http = "https://localhost:8501/v1/status/leader"
-    interval = "10s"
-    timeout = "1s"
-  }
-}
-{% endif %}
