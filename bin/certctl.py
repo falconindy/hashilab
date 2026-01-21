@@ -223,7 +223,7 @@ def deploy_hcl_certs(prog: str, certs: dict[Server,
     for server, cert in certs.items():
         with SshCertDeployer(server.hostname) as d:
             logger.info(f'writing new certificates to {server.hostname}')
-            d.write_certs(f'/opt/{prog}/tls', cert)
+            d.write_certs(f'/etc/{prog}.d', cert)
 
             logger.info(f'reloading {prog} on {server.hostname}')
             d.reload_service(prog, os=server.os)
