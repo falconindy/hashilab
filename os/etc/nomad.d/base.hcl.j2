@@ -13,18 +13,6 @@ advertise {
   serf = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4648"
 }
 
-ui {
-  enabled = true
-
-  consul {
-    ui_url = "https://consul.service.home:8501/ui"
-  }
-
-  vault {
-    ui_url = "https://vault.service.home:8200/ui"
-  }
-}
-
 tls {
   http = true
   rpc  = true
@@ -74,29 +62,4 @@ telemetry {
   publish_allocation_metrics = true
   publish_node_metrics       = true
   use_node_name              = false
-}
-
-plugin "raw_exec" {
-  config {
-    enabled = true
-  }
-}
-
-plugin "docker" {
-  config {
-    allow_privileged = true
-    allow_caps       = ["ALL"]
-
-    volumes {
-      enabled = "true"
-    }
-  }
-}
-
-plugin "nomad-driver-podman" {
-  config {
-    volumes {
-      enabled = "true"
-    }
-  }
 }

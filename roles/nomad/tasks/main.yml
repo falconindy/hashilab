@@ -10,20 +10,6 @@
 - name: Perform hardware discovery
   include_tasks: discovery.yml
 
-- name: Deploy hardware meta markers
-  copy:
-    content: |
-      client {
-        meta {
-          has_{{ item }} = "true"
-        }
-      }
-    dest: /etc/nomad.d/has_{{ item }}.hcl
-    mode: '0644'
-    owner: 'nomad'
-    group: 'nomad'
-  loop: "{{ hardware_capabilities }}"
-
 - name: Update nomad client config
   template:
     src: "{{ item.src }}"
