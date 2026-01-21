@@ -30,29 +30,12 @@ class Server:
     has_nomad: bool = False
 
 
-CLUSTER_SERVERS = (
-    Server(hostname='nomad0.node.home',
-           ip_address='10.0.100.100',
-           has_vault=True,
-           has_consul=True,
-           has_nomad=True),
-    Server(hostname='nomad1.node.home',
-           ip_address='10.0.100.101',
-           has_vault=True,
-           has_consul=True,
-           has_nomad=True),
-    Server(hostname='nomad2.node.home',
-           ip_address='10.0.100.102',
-           has_vault=True,
-           has_consul=True,
-           has_nomad=True),
-)
-
 CLUSTER_CLIENTS = (
     Server(hostname='nasty.node.home',
            ip_address='10.0.100.50',
            os=OSFlavor.SYNOLOGY,
-           has_consul=True),
+           has_consul=True,
+           has_nomad=True),
     Server(hostname='bastion.node.home',
            ip_address='10.0.1.99',
            has_consul=True,
@@ -249,20 +232,6 @@ def deploy_hcl_certs(prog: str, certs: dict[Server,
 def renew_nomad_certificates() -> None:
     certs = dict()
     generator = CertGenerator()
-    for server in CLUSTER_SERVERS:
-        if not server.has_nomad:
-            continue
-
-        logger.info(f'generating certificate for {server.hostname}')
-        certs[server] = generator.generate(mount_point='pki_int_internal',
-                                           role='intermediate',
-                                           common_name='nomad.service.home',
-                                           sans=[
-                                               server.ip_address,
-                                               'server.global.nomad',
-                                               'localhost',
-                                               '127.0.0.1',
-                                           ])
 
     for server in CLUSTER_CLIENTS:
         if not server.has_nomad:
@@ -285,20 +254,6 @@ def renew_nomad_certificates() -> None:
 def renew_consul_certificates() -> None:
     certs = dict()
     generator = CertGenerator()
-    for server in CLUSTER_SERVERS:
-        if not server.has_consul:
-            continue
-
-        logger.info(f'generating certificate for {server.hostname}')
-        certs[server] = generator.generate(mount_point='pki_int_internal',
-                                           role='intermediate',
-                                           common_name='consul.service.home',
-                                           sans=[
-                                               server.ip_address,
-                                               'server.global.home',
-                                               '127.0.0.1',
-                                               'localhost',
-                                           ])
 
     for server in CLUSTER_CLIENTS:
         if not server.has_consul:
@@ -316,29 +271,6 @@ def renew_consul_certificates() -> None:
                                            ])
 
     deploy_hcl_certs('consul', certs)
-
-
-def renew_vault_certificates() -> None:
-    certs = dict()
-    generator = CertGenerator()
-    for server in CLUSTER_SERVERS:
-        if not server.has_vault:
-            continue
-
-        logger.info(f'generating certificate for {server.hostname}')
-        certs[server] = generator.generate(mount_point='pki_int_internal',
-                                           role='intermediate',
-                                           common_name='vault.service.home',
-                                           sans=[
-                                               server.ip_address,
-                                               'localhost',
-                                               '127.0.0.1',
-                                               '172.17.0.1',
-                                               'active.vault.service.home',
-                                               'standby.vault.service.home',
-                                           ])
-
-    deploy_hcl_certs('vault', certs)
 
 
 def renew_omada_certificates() -> None:
