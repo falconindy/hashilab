@@ -1,7 +1,7 @@
 {{- $privateIp := sockaddr "GetPrivateIP" -}}
 {{- $prog := "consul" }}
 {{- $commonName := printf "common_name=%s.service.home" $prog -}}
-{{- $ipSans := printf "ip_sans=%s" $privateIp -}}
+{{- $ipSans := printf "ip_sans=127.0.0.1,%s" $privateIp -}}
 {{- $consulRole := mustEnv "CONSUL_ROLE" -}}
 {{- $altNames := printf "alt_names=%s.global.home,localhost" $consulRole -}}
 {{- $ttl := printf "%s" "ttl=32d" -}}
