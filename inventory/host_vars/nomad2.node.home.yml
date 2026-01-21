@@ -1,10 +1,6 @@
 ansible_host: 10.0.100.102
 ansible_python_interpreter: /usr/bin/python3
 
-keepalived_priority: 82
-
 consul_role: server
-
 nomad_role: server
-nomad_datacenter: dc1
 cpu_total_compute: 13600
