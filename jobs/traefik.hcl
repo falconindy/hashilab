@@ -282,6 +282,21 @@ job "traefik" {
                 middlewares:
                   - cors-allow-all
 
+              home-ca-cert:
+                rule: "Host(`scoot.falconindy.com`) && Path(`/home.pem`)"
+                entryPoints:
+                  - public
+                service: vault-service-home
+                middlewares:
+                  - vault-pem-path
+                  - cert-download-headers
+
+            services:
+              vault-service-home:
+                loadBalancer:
+                  servers:
+                    - url: https://vault.service.home:8200
+
             middlewares:
               securedheaders:
                 headers:
@@ -318,6 +333,17 @@ job "traefik" {
                     - 10.0.1.0/24
                     - 10.0.20.0/24
                     - 10.0.100.0/24
+
+              vault-pem-path:
+                replacePath:
+                  path: /v1/pki/ca/pem
+
+              cert-download-headers:
+                headers:
+                  customResponseHeaders:
+                    Content-Type: "application/x-x509-ca-cert"
+                    Content-Disposition: "attachment; filename=home.pem"
+                    X-Frame-Options: "DENY"
         EOF
         destination     = "local/static_providers.yml"
       }
