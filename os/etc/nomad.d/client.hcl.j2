@@ -9,7 +9,6 @@ client {
   max_kill_timeout = "30s"
 
 {% if cpu_total_compute | default(0) > 0 %}
-  # 4 cores at a max frequency of 3400MHz
   cpu_total_compute = {{ cpu_total_compute }}
 
 {% endif %}
@@ -19,6 +18,45 @@ client {
   gc_parallel_destroys     = 2
 
   meta {
-    # label = "value"
+{% for hwcap in hardware_capabilities %}
+    has_{{ hwcap }} = "true"
+{% endfor %}
+  }
+}
+
+ui {
+  enabled = true
+
+  consul {
+    ui_url = "https://consul.service.home:8501/ui"
+  }
+
+  vault {
+    ui_url = "https://vault.service.home:8200/ui"
+  }
+}
+
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+
+plugin "docker" {
+  config {
+    allow_privileged = true
+    allow_caps       = ["ALL"]
+
+    volumes {
+      enabled = "true"
+    }
+  }
+}
+
+plugin "nomad-driver-podman" {
+  config {
+    volumes {
+      enabled = "true"
+    }
   }
 }
