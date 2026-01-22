@@ -93,7 +93,7 @@ job "monitoring" {
       port "envoy_metrics" { to = 9102 }
     }
 
-    task "prometheus" {
+    task "server" {
       driver = "podman"
       user   = "1000:2000"
 
