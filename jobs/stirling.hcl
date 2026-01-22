@@ -17,7 +17,7 @@ job "stirling" {
       driver = "podman"
 
       config {
-        image = "stirlingtools/stirling-pdf:2.3.0-ultra-lite"
+        image = "stirlingtools/stirling-pdf:2.3.1-ultra-lite"
         volumes = [
           "/clusterdata/stirling/tessdata:/usr/share/tessdata:rw",
           "/clusterdata/stirling/configs:/configs:rw",
