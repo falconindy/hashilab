@@ -1,6 +1,6 @@
 template {
-  source      = "/etc/nomad.d/tls.tpl"
-  destination = "/etc/nomad.d/tls.crt"
+  source      = "/etc/vault-agent.d/nomad-server.tpl"
+  destination = "/etc/nomad.d/server.crt"
   user        = "nomad"
   group       = "nomad"
   exec = {

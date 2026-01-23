@@ -5,7 +5,7 @@
 {{- $consulRole := mustEnv "CONSUL_ROLE" -}}
 {{- $altNames := printf "alt_names=%s.global.home,localhost" $consulRole -}}
 {{- $ttl := printf "%s" "ttl=32d" -}}
-{{- $keyfile := printf "/etc/%s.d/tls.key" $prog -}}
+{{- $keyfile := printf "/etc/%s.d/server.key" $prog -}}
 {{- with pkiCert "pki_int_internal/issue/intermediate" $ttl $commonName $ipSans $altNames -}}
 {{- .Cert -}}
 {{- .CA -}}
