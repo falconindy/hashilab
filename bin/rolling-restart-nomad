@@ -1,0 +1,14 @@
+#!/bin/bash
+
+mapfile -t servers < \
+    <(nomad server members -json | jq -r 'sort_by(.Leader) | .[].Addr')
+
+for server in "${servers[@]}"; do
+  echo "==> Restarting nomad on $server"
+  if ssh "$server" sudo systemctl restart nomad; then
+    echo " ✓ DONE"
+  else
+    echo " ❌ERROR"
+    exit 1
+  fi
+done
