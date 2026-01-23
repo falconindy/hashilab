@@ -11,53 +11,39 @@
 
 - name: Deploy config
   template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    src: "os/etc/vault-agent.d/{{ item.src }}"
+    dest: "/etc/vault-agent.d/{{ item.dest | default(item.src) }}"
   loop:
-    - src: os/etc/vault-agent.d/agent.hcl.j2
-      dest: /etc/vault-agent.d/agent.hcl
-    - src: os/etc/vault-agent.d/agent.env.j2
-      dest: /etc/vault-agent.d/agent.env
-    - src: os/etc/vault-agent.d/agent.roleid
-      dest: /etc/vault-agent.d/agent.roleid
+    - { src: agent.hcl.j2, dest: agent.hcl }
+    - { src: agent.env.j2, dest: agent.env }
+    - { src: agent.roleid }
 
 - name: Deploy consul vault-agent config
   copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    src: "os/etc/vault-agent.d/{{ item }}"
+    dest: "/etc/vault-agent.d/{{ item }}"
   loop:
-    - src: os/etc/consul.d/tls.tpl
-      dest: /etc/consul.d/tls.tpl
-    - src: os/etc/consul.d/tls.tpl
-      dest: /etc/consul.d/tls.tpl
-    - src: os/etc/vault-agent.d/consul-tls.hcl
-      dest: /etc/vault-agent.d/consul-tls.hcl
+    - consul-tls.hcl
+    - consul-server.tpl
   when: "'consul_clients' in group_names or 'consul_servers' in group_names"
 
 - name: Deploy nomad vault-agent config
   copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    src: "os/etc/vault-agent.d/{{ item }}"
+    dest: "/etc/vault-agent.d/{{ item }}"
   loop:
-    - src: os/etc/nomad.d/tls.tpl
-      dest: /etc/nomad.d/tls.tpl
-    - src: os/etc/nomad.d/tls.tpl
-      dest: /etc/nomad.d/tls.tpl
-    - src: os/etc/vault-agent.d/nomad-tls.hcl
-      dest: /etc/vault-agent.d/nomad-tls.hcl
+    - nomad-tls.hcl
+    - nomad-server.tpl
   when: "'nomad_clients' in group_names or 'nomad_servers' in group_names"
 
 - name: Deploy vault vault-agent config
   copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    src: "os/etc/vault-agent.d/{{ item }}"
+    dest: "/etc/vault-agent.d/{{ item }}"
   loop:
-    - src: os/etc/vault.d/tls.tpl
-      dest: /etc/vault.d/tls.tpl
-    - src: os/etc/vault.d/tls.tpl
-      dest: /etc/vault.d/tls.tpl
-    - src: os/etc/vault-agent.d/vault-tls.hcl
-      dest: /etc/vault-agent.d/vault-tls.hcl
+    - vault-tls.hcl
+    - vault-server.tpl
+    - vault-client.tpl
   when: "'vault_servers' in group_names"
 
 - name: Enable systemd services
