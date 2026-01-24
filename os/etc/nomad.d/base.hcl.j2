@@ -8,9 +8,9 @@ bind_addr  = "0.0.0.0"
 datacenter = "{{ nomad_datacenter }}"
 
 advertise {
-  http = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4646"
-  rpc  = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4647"
-  serf = "{{ '{{' }} GetInterfaceIP \"{{ ansible_default_ipv4.interface }}\" {{ '}}' }}:4648"
+  http = "{{ ansible_default_ipv4.address }}:4646"
+  rpc  = "{{ ansible_default_ipv4.address }}:4647"
+  serf = "{{ ansible_default_ipv4.address }}:4648"
 }
 
 tls {
