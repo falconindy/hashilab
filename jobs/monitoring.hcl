@@ -211,6 +211,20 @@ job "monitoring" {
                 - target_label: __address__
                   replacement: 127.0.0.1:9115
 
+            - job_name: tls-client-expiration
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [x509-exporter]
+              relabel_configs:
+                - source_labels: [__meta_consul_service]
+                  action: keep
+                  regex: x509-exporter
+                - source_labels: [__meta_consul_node]
+                  target_label: instance
+                - source_labels: [__meta_consul_service]
+                  target_label: job
+
             - job_name: envoy-consul
               consul_sd_configs:
                 - server: consul.service.home:8501
