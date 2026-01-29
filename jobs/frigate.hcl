@@ -31,7 +31,7 @@ job "frigate" {
       driver = "podman"
 
       config {
-        image = "ghcr.io/blakeblackshear/frigate:0.16.3"
+        image = "ghcr.io/blakeblackshear/frigate:0.16.4"
 
         network_mode = "host"
         ports        = ["rtsp", "webrtc"]
