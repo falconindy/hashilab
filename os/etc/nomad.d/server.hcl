@@ -8,5 +8,7 @@ server {
   bootstrap_expect = 3
   raft_protocol    = 3
 
-  # encrypt = "<only needed for initial bootstrap>"
+  # Gossip encryption should be used, but it's only specified in config during
+  # initial setup. Manage via `nomad operator gossip keyring`.
+  # encrypt = ""
 }
