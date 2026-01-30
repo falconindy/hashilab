@@ -3,10 +3,18 @@ job "teslamate" {
   type        = "service"
 
   ui {
-    description = "Teslamate"
+    description = "A datalogger for your Tesla"
     link {
       label = "Teslamate Docs"
       url   = "https://docs.teslamate.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/teslamate-org/teslamate"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/teslamate/teslamate"
     }
   }
 

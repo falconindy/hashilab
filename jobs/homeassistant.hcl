@@ -3,7 +3,7 @@ job "homeassistant" {
   type        = "service"
 
   ui {
-    description = "A plugin-driven DNS server/forwarder"
+    description = "A locally controlled home automation platform."
     link {
       label = "Upstream"
       url   = "https://home-assistant.io"
