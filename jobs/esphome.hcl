@@ -3,7 +3,7 @@ job "esphome" {
   type        = "service"
 
   ui {
-    description = "A plugin-driven DNS server/forwarder"
+    description = "A framework for creating firmware for popular microcontrollers"
     link {
       label = "Upstream"
       url   = "https://esphome.io"
