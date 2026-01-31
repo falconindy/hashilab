@@ -97,6 +97,10 @@ job "homeassistant" {
               destination_name = "frigate"
               local_bind_port = 5000
             }
+            upstreams {
+              destination_name = "nut"
+              local_bind_port = 3493
+            }
           }
         }
 
