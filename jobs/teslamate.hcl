@@ -74,7 +74,7 @@ job "teslamate" {
 
       resources {
         cpu    = 200
-        memory = 4196
+        memory = 1024
       }
     }
 
