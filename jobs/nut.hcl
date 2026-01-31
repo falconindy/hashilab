@@ -14,13 +14,7 @@ job "nut" {
     network {
       mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
-      port "nut" {
-        static = 3493
-      }
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -28,7 +22,6 @@ job "nut" {
 
       config {
         image = "instantlinux/nut-upsd:2.8.3-r2"
-        ports = ["nut"]
 
         devices = [
           "/dev/bus/usb:/dev/bus/usb:rw",
@@ -39,21 +32,35 @@ job "nut" {
         API_PASSWORD = "11111"
       }
 
-      service {
-        name         = "nut"
-        port         = "nut"
-        address_mode = "host"
-
-        check {
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "5s"
-        }
-      }
-
       resources {
         cpu    = 100
         memory = 64
+      }
+    }
+
+    service {
+      name = "nut"
+      port = 3493
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
       }
     }
   }
