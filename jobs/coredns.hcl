@@ -26,7 +26,7 @@ job "coredns" {
 
   group "coredns" {
     network {
-      mode = "host"
+      mode = "bridge"
 
       dns {
         servers = ["172.17.0.1"]
@@ -47,29 +47,15 @@ job "coredns" {
       driver = "podman"
 
       config {
-        image        = "coredns/coredns:1.14.1"
-        network_mode = "host"
-        ports        = ["dns", "metrics", "health"]
-        args         = ["-conf", "/local/corefile"]
-      }
-
-      service {
-        name         = "coredns"
-        port         = "health"
-        address_mode = "host"
-
-        check {
-          type     = "http"
-          path     = "/health"
-          interval = "10s"
-          timeout  = "2s"
-        }
+        image = "coredns/coredns:1.14.1"
+        ports = ["dns", "metrics", "health"]
+        args  = ["-conf", "/local/corefile"]
       }
 
       template {
         data          = <<-EOF
           . {
-            bind {$NOMAD_IP_dns}
+            bind 0.0.0.0
 
             {{- /* generate forward entry */}}
             {{- $dns_forward := "94.140.14.14" }}
@@ -86,12 +72,12 @@ job "coredns" {
 
             whoami
             errors
-            prometheus {$NOMAD_ADDR_metrics}
+            prometheus :{$NOMAD_PORT_metrics}
             health :{$NOMAD_PORT_health}
           }
 
           home.:53 consul.:53 {
-            bind {$NOMAD_IP_dns}
+            bind 0.0.0.0
 
             {{ range services -}}
               {{- if in .Tags "traefik.enable=true" }}
@@ -104,7 +90,7 @@ job "coredns" {
             forward . {$NOMAD_HOST_IP_dns}:8600
             whoami
             errors
-            prometheus {$NOMAD_ADDR_metrics}
+            prometheus :{$NOMAD_PORT_metrics}
           }
         EOF
         destination   = "local/corefile"
@@ -115,6 +101,19 @@ job "coredns" {
       resources {
         cpu    = 100
         memory = 64
+      }
+    }
+
+    service {
+      name         = "coredns"
+      port         = "health"
+      address_mode = "host"
+
+      check {
+        type     = "http"
+        path     = "/health"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }
