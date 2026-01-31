@@ -22,10 +22,6 @@ job "mosquitto" {
     network {
       mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
       port "envoy_metrics" { to = 9102 }
     }
 
