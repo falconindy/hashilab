@@ -35,7 +35,7 @@ job "rtl433" {
       vault {}
 
       template {
-        data = <<-EOF
+        data        = <<-EOF
           {{ with secret "kv/data/default/rtl433" }}
             output mqtt://mosquitto.virtual.home:80,user=rtl_433,pass={{ .Data.data.mqtt_password }},events=rtl_433[/model][/id]
           {{ end }}
@@ -71,10 +71,10 @@ job "rtl433" {
 
             expose {
               path {
-                path = "/metrics"
-                protocol = "http"
+                path            = "/metrics"
+                protocol        = "http"
                 local_path_port = 9102
-                listener_port = "envoy_metrics"
+                listener_port   = "envoy_metrics"
               }
             }
           }

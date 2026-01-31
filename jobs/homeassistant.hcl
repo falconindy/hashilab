@@ -67,8 +67,8 @@ job "homeassistant" {
     }
 
     service {
-      name         = "homeassistant"
-      port         = 8123
+      name = "homeassistant"
+      port = 8123
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
@@ -91,15 +91,15 @@ job "homeassistant" {
 
             upstreams {
               destination_name = "mosquitto"
-              local_bind_port = 1883
+              local_bind_port  = 1883
             }
             upstreams {
               destination_name = "frigate"
-              local_bind_port = 5000
+              local_bind_port  = 5000
             }
             upstreams {
               destination_name = "nut"
-              local_bind_port = 3493
+              local_bind_port  = 3493
             }
           }
         }

@@ -38,8 +38,8 @@ job "stirling" {
     }
 
     service {
-      name         = "stirling"
-      port         = 8080
+      name = "stirling"
+      port = 8080
 
       tags = [
         "traefik.enable=true",
