@@ -256,7 +256,6 @@ job "traefik" {
                 email: d@falconindy.com
                 storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.vault.json
                 caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
-                caServerName: vault.service.home
                 httpChallenge:
                   entryPoint: http
 
