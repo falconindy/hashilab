@@ -69,10 +69,10 @@ job "grafana" {
 
             expose {
               path {
-                path = "/metrics"
-                protocol = "http"
+                path            = "/metrics"
+                protocol        = "http"
                 local_path_port = 9102
-                listener_port = "envoy_metrics"
+                listener_port   = "envoy_metrics"
               }
             }
           }

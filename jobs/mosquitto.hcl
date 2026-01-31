@@ -32,7 +32,7 @@ job "mosquitto" {
     task "server" {
       driver = "podman"
       config {
-        image        = "eclipse-mosquitto:2.0.22"
+        image = "eclipse-mosquitto:2.0.22"
 
         volumes = [
           "/clusterdata/mosquitto:/mosquitto:rw",
@@ -46,8 +46,8 @@ job "mosquitto" {
     }
 
     service {
-      name         = "mosquitto"
-      port         = 1883
+      name = "mosquitto"
+      port = 1883
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"

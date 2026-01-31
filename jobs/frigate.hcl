@@ -74,8 +74,8 @@ job "frigate" {
     }
 
     service {
-      name         = "frigate"
-      port         = 5000
+      name = "frigate"
+      port = 5000
 
       tags = [
         "traefik.enable=true",
@@ -95,7 +95,7 @@ job "frigate" {
 
             upstreams {
               destination_name = "mosquitto"
-              local_bind_port = 1883
+              local_bind_port  = 1883
             }
           }
         }

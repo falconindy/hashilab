@@ -320,8 +320,8 @@ job "monitoring" {
     }
 
     service {
-      name         = "prometheus"
-      port         = 9090
+      name = "prometheus"
+      port = 9090
 
       tags = [
         "traefik.enable=true",
@@ -337,7 +337,7 @@ job "monitoring" {
 
             upstreams {
               destination_name = "blackbox-exporter"
-              local_bind_port = 9115
+              local_bind_port  = 9115
             }
           }
         }

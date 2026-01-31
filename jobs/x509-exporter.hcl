@@ -38,21 +38,21 @@ job "x509-exporter" {
       }
 
       artifact {
-        source = "http://172.17.0.1:8200/v1/pki/ca/pem"
+        source      = "http://172.17.0.1:8200/v1/pki/ca/pem"
         destination = "local/pki.pem"
-        mode = "file"
+        mode        = "file"
       }
 
       artifact {
-        source = "http://172.17.0.1:8200/v1/pki_int/ca/pem"
+        source      = "http://172.17.0.1:8200/v1/pki_int/ca/pem"
         destination = "local/pki_int.pem"
-        mode = "file"
+        mode        = "file"
       }
 
       artifact {
-        source = "http://172.17.0.1:8200/v1/pki_int_internal/ca/pem"
+        source      = "http://172.17.0.1:8200/v1/pki_int_internal/ca/pem"
         destination = "local/pki_int_internal.pem"
-        mode = "file"
+        mode        = "file"
       }
 
       resources {
@@ -62,8 +62,8 @@ job "x509-exporter" {
     }
 
     service {
-      name = "x509-exporter"
-      port = "metrics"
+      name         = "x509-exporter"
+      port         = "metrics"
       address_mode = "host"
 
       check {

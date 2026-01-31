@@ -1,5 +1,6 @@
 job "static-www" {
   datacenters = ["dc1"]
+  type        = "service"
 
   group "static-www" {
     network {
