@@ -6,10 +6,6 @@ job "omada-exporter" {
     network {
       mode = "bridge"
 
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
       port "metrics" {}
     }
 
@@ -49,10 +45,6 @@ job "omada-exporter" {
       name         = "omada-exporter"
       port         = "metrics"
       address_mode = "host"
-
-      tags = [
-        "traefik.enable=true",
-      ]
 
       check {
         type     = "http"
