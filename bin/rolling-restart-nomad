@@ -1,14 +1,80 @@
 #!/bin/bash
 
-mapfile -t servers < \
-    <(nomad server members -json | jq -r 'sort_by(.Leader) | .[].Addr')
+in_array() {
+  local item needle=$1
+  shift
 
-for server in "${servers[@]}"; do
-  echo "==> Restarting nomad on $server"
-  if ssh "$server" sudo systemctl restart nomad; then
-    echo " ✓ DONE"
-  else
-    echo " ❌ERROR"
-    exit 1
-  fi
+  for item; do
+    [[ $item = "$needle" ]] && return 0
+  done
+  return 1
+}
+
+servers=()
+clients=()
+
+populate_servers() {
+  local is_leader addr name
+
+  while read -r is_leader addr name; do
+    case $is_leader in
+      true)
+        printf "%-4s %s\n" "👑" "$name"
+        ;;
+      false)
+        printf "%-4s %s\n" "🛡️" "$name"
+        ;;
+    esac
+    servers+=("$addr")
+  done < <(nomad server members -json |
+      jq -r 'sort_by(.Tags.Leader) | .[] | .Tags.Leader + " " + .Addr + " " + .Name')
+}
+
+populate_clients() {
+  local addr name
+
+  while read -r addr; do
+    read -r name
+
+    if ! in_array "$addr" "${servers[@]}"; then
+      printf "%-4s %s\n" "🙋" "$name"
+      clients+=("$addr")
+    fi
+  done < <(nomad node status -json | jq -r '.[] | (.Address, .Name)')
+}
+
+restart_nomad_instances() {
+  echo "$@"; return
+  for server in $@; do
+    echo "==> Restarting nomad on $server"
+    if ssh "$server" sudo systemctl restart nomad; then
+      echo " ✓ DONE"
+    else
+      echo " ❌ERROR"
+      exit 1
+    fi
+  done
+}
+
+restart_clients=0
+
+while getopts ':a' opt; do
+  case $opt in
+    a)
+      restart_clients=1
+      ;;
+    ?)
+      echo "unknown option: $OPTARG" >&2
+      exit 1
+  esac
 done
+shift $(( OPTIND - 1 ))
+
+populate_servers
+populate_clients
+
+restart_nomad_instances "${servers[@]}"
+
+if (( restart_clients )); then
+  restart_nomad_instances "${clients[@]}"
+fi
