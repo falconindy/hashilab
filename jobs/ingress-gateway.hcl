@@ -6,8 +6,6 @@ job "ingress-gateway" {
     network {
       mode = "bridge"
 
-      port "http" { static = 80 }
-      port "https" { static = 443 }
       port "deluge-inbound" { static = 6881 }
       port "external-https" { static = 8443 }
 
@@ -31,24 +29,6 @@ job "ingress-gateway" {
 
           ingress {
             listener {
-              port     = 80
-              protocol = "tcp"
-
-              service {
-                name = "traefik-insecure"
-              }
-            }
-
-            listener {
-              port     = 443
-              protocol = "tcp"
-
-              service {
-                name = "traefik"
-              }
-            }
-
-            listener {
               port     = 8443
               protocol = "tcp"
 
@@ -70,8 +50,8 @@ job "ingress-gateway" {
 
         sidecar_task {
           resources {
-            cpu    = 100
-            memory = 128
+            cpu    = 50
+            memory = 64
           }
         }
       }

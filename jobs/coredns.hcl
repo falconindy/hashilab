@@ -55,8 +55,6 @@ job "coredns" {
       template {
         data          = <<-EOF
           . {
-            bind 0.0.0.0
-
             {{- /* generate forward entry */}}
             {{- $dns_forward := "94.140.14.14" }}
             {{- range service "adguard-dns" }}
@@ -77,17 +75,17 @@ job "coredns" {
           }
 
           home.:53 consul.:53 {
-            bind 0.0.0.0
-
+            {{- /* load balance requests to traefik instances if possible */}}
             {{ range services -}}
               {{- if in .Tags "traefik.enable=true" }}
                 {{- if not (.Name | contains "sidecar") }}
-                rewrite name exact {{ .Name }}.service.home ingress-gateway.service.home
+                rewrite name exact {{ .Name }}.service.home traefik.service.home
                 {{- end }}
               {{- end }}
             {{- end }}
 
             forward . {$NOMAD_HOST_IP_dns}:8600
+
             whoami
             errors
             prometheus :{$NOMAD_PORT_metrics}
