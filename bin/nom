@@ -40,7 +40,7 @@ cmd_prepull() {
   local images driver node nodes
 
   mapfile -t images < <(nomad run -output "$1" |
-    jq -r '.Job.TaskGroups | map(.Tasks[].Config.image)[]')
+    jq -r '.Job.TaskGroups | map(.Tasks[].Config.image) | unique[]')
   [[ $images ]] || return
 
   # This assumes the same driver for all images, but generally speaking we're
