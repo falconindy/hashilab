@@ -77,7 +77,14 @@ job "deluge" {
 
     service {
       name = "deluge-inbound"
-      port = 6881
+      port = 52520
+
+      tags = [
+        "traefik-ingress.enable=true",
+        "traefik-ingress.consulcatalog.connect=true",
+        "traefik-ingress.tcp.routers.${NOMAD_JOB_NAME}.rule=HostSNI(`*`)",
+        "traefik-ingress.tcp.routers.${NOMAD_JOB_NAME}.entrypoints=deluge",
+      ]
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_inbound}"

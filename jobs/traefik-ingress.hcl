@@ -1,4 +1,4 @@
-job "traefik" {
+job "traefik-ingress" {
   datacenters = ["dc1"]
   type        = "service"
 
@@ -24,7 +24,7 @@ job "traefik" {
     auto_revert      = true
   }
 
-  group "traefik" {
+  group "traefik-ingress" {
     count = 2
 
     network {
@@ -34,11 +34,10 @@ job "traefik" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" { static = 80 }
-      port "https" { static = 443 }
+      port "https" { static = 8443 }
+      port "deluge" { static = 52520 }
 
-      port "envoy_metrics_http" { to = 9102 }
-      port "envoy_metrics_https" { to = 9103 }
+      port "envoy_metrics_dashboard" { to = 9102 }
     }
 
     ephemeral_disk {
@@ -47,13 +46,20 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik-insecure"
-      port         = "http"
+      name         = "traefik-ingress-dashboard"
+      port         = 8080
       address_mode = "host"
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_http}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_dashboard}"
       }
+
+      # Expose the dashboard on the internal traefik instance.
+      tags = [
+        "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
+        "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`traefik-ingress.service.home`)",
+      ]
 
       connect {
         sidecar_service {
@@ -71,45 +77,12 @@ job "traefik" {
           }
         }
       }
-
-      check {
-        type     = "http"
-        path     = "/ping"
-        interval = "5s"
-        timeout  = "2s"
-        expose   = true
-      }
     }
 
     service {
-      name         = "traefik"
+      name         = "traefik-ingress"
       port         = "https"
       address_mode = "host"
-
-      tags = [
-        "traefik.enable=true",
-      ]
-
-      meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_https}"
-      }
-
-      connect {
-        sidecar_service {
-          proxy {
-            config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9103"
-            }
-          }
-        }
-
-        sidecar_task {
-          resources {
-            cpu    = 50
-            memory = 48
-          }
-        }
-      }
     }
 
     task "server" {
@@ -130,37 +103,27 @@ job "traefik" {
         right_delimiter = "]]"
         data            = <<-EOF
           entryPoints:
-            http:
-              address: :80
+            dashboard:
+              address: :8080
               asDefault: false
-              forwardedHeaders:
-                insecure: false
-              proxyProtocol:
-                insecure: false
-                trustedIPs: &trustedIPs
-                  - 172.16.0.0/12
-                  - 172.26.64.0/20
-                  - 127.0.0.1/32
               http:
                 middlewares:
                   - internal-only@file
-                  - customheaders@file
 
             https:
-              address: :443
+              address: :[[ env "NOMAD_HOST_PORT_https" ]]
               asDefault: true
               forwardedHeaders:
                 insecure: false
-              proxyProtocol:
-                insecure: false
-                trustedIPs: *trustedIPs
               http:
                 middlewares:
-                  - internal-only@file
                   - securedheaders@file
-                  - customheaders@file
                 tls:
-                  certresolver: vault
+                  certresolver: letsencrypt
+
+            deluge:
+              address: :[[ env "NOMAD_HOST_PORT_deluge" ]]
+              asDefault: false
 
           tls:
             options:
@@ -184,7 +147,7 @@ job "traefik" {
             insecure: false
 
           ping:
-            entrypoint: http
+            entrypoint: https
 
           log:
             level: INFO
@@ -193,12 +156,11 @@ job "traefik" {
 
           providers:
             consulCatalog:
-              prefix: traefik
+              prefix: traefik-ingress
               connectaware: true
               watch: true
               exposedByDefault: false
               servicename: traefik
-              defaultRule: Host(`{{ .Name }}.service.home`)
 
               endpoint:
                 address: 172.17.0.1:8500
@@ -208,19 +170,12 @@ job "traefik" {
               filename: local/static_providers.yml
 
           certificatesResolvers:
-            vault:
+            letsencrypt:
               acme:
-                email: d@falconindy.com
-                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.vault.json
-                caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
-                httpChallenge:
-                  entryPoint: http
-
-          metrics:
-            prometheus:
-              addEntryPointsLabels: true
-              addRoutersLabels: true
-              entryPoint: https
+                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.letsencrypt.json
+                dnsChallenge:
+                  provider: cloudflare
+                  delayBeforeCheck: 10
         EOF
         destination     = "local/traefik.yml"
       }
@@ -232,11 +187,24 @@ job "traefik" {
           http:
             routers:
               api-dashboard:
-                rule: Host(`traefik.service.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
-                entrypoints: https
+                rule: (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+                entrypoints: dashboard
                 service: api@internal
                 middlewares:
                   - cors-allow-all
+
+              home-ca-cert:
+                rule: Host(`scoot.falconindy.com`) && Path(`/home.pem`)
+                service: vault-service-home
+                middlewares:
+                  - vault-pem-path
+                  - cert-download-headers
+
+            services:
+              vault-service-home:
+                loadBalancer:
+                  servers:
+                    - url: https://vault.service.home:8200
 
             middlewares:
               securedheaders:
@@ -248,11 +216,6 @@ job "traefik" {
                   BrowserXssFilter: true
                   STSIncludeSubdomains: true
                   STSSeconds: 315360000
-
-              customheaders:
-                headers:
-                  customResponseHeaders:
-                    X-Backend-Name: [[ env "attr.unique.hostname" ]]
 
               cors-allow-all:
                 headers:
@@ -274,6 +237,17 @@ job "traefik" {
                     - 10.0.1.0/24
                     - 10.0.20.0/24
                     - 10.0.100.0/24
+
+              vault-pem-path:
+                replacePath:
+                  path: /v1/pki/ca/pem
+
+              cert-download-headers:
+                headers:
+                  customResponseHeaders:
+                    Content-Type: "application/x-x509-ca-cert"
+                    Content-Disposition: "attachment; filename=home.pem"
+                    X-Frame-Options: "DENY"
         EOF
         destination     = "local/static_providers.yml"
       }
@@ -281,7 +255,7 @@ job "traefik" {
       template {
         data        = <<EOF
           CF_API_EMAIL="d@falconindy.com"
-          {{ with secret "kv/data/default/traefik" }}
+          {{ with secret "kv/data/default/traefik-ingress" }}
             CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
           {{ end }}
         EOF

@@ -1,3 +1,16 @@
+global_defs {
+  enable_script_security
+  script_user nobody
+}
+
+vrrp_script traefik_ingress_healthy {
+  script "/usr/bin/curl -fsk https://localhost:8443/ping"
+  interval 2
+  weight -50
+  fall 2
+  rise 2
+}
+
 vrrp_instance VI_1 {
   # all nodes considered equal.
   state BACKUP
@@ -22,30 +35,10 @@ vrrp_instance VI_1 {
     10.0.100.109/24 dev {{ ansible_facts.default_ipv4.alias }}
   }
 
+  track_script {
+    traefik_ingress_healthy
+  }
+
   # Allow packets addressed to the VIPs above to be received
   accept
-}
-
-virtual_server 10.0.100.109 {
-  delay_loop 6
-  lb_algo rr
-  lb_kind NAT
-  protocol TCP
-
-{% for host in groups["keepalived_servers"] %}
-  real_server {{ hostvars[host]['ansible_default_ipv4']['address'] }} 80 {
-    weight 1
-
-    HTTP_GET {
-      url {
-          path /ping
-          status_code 200
-      }
-
-      connect_timeout 2
-      retry 2
-      delay_before_retry 2
-    }
-  }
-{% endfor %}
 }

@@ -78,8 +78,10 @@ job "homeassistant" {
         "traefik.enable=true",
         "traefik.consulcatalog.connect=true",
         "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https",
-        "traefik.http.routers.public-${NOMAD_JOB_NAME}.entrypoints=public",
-        "traefik.http.routers.public-${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
+
+        "traefik-ingress.enable=true",
+        "traefik-ingress.consulcatalog.connect=true",
+        "traefik-ingress.http.routers.${NOMAD_JOB_NAME}.rule=Host(`hass.falconindy.com`)",
       ]
 
       connect {
