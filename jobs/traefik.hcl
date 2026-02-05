@@ -116,7 +116,7 @@ job "traefik" {
       driver = "podman"
 
       config {
-        image = "traefik:v3.6"
+        image = "traefik:v3.6.7"
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
