@@ -32,7 +32,7 @@ job "homeassistant" {
     task "server" {
       driver = "podman"
       config {
-        image        = "homeassistant/home-assistant:2026.1.3"
+        image        = "homeassistant/home-assistant:2026.2.0"
         network_mode = "host"
         volumes = [
           "/run/dbus:/run/dbus",
