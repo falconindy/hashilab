@@ -15,7 +15,7 @@ storage "raft" {
 {% for host in groups["vault_servers"] %}
 
   retry_join {
-    leader_api_addr         = "https://{{ hostvars[host].ansible_host }}:8200"
+    leader_api_addr         = "https://{{ hostvars[host]['ansible_host'] }}:8200"
     leader_tls_servername   = "vault.service.home"
     leader_ca_cert_file     = "/etc/ssl/certs/home.pem"
     leader_client_cert_file = "/etc/vault.d/client.crt"
