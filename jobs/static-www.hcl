@@ -50,6 +50,7 @@ job "static-www" {
       tags = [
         "traefik.enable=true",
         "traefik.consulcatalog.connect=true",
+        "homelabdash.hide",
       ]
 
       meta {

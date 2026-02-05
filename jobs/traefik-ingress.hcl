@@ -59,6 +59,9 @@ job "traefik-ingress" {
         "traefik.enable=true",
         "traefik.consulcatalog.connect=true",
         "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`traefik-ingress.service.home`)",
+
+        "homelabdash.slug=traefik-ingress",
+        "homelabdash.uri=/dashboard/",
       ]
 
       connect {

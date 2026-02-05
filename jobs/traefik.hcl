@@ -88,6 +88,7 @@ job "traefik" {
 
       tags = [
         "traefik.enable=true",
+        "homelabdash.uri=/dashboard/",
       ]
 
       meta {
