@@ -151,6 +151,7 @@ job "traefik-ingress" {
 
           ping:
             entrypoint: https
+            manualRouting: true
 
           log:
             level: INFO
@@ -193,8 +194,6 @@ job "traefik-ingress" {
                 rule: (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
                 entrypoints: dashboard
                 service: api@internal
-                middlewares:
-                  - cors-allow-all
 
               home-ca-cert:
                 rule: Host(`scoot.falconindy.com`) && Path(`/home.pem`)
@@ -202,6 +201,10 @@ job "traefik-ingress" {
                 middlewares:
                   - vault-pem-path
                   - cert-download-headers
+
+              ping:
+                rule: Host(`localhost`) && PathPrefix(`/ping`)
+                service: ping@internal
 
             services:
               vault-service-home:
@@ -219,18 +222,6 @@ job "traefik-ingress" {
                   BrowserXssFilter: true
                   STSIncludeSubdomains: true
                   STSSeconds: 315360000
-
-              cors-allow-all:
-                headers:
-                  accessControlAllowOriginList: ["*"]
-                  accessControlAllowMethods:
-                    - GET
-                  accessControlAllowHeaders:
-                    - Content-Type
-                    - Authorization
-                  accessControlAllowCredentials: true
-                  accessControlMaxAge: 100
-                  addVaryHeader: true
 
               internal-only:
                 ipAllowList:
