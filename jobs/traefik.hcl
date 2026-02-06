@@ -190,7 +190,10 @@ job "traefik" {
           log:
             level: INFO
 
-          accessLog: {}
+          accessLog:
+            fields:
+              names:
+                StartUTC: drop
 
           providers:
             consulCatalog:
@@ -288,6 +291,10 @@ job "traefik" {
         EOF
         destination = "secrets/cloudflare.env"
         env         = true
+      }
+
+      env {
+        TZ = "America/New_York"
       }
 
       resources {
