@@ -6,12 +6,12 @@ resolve_all() {
   {
     # loosely detect and pass through UUIDs.
     if [[ $1 == +([[:xdigit:]-]) ]]; then
-      nomad alloc status-json "$1"
+      nomad alloc status -json "$1"
     else
-      nomad job allocs -json "$1"
+      nomad job allocs -json "$1" | jq -r '.[]'
     fi
   } | jq -r '[
-      .[] | select(.ClientStatus == "running") | {"\(.NodeName)": .ID}
+      select(.ClientStatus == "running") | {"\(.NodeName)": .ID}
     ] | sort | map(keys[] as $k | "\(.[$k]) \($k)")[]'
 }
 
