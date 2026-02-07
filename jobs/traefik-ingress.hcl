@@ -129,6 +129,14 @@ job "traefik-ingress" {
               asDefault: false
 
           tls:
+            stores:
+              default:
+                defaultGeneratedCert:
+                  resolver: letsencrypt
+                  domain:
+                    main: falconindy.com
+                    sans:
+                      - "*.falconindy.com"
             options:
               default:
                 sniStrict: true
@@ -167,7 +175,8 @@ job "traefik-ingress" {
               connectaware: true
               watch: true
               exposedByDefault: false
-              servicename: traefik
+              servicename: traefik-ingress
+              defaultRule: Host(`{{ .Name }}.falconindy.com`)
 
               endpoint:
                 address: 172.17.0.1:8500
