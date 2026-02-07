@@ -37,7 +37,7 @@ job "traefik-ingress" {
       port "https" { static = 8443 }
       port "deluge" { static = 52520 }
 
-      port "envoy_metrics_dashboard" { to = 9102 }
+      port "envoy_metrics" { to = 9102 }
     }
 
     ephemeral_disk {
@@ -46,21 +46,19 @@ job "traefik-ingress" {
     }
 
     service {
-      name         = "traefik-ingress-dashboard"
+      name         = "traefik-ingress"
       port         = 8080
       address_mode = "host"
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_dashboard}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
       }
 
       # Expose the dashboard on the internal traefik instance.
       tags = [
         "traefik.enable=true",
         "traefik.consulcatalog.connect=true",
-        "traefik.http.routers.${NOMAD_JOB_NAME}.rule=Host(`traefik-ingress.service.home`)",
 
-        "homelabdash.slug=traefik-ingress",
         "homelabdash.uri=/dashboard/",
       ]
 
@@ -80,12 +78,6 @@ job "traefik-ingress" {
           }
         }
       }
-    }
-
-    service {
-      name         = "traefik-ingress"
-      port         = "https"
-      address_mode = "host"
     }
 
     task "server" {
