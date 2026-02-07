@@ -37,48 +37,12 @@ job "traefik" {
       port "http" { static = 80 }
       port "https" { static = 443 }
 
-      port "envoy_metrics_http" { to = 9102 }
-      port "envoy_metrics_https" { to = 9103 }
+      port "envoy_metrics" { to = 9102 }
     }
 
     ephemeral_disk {
       size    = 300 # MB
       migrate = true
-    }
-
-    service {
-      name         = "traefik-insecure"
-      port         = "http"
-      address_mode = "host"
-
-      meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_http}"
-      }
-
-      connect {
-        sidecar_service {
-          proxy {
-            config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-          }
-        }
-
-        sidecar_task {
-          resources {
-            cpu    = 50
-            memory = 48
-          }
-        }
-      }
-
-      check {
-        type     = "http"
-        path     = "/ping"
-        interval = "5s"
-        timeout  = "2s"
-        expose   = true
-      }
     }
 
     service {
@@ -92,14 +56,14 @@ job "traefik" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_https}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
       }
 
       connect {
         sidecar_service {
           proxy {
             config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9103"
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }
           }
         }
