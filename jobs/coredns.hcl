@@ -55,12 +55,18 @@ job "coredns" {
       template {
         data          = <<-EOF
           . {
-            {{- /* generate forward entry */}}
-            {{- $dns_forward := "94.140.14.14" }}
-            {{- range service "adguard-dns" }}
-              {{- $dns_forward = print .Address ":" .Port }}
+            {{- with service "adguard-dns" -}}
+            {{ if gt (len .) 0 }}
+            forward . {{ range . }}{{ .Address }}:{{ .Port }} {{ end }}{
+              policy round_robin
+              health_check 5s
+            }
+            {{- else -}}
+            forward . 1.1.1.1 8.8.8.8
+            {{- end -}}
+            {{- else -}}
+            forward . 1.1.1.1 8.8.8.8
             {{- end }}
-            forward . {{ $dns_forward }}
 
             cache {
               success 1000
