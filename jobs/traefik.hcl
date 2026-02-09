@@ -124,8 +124,6 @@ job "traefik" {
         ]
       }
 
-      vault {}
-
       template {
         left_delimiter  = "[["
         right_delimiter = "]]"
@@ -280,17 +278,6 @@ job "traefik" {
                     - 10.0.100.0/24
         EOF
         destination     = "local/static_providers.yml"
-      }
-
-      template {
-        data        = <<EOF
-          CF_API_EMAIL="d@falconindy.com"
-          {{ with secret "kv/data/default/traefik" }}
-            CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
-          {{ end }}
-        EOF
-        destination = "secrets/cloudflare.env"
-        env         = true
       }
 
       env {
