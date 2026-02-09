@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import os
+import sys
+import urllib.request
+
+import hvac
+
+
+class Manager:
+    MANAGED_TAG = '#managed'
+    DEFAULT_CNAME_TARGET = 'scoot.falconindy.com'
+
+    def __init__(self, apikey, zoneid):
+        self._apikey = apikey
+        self._zoneid = zoneid
+
+    def cf_request(self, endpoint, method='GET', data=None):
+        url = f'https://api.cloudflare.com/client/v4/zones/{self._zoneid}/{endpoint}'
+        headers = {
+            'Authorization': f'Bearer {self._apikey}',
+            'Content-Type': 'application/json'
+        }
+        req = urllib.request.Request(url, headers=headers, method=method)
+        if data:
+            req.data = json.dumps(data).encode()
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return json.loads(resp.read().decode())
+        except Exception as e:
+            print(f'Error: {e}')
+            sys.exit(1)
+
+    def get_managed_records(self):
+        # Fetch CNAMEs and filter locally for the managed tag
+        res = self.cf_request('dns_records?type=CNAME')
+
+        return [
+            r for r in res['result'] if self.MANAGED_TAG in (
+                (r.get('comment', None) or '').split() or [])
+        ]
+
+    def list_records(self):
+        records = self.get_managed_records()
+        print(f"{'ID':<35} | {'NAME':<30} | {'TARGET':<20}")
+        print('-' * 90)
+        for r in records:
+            print(f"{r['id']:<35} | {r['name']:<30} | {r['content']:<20}")
+
+    def add_record(self, name, target):
+        print(f'Adding managed CNAME: {name} -> {target}')
+        payload = {
+            'type': 'CNAME',
+            'name': name,
+            'content': target,
+            'proxied': False,
+            'comment': self.MANAGED_TAG
+        }
+        self.cf_request('dns_records', method='POST', data=payload)
+        print('Success.')
+
+    def delete_record(self, name):
+        # Find the ID by name
+        records = self.get_managed_records()
+        target = next((r for r in records if r["name"] == name), None)
+
+        if not target:
+            print(f'No managed record found for {name}')
+            return
+
+        print(f"Deleting record {target['id']} ({name})...")
+        self.cf_request(f"dns_records/{target['id']}", method='DELETE')
+        print('Deleted.')
+
+
+def get_cloudflare_secrets():
+    client = hvac.Client(url='https://vault.service.home:8200',
+                         verify='/etc/ssl/certs/home.pem')
+
+    read_response = client.secrets.kv.v2.read_secret_version(
+        mount_point='kv', path='cli/cfctl', raise_on_deleted_version=False)
+
+    secrets = read_response['data']['data']
+
+    return secrets['apikey'], secrets['zoneid']
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Cloudflare Managed DNS CLI')
+    subparsers = parser.add_subparsers(dest='command')
+
+    # List
+    subparsers.add_parser('list', help='List all managed Cloudflare records')
+
+    # Add
+    add_p = subparsers.add_parser('add', help='Add a new managed CNAME record')
+    add_p.add_argument('name', help='The subdomain/FQDN to create')
+    add_p.add_argument('--target',
+                       action='store',
+                       dest='target',
+                       default=Manager.DEFAULT_CNAME_TARGET,
+                       metavar='name',
+                       help='target of the CNAME record')
+
+    # Delete
+    del_p = subparsers.add_parser('delete',
+                                  help='Delete a managed CNAME record by name')
+    del_p.add_argument('name', help='The FQDN to delete')
+
+    args = parser.parse_args()
+
+    (apikey, zoneid) = get_cloudflare_secrets()
+    manager = Manager(apikey, zoneid)
+
+    if args.command == 'list':
+        manager.list_records()
+    elif args.command == 'add':
+        manager.add_record(args.name, args.target)
+    elif args.command == 'delete':
+        manager.delete_record(args.name)
+    else:
+        parser.print_help()
