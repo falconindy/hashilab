@@ -82,10 +82,10 @@ job "coredns" {
 
           home.:53 consul.:53 {
             {{- /* load balance requests to traefik instances if possible */}}
-            {{ range services -}}
+            {{- range services -}}
               {{- if in .Tags "traefik.enable=true" }}
                 {{- if not (.Name | contains "sidecar") }}
-                rewrite name exact {{ .Name }}.service.home traefik.service.home
+            rewrite name exact {{ .Name }}.service.home traefik.service.home
                 {{- end }}
               {{- end }}
             {{- end }}
