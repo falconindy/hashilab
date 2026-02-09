@@ -1,0 +1,18 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hcl-fmt
+        name: HCL Formatting
+        entry: nomad fmt
+        language: system
+        files: ^jobs/.*\.hcl$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
+    -   id: yapf
+        name: yapf
+        entry: yapf3
+        language: system
+        types: [python]
+        args: ['--in-place', '--parallel']
