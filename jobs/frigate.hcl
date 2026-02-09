@@ -102,8 +102,8 @@ job "frigate" {
 
         sidecar_task {
           resources {
-            cpu    = 50
-            memory = 48
+            cpu    = 300
+            memory = 96
           }
         }
       }
