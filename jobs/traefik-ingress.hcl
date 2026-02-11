@@ -84,7 +84,7 @@ job "traefik-ingress" {
       driver = "podman"
 
       config {
-        image = "traefik:v3.6.7"
+        image = "traefik:v3.6.8"
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
