@@ -13,7 +13,7 @@ job "postgres" {
       driver = "podman"
 
       config {
-        image = "postgres:17.7"
+        image = "postgres:17.8"
 
         volumes = [
           "/clusterdata/postgres:/appdata/postgres",
