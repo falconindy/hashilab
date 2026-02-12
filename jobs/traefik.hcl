@@ -249,7 +249,7 @@ job "traefik" {
       }
 
       resources {
-        cpu    = 100
+        cpu    = 500
         memory = 128
       }
     }
