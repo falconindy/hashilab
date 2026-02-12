@@ -19,7 +19,7 @@ job "grafana" {
       driver = "podman"
       user   = "1000:1000"
       config {
-        image  = "grafana/grafana:12.3.2"
+        image  = "grafana/grafana:12.3.3"
         userns = "host"
 
         volumes = [
