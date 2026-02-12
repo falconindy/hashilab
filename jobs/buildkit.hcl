@@ -38,17 +38,17 @@ job "buildkit" {
         cpu    = 1000
         memory = 2048
       }
+    }
 
-      service {
-        name         = "buildkit"
-        port         = "buildkit"
-        address_mode = "host"
+    service {
+      name         = "buildkit"
+      port         = "buildkit"
+      address_mode = "host"
 
-        check {
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "2s"
-        }
+      check {
+        type     = "tcp"
+        interval = "10s"
+        timeout  = "2s"
       }
     }
   }
