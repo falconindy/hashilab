@@ -266,7 +266,7 @@ job "traefik-ingress" {
       }
 
       resources {
-        cpu    = 100
+        cpu    = 200
         memory = 128
       }
     }
