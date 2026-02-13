@@ -16,11 +16,8 @@ job "zwave-js" {
         servers = ["172.17.0.1"]
       }
 
-      port "ws" {
-        static = 3000
-      }
-
-      port "envoy_metrics" { to = 9102 }
+      port "envoy_metrics_http" { to = 9102 }
+      port "envoy_metrics_ws" { to = 9103 }
     }
 
     task "server" {
@@ -30,7 +27,6 @@ job "zwave-js" {
 
       config {
         image = "zwavejs/zwave-js-ui:11.11.0"
-        ports = ["ws"]
 
         volumes = [
           "/clusterdata/zwave-js:/usr/src/app/store:rw",
@@ -69,7 +65,7 @@ job "zwave-js" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_http}"
       }
 
       connect {
@@ -97,5 +93,32 @@ job "zwave-js" {
         expose   = true
       }
     }
+
+    service {
+      name = "zwave-ws"
+      port = 3000
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_ws}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9103"
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
+    }
+
   }
 }
