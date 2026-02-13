@@ -21,6 +21,14 @@ retry_join     = {{ groups["consul_servers"] | map('extract', hostvars, 'ansible
 
 enable_local_script_checks = true
 
+auto_encrypt {
+{% if 'consul_servers' in group_names %}
+  allow_tls = true
+{% else %}
+  tls = true
+{% endif %}
+}
+
 tls {
   defaults {
     verify_incoming        = true
