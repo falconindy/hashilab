@@ -7,8 +7,8 @@ ui = true
 
 disable_mlock = true
 
-api_addr     = "https://{{ ansible_default_ipv4.address }}:8200"
-cluster_addr = "https://{{ ansible_default_ipv4.address }}:8201"
+api_addr     = "https://{{ ansible_host }}:8200"
+cluster_addr = "https://{{ ansible_host }}:8201"
 
 storage "raft" {
   path = "/opt/vault"
@@ -41,7 +41,7 @@ listener "tcp" {
 
 # HTTPS listener
 listener "tcp" {
-  address                  = "{{ ansible_default_ipv4.address }}:8200"
+  address                  = "{{ ansible_host }}:8200"
   tls_disable_client_certs = "true"
   tls_cert_file            = "/etc/vault.d/server.crt"
   tls_key_file             = "/etc/vault.d/server.key"

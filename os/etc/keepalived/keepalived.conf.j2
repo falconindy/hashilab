@@ -19,7 +19,7 @@ vrrp_instance VI_1 {
   nopreempt
 
   # only used as a tie-breaker
-  priority {{ ansible_default_ipv4.address.split('.')[3]}}
+  priority {{ ansible_host.split('.')[3]}}
 
   interface {{ ansible_facts.default_ipv4.alias }}
   virtual_router_id 51
