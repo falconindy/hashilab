@@ -101,6 +101,10 @@ job "homeassistant" {
               destination_name = "nut"
               local_bind_port  = 3493
             }
+            upstreams {
+              destination_name = "zwave-ws"
+              local_bind_port  = 3000
+            }
           }
         }
 
