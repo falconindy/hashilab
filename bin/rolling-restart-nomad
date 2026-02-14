@@ -44,7 +44,6 @@ populate_clients() {
 }
 
 restart_nomad_instances() {
-  echo "$@"; return
   for server in $@; do
     echo "==> Restarting nomad on $server"
     if ssh "$server" sudo systemctl restart nomad; then
