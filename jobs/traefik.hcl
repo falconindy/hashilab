@@ -104,6 +104,8 @@ job "traefik" {
                   - 172.16.0.0/12
                   - 172.26.64.0/20
                   - 127.0.0.1/32
+                  - 10.0.1.0/24
+                  - 10.0.100.0/24
               http:
                 middlewares:
                   - internal-only@file
