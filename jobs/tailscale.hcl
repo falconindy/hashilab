@@ -16,7 +16,7 @@ job "tailscale" {
     task "tailscale" {
       driver = "podman"
       config {
-        image        = "tailscale/tailscale:v1.94.1"
+        image        = "tailscale/tailscale:v1.94.2"
         network_mode = "host"
         force_pull   = true
         cap_add      = ["NET_ADMIN", "NET_RAW"]
