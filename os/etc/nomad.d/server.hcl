@@ -8,6 +8,10 @@ server {
   bootstrap_expect = 3
   raft_protocol    = 3
 
+  default_scheduler_config {
+    scheduler_algorithm = "spread"
+  }
+
   # Gossip encryption should be used, but it's only specified in config during
   # initial setup. Manage via `nomad operator gossip keyring`.
   # encrypt = ""
