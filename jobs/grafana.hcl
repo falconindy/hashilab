@@ -3,8 +3,6 @@ job "grafana" {
   type        = "service"
 
   group "grafana" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -16,11 +14,11 @@ job "grafana" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
       user   = "1000:1000"
       config {
-        image  = "grafana/grafana:12.3.3"
-        userns = "host"
+        image       = "grafana/grafana:12.3.3"
+        userns_mode = "host"
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",

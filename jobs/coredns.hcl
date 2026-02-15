@@ -44,7 +44,7 @@ job "coredns" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "coredns/coredns:1.14.1"
@@ -109,9 +109,8 @@ job "coredns" {
     }
 
     service {
-      name         = "coredns"
-      port         = "health"
-      address_mode = "host"
+      name = "coredns"
+      port = "health"
 
       check {
         type     = "http"

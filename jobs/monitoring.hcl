@@ -26,7 +26,7 @@ job "monitoring" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "prom/blackbox-exporter:v0.28.0"
@@ -94,7 +94,7 @@ job "monitoring" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
       user   = "1000:2000"
 
       vault {}

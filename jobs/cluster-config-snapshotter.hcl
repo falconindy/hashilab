@@ -15,7 +15,7 @@ job "cluster-config-snapshotter" {
       config {
         command = "/bin/sh"
         args = ["-c", <<-EOF
-            set -euo pipefail
+            set -e
 
             out=$(date +/clusterdata/raft-snapshots/raft-%Y%m%dT%H%M%S.snap)
 
@@ -51,7 +51,7 @@ job "cluster-config-snapshotter" {
       config {
         command = "/bin/sh"
         args = ["-c", <<-EOF
-            set -euo pipefail
+            set -e
 
             out=$(date +/clusterdata/consul-snapshots/consul-%Y%m%dT%H%M%S.snap)
 
@@ -60,6 +60,33 @@ job "cluster-config-snapshotter" {
 
             echo "Deleting any snapshots older than 30 days"
             find /clusterdata/consul-snapshots -name '*.snap' -type f -mtime +30 -exec rm -v {} +
+          EOF
+        ]
+      }
+
+      resources {
+        cpu    = 100
+        memory = 128
+      }
+    }
+  }
+
+  group "nomad" {
+    task "snapshotter" {
+      driver = "raw_exec"
+
+      config {
+        command = "/bin/sh"
+        args = ["-c", <<-EOF
+            set -e
+
+            out=$(date +/clusterdata/nomad-snapshots/nomad-%Y%m%dT%H%M%S.snap)
+
+            echo "Saving snapshot to $out..."
+            nomad operator snapshot save "$out"
+
+            echo "Deleting any snapshots older than 30 days"
+            find /clusterdata/nomad-snapshots -name '*.snap' -type f -mtime +30 -exec rm -v {} +
           EOF
         ]
       }

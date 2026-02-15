@@ -15,7 +15,7 @@ job "deluge" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "linuxserver/deluge:amd64-2.2.0"

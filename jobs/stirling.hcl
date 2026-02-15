@@ -14,7 +14,7 @@ job "stirling" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "stirlingtools/stirling-pdf:2.4.6-ultra-lite"

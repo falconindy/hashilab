@@ -46,9 +46,8 @@ job "traefik-ingress" {
     }
 
     service {
-      name         = "traefik-ingress"
-      port         = 8080
-      address_mode = "host"
+      name = "traefik-ingress"
+      port = 8080
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
@@ -81,7 +80,7 @@ job "traefik-ingress" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "traefik:v3.6.8"

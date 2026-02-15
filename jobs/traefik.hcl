@@ -46,9 +46,8 @@ job "traefik" {
     }
 
     service {
-      name         = "traefik"
-      port         = "https"
-      address_mode = "host"
+      name = "traefik"
+      port = "https"
 
       tags = [
         "traefik.enable=true",
@@ -78,7 +77,7 @@ job "traefik" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "traefik:v3.6.8"

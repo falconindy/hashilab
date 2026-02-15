@@ -16,7 +16,7 @@ job "rtl433" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "hertzg/rtl_433:25.12-alpine-linux_amd64"
@@ -28,7 +28,10 @@ job "rtl433" {
         ]
 
         devices = [
-          "/dev/bus/usb",
+          {
+            host_path      = "/dev/bus/usb",
+            container_path = "/dev/bus/usb",
+          },
         ]
       }
 

@@ -28,18 +28,19 @@ job "frigate" {
     }
 
     task "frigate" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "ghcr.io/blakeblackshear/frigate:0.16.4"
+        ports = ["rtsp", "webrtc"]
 
-        network_mode = "host"
-        ports        = ["rtsp", "webrtc"]
-
-        shm_size = "1g"
+        shm_size = 1048576000
 
         devices = [
-          "/dev/dri",
+          {
+            host_path      = "/dev/dri",
+            container_path = "/dev/dri",
+          },
         ]
 
         volumes = [

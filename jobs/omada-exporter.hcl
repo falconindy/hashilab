@@ -10,7 +10,7 @@ job "omada-exporter" {
     }
 
     task "omada-exporter" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "chhaley/omada_exporter:0.13.1"
@@ -42,9 +42,8 @@ job "omada-exporter" {
     }
 
     service {
-      name         = "omada-exporter"
-      port         = "metrics"
-      address_mode = "host"
+      name = "omada-exporter"
+      port = "metrics"
 
       check {
         type     = "http"

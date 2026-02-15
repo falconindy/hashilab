@@ -30,10 +30,10 @@ job "homeassistant" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
+
       config {
-        image        = "homeassistant/home-assistant:2026.2.2"
-        network_mode = "host"
+        image = "homeassistant/home-assistant:2026.2.2"
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs:/etc/ssl/certs:ro",

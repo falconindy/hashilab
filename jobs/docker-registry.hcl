@@ -3,8 +3,6 @@ job "docker-registry" {
   type        = "service"
 
   group "docker-registry" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -18,7 +16,7 @@ job "docker-registry" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "registry:3"
@@ -63,9 +61,8 @@ job "docker-registry" {
     }
 
     service {
-      name         = "docker-registry"
-      port         = "http"
-      address_mode = "host"
+      name = "docker-registry"
+      port = "http"
     }
   }
 }

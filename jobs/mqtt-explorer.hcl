@@ -10,7 +10,7 @@ job "mqtt-explorer" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "smeagolworms4/mqtt-explorer:browser-1.0.3"
