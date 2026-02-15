@@ -12,7 +12,7 @@ job "adguard" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "adguard/adguardhome:v0.107.71"

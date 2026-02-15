@@ -2,9 +2,7 @@ job "tailscale" {
   datacenters = ["dc1"]
   type        = "service"
 
-  group "networking" {
-    count = 1
-
+  group "tailscale" {
     network {
       dns {
         servers = ["172.17.0.1"]
@@ -13,19 +11,22 @@ job "tailscale" {
       port "http" {}
     }
 
-    task "tailscale" {
-      driver = "podman"
+    task "server" {
+      driver = "docker"
+
       config {
         image        = "tailscale/tailscale:v1.94.2"
         network_mode = "host"
-        force_pull   = true
         cap_add      = ["NET_ADMIN", "NET_RAW"]
         volumes = [
           "/clusterdata/tailscale:/var/lib/tailscale:rw"
         ]
 
         devices = [
-          "/dev/net/tun",
+          {
+            host_path      = "/dev/net/tun",
+            container_path = "/dev/net/tun",
+          },
         ]
       }
 
@@ -53,9 +54,8 @@ job "tailscale" {
       }
 
       service {
-        name         = "tailscale"
-        port         = "http"
-        address_mode = "host"
+        name = "tailscale"
+        port = "http"
 
         check {
           type     = "http"

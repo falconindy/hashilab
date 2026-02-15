@@ -3,8 +3,6 @@ job "sonarr" {
   type        = "service"
 
   group "sonarr" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -43,7 +41,7 @@ job "sonarr" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "linuxserver/sonarr:4.0.16"

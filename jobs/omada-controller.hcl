@@ -24,7 +24,7 @@ job "omada-controller" {
     }
 
     task "omada-controller" {
-      driver = "podman"
+      driver = "docker"
       config {
         image        = "mbentley/omada-controller:6.1.0.19-openj9"
         network_mode = "host"
@@ -36,9 +36,8 @@ job "omada-controller" {
       }
 
       service {
-        name         = "omada-controller"
-        port         = "manage_https"
-        address_mode = "host"
+        name = "omada-controller"
+        port = "manage_https"
 
         check {
           type     = "tcp"

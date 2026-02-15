@@ -9,8 +9,6 @@ job "jellyfin" {
   }
 
   group "jellyfin" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -26,7 +24,7 @@ job "jellyfin" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "jellyfin/jellyfin:10.11.6"
@@ -39,7 +37,10 @@ job "jellyfin" {
         ]
 
         devices = [
-          "/dev/dri",
+          {
+            host_path      = "/dev/dri",
+            container_path = "/dev/dri",
+          },
         ]
       }
 

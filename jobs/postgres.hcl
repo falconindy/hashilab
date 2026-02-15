@@ -10,7 +10,7 @@ job "postgres" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "postgres:17.8"

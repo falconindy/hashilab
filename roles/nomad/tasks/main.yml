@@ -3,7 +3,6 @@
     name:
       - nomad
       - docker.io
-      - podman
     dpkg_options: 'force-confdef,force-confold'
     state: present
 
@@ -33,7 +32,6 @@
     enabled: true
   with_list:
     - docker.service
-    - podman.service
     - nomad.service
 
 - name: Deploy sysctl settings

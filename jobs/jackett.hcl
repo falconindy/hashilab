@@ -10,7 +10,7 @@ job "jackett" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "lscr.io/linuxserver/jackett:0.24.521"

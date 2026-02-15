@@ -44,7 +44,7 @@ cmd_prepull() {
   [[ $images ]] || return
 
   # This assumes the same driver for all images, but generally speaking we're
-  # always using podman these days.
+  # always using docker.
   driver=$(nomad run -output "$1" | jq -r '.Job.TaskGroups[0].Tasks[0].Driver')
 
   mapfile -t nodes < <(nomad node status -json |
@@ -55,7 +55,6 @@ cmd_prepull() {
 
   declare -A driver_argv=(
     [docker]="docker"
-    [podman]="sudo podman"
   )
 
   printf 'Pulling image(s) to nodes: %s\n' "${nodes[*]}"

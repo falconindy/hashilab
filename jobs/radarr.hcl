@@ -3,8 +3,6 @@ job "radarr" {
   type        = "service"
 
   group "radarr" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -43,7 +41,7 @@ job "radarr" {
     }
 
     task "radarr" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "linuxserver/radarr:6.0.4"

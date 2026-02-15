@@ -15,7 +15,7 @@ job "x509-exporter" {
     }
 
     task "exporter" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "enix/x509-certificate-exporter:3.19.1-alpine"
@@ -62,9 +62,8 @@ job "x509-exporter" {
     }
 
     service {
-      name         = "x509-exporter"
-      port         = "metrics"
-      address_mode = "host"
+      name = "x509-exporter"
+      port = "metrics"
 
       check {
         type     = "http"

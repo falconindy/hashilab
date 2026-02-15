@@ -10,7 +10,7 @@ job "static-www" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "nginx"

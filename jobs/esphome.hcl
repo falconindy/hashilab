@@ -30,7 +30,7 @@ job "esphome" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
       config {
         image        = "esphome/esphome:2026.1.5"
         network_mode = "host"
@@ -52,9 +52,8 @@ job "esphome" {
     }
 
     service {
-      name         = "esphome"
-      port         = "http"
-      address_mode = "host"
+      name = "esphome"
+      port = "http"
 
       tags = [
         "traefik.enable=true",

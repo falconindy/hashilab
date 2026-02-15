@@ -3,8 +3,6 @@ job "cloudflare-ddns" {
   type        = "service"
 
   group "cloudflare-ddns" {
-    count = 1
-
     network {
       dns {
         servers = ["172.17.0.1"]
@@ -12,7 +10,7 @@ job "cloudflare-ddns" {
     }
 
     task "updater" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image        = "favonia/cloudflare-ddns:1.15.1"

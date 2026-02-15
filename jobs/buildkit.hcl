@@ -18,7 +18,7 @@ job "buildkit" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image      = "moby/buildkit:latest"
@@ -41,9 +41,8 @@ job "buildkit" {
     }
 
     service {
-      name         = "buildkit"
-      port         = "buildkit"
-      address_mode = "host"
+      name = "buildkit"
+      port = "buildkit"
 
       check {
         type     = "tcp"

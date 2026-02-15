@@ -9,8 +9,6 @@ job "nut" {
   }
 
   group "nut" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -18,13 +16,16 @@ job "nut" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "instantlinux/nut-upsd:2.8.3-r2"
 
         devices = [
-          "/dev/bus/usb:/dev/bus/usb:rw",
+          {
+            host_path      = "/dev/bus/usb",
+            container_path = "/dev/bus/usb",
+          },
         ]
       }
 

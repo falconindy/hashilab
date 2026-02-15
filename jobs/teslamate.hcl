@@ -19,8 +19,6 @@ job "teslamate" {
   }
 
   group "teslamate" {
-    count = 1
-
     network {
       mode = "bridge"
 
@@ -31,15 +29,8 @@ job "teslamate" {
       port "envoy_metrics" { to = 9102 }
     }
 
-    restart {
-      attempts = 2
-      interval = "30m"
-      delay    = "15s"
-      mode     = "fail"
-    }
-
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       config {
         image = "teslamate/teslamate:2.2.0"

@@ -21,7 +21,7 @@ job "zwave-js" {
     }
 
     task "server" {
-      driver = "podman"
+      driver = "docker"
 
       kill_signal = "SIGINT"
 
@@ -33,7 +33,10 @@ job "zwave-js" {
         ]
 
         devices = [
-          "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00:/dev/zwave:rw",
+          {
+            host_path      = "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00",
+            container_path = "/dev/zwave",
+          },
         ]
       }
 
