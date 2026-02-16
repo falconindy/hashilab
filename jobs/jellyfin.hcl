@@ -52,7 +52,7 @@ job "jellyfin" {
 
       resources {
         cpu    = 500
-        memory = 4096
+        memory = 2048
       }
     }
 
