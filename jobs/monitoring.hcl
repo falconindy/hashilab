@@ -257,6 +257,19 @@ job "monitoring" {
                   replacement: $1
                   target_label: "service_name"
 
+            - job_name: 'node-exporter'
+                # Use Nomad's HTTP API for discovery
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [node-exporter]
+              # Filter to only scrape services named 'node-exporter'
+              relabel_configs:
+                - source_labels: [__meta_consul_dc]
+                  target_label:  dc
+                - source_labels: [__meta_consul_node]
+                  target_label:  instance
+
             - job_name: coredns
               metrics_path: /metrics
               scheme: http

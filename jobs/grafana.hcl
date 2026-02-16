@@ -32,6 +32,8 @@ job "grafana" {
         GF_AUTH_BASIC_ENABLED = "false"
         GF_PLUGINS_PREINSTALL = "grafana-piechart-panel"
 
+        GF_SECURITY_ALLOW_EMBEDDING = "true"
+
         GF_USERS_ALLOW_SIGN_UP = "false"
       }
 
