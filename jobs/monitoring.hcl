@@ -46,10 +46,11 @@ job "monitoring" {
       template {
         data        = <<-EOF
           modules:
-            http_2xx:
-              prober: http
-              http:
-                preferred_ip_protocol: "ip4"
+            tls_connect:
+              prober: tcp
+              timeout: 5s
+              tcp:
+                tls: true
         EOF
         destination = "local/blackbox.yml"
       }
@@ -189,7 +190,7 @@ job "monitoring" {
             - job_name: tls-expiration
               metrics_path: /probe
               params:
-                module: [http_2xx]
+                module: [tls_connect]
               consul_sd_configs:
                 - server: consul.service.home:8501
                   services: [nomad-client, consul-client, vault, omada-controller]
@@ -201,7 +202,7 @@ job "monitoring" {
                 - source_labels: [__meta_consul_address, __meta_consul_service_port]
                   target_label: __param_target
                   separator: ':'
-                  replacement: https://$1
+                  replacement: $1
                 # Set the "instance" label to the target URL that we want to probe.
                 - source_labels: [__param_target]
                   target_label: instance
