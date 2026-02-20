@@ -33,7 +33,7 @@ job "homeassistant" {
       driver = "docker"
 
       config {
-        image = "homeassistant/home-assistant:2026.2.2"
+        image = "homeassistant/home-assistant:2026.2.3"
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs:/etc/ssl/certs:ro",
@@ -56,8 +56,6 @@ job "homeassistant" {
       env {
         TZ                 = "America/New_York"
         REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
-        # ref: https://github.com/home-assistant/core/issues/155924
-        GRPC_VERBOSITY = "NONE"
       }
 
       resources {
