@@ -18,7 +18,8 @@ job "deluge" {
       driver = "docker"
 
       config {
-        image = "linuxserver/deluge:amd64-2.2.0"
+        # pinned at r1-ls364 due to upstream problems: https://github.com/linuxserver/docker-deluge/issues/229
+        image = "linuxserver/deluge:amd64-2.2.0-r1-ls364"
         volumes = [
           "/clusterdata/media:/media:rw",
           "/clusterdata/deluge:/config:rw",
