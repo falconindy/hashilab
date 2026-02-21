@@ -70,7 +70,8 @@ job "frigate" {
       }
 
       env {
-        TZ = "America/New_York"
+        TZ                 = "America/New_York"
+        WEBRTC_LISTEN_ADDR = "${attr.unique.network.ip-address}:8555"
       }
     }
 
