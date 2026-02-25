@@ -4,7 +4,7 @@ global_defs {
 }
 
 vrrp_script traefik_ingress_healthy {
-  script "/usr/bin/curl -fsk https://localhost:8443/ping"
+  script "curl -fsk https://localhost:8443/ping"
   interval 2
   weight -50
   fall 2
@@ -37,6 +37,46 @@ vrrp_instance VI_1 {
 
   track_script {
     traefik_ingress_healthy
+  }
+
+  # Allow packets addressed to the VIPs above to be received
+  accept
+}
+
+vrrp_script webrtc_healthy {
+  script "nc -z localhost 8555"
+  interval 2
+  weight -50
+  fall 2
+  rise 2
+}
+
+vrrp_instance VI_2 {
+  # all nodes considered equal.
+  state BACKUP
+
+  # avoid "fighting" over the VIP
+  nopreempt
+
+  # only used as a tie-breaker
+  priority {{ ansible_host.split('.')[3]}}
+
+  interface {{ ansible_facts.default_ipv4.alias }}
+  virtual_router_id 52
+
+  advert_int 1
+
+  authentication {
+    auth_type PASS
+    auth_pass 45507f63
+  }
+
+  virtual_ipaddress {
+    10.0.100.108/24 dev {{ ansible_facts.default_ipv4.alias }}
+  }
+
+  track_script {
+    webrtc_healthy
   }
 
   # Allow packets addressed to the VIPs above to be received
