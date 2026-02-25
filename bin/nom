@@ -178,6 +178,37 @@ cmd_stale() {
   done
 }
 
+cmd_integrate() {
+  local branches updated_jobs
+
+  mapfile -t branches < <(git branch --format='%(refname)' -r --list origin/renovate/* | grep "$1")
+
+  case ${#branches[@]} in
+    0)
+      echo "ERROR: no branches found by name: $1" >&2
+      return 1
+      ;;
+    1)
+      ;;
+    *)
+      echo "ERROR: multiple branches found by name: $1" >&2
+      printf "  * %s\n" "${branches[@]#refs/remotes/}"
+      return 1
+      ;;
+  esac
+
+  mapfile -t updated_jobs < <(git show --format= --name-only "$branches")
+  [[ $updated_jobs ]] || return 1
+
+  local refname=${branches#refs/remotes/}
+  local remote=${refname%%/*} branch=${refname#*/}
+  git pull "$remote" "$branch" || return 1
+
+  for job in "${updated_jobs[@]}"; do
+    cmd_prepull_and_push "$job"
+  done
+}
+
 known_commands() {
   mapfile -t commands < <(compgen -A function cmd_)
 
@@ -190,6 +221,7 @@ declare -A aliases=(
   [ep]=endpoint
   [pp]=prepull
   [ppp]=prepull_and_push
+  [integ]=integrate
 )
 
 if [[ -z $1 ]]; then
