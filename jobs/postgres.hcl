@@ -13,7 +13,7 @@ job "postgres" {
       driver = "docker"
 
       config {
-        image = "postgres:17.8"
+        image = "postgres:17.9"
 
         volumes = [
           "/clusterdata/postgres:/appdata/postgres",
