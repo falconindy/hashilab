@@ -216,12 +216,40 @@ known_commands() {
   printf '\t%s\n' "${commands[@]#cmd_}"
 }
 
+run_command() {
+  local resolved cmd=$1
+  shift
+
+  # check for exact match
+  if declare -f "cmd_$cmd" &>/dev/null; then
+    "cmd_$cmd" "$@"
+    return
+  fi
+
+  # resolved by prefix match
+  mapfile -t resolved < <(compgen -A function "cmd_$cmd")
+  case ${#resolved[@]} in
+    0)
+      printf 'ERROR: no such command: %s\n' "$cmd" >&2
+      known_commands
+      return 1
+      ;;
+    1)
+      "$resolved" "$@"
+      return
+      ;;
+    *)
+      echo "ERROR: ambiguous command prefix: ${resolved[*]#cmd_}"
+      return 1
+      ;;
+  esac
+}
+
 declare -A aliases=(
   [la]=lookupallocs
   [ep]=endpoint
   [pp]=prepull
   [ppp]=prepull_and_push
-  [integ]=integrate
 )
 
 if [[ -z $1 ]]; then
@@ -238,10 +266,4 @@ fi
 
 shift
 
-if ! declare -f "cmd_$cmd" &>/dev/null; then
-  printf 'no such command: %s\n' "$cmd" >&2
-  known_commands
-  exit 1
-fi
-
-"cmd_$cmd" "$@"
+run_command "$cmd" "$@"
