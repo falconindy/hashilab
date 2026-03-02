@@ -8,7 +8,7 @@ job "frigate" {
     value     = "true"
   }
 
-  group "server" {
+  group "frigate" {
     network {
       mode = "bridge"
 
@@ -27,7 +27,7 @@ job "frigate" {
       port "envoy_metrics" { to = 9102 }
     }
 
-    task "frigate" {
+    task "server" {
       driver = "docker"
 
       config {
