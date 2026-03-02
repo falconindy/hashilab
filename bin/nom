@@ -176,7 +176,8 @@ cmd_stale() {
 cmd_integrate() {
   local branches updated_jobs
 
-  mapfile -t branches < <(git branch --format='%(refname)' -r --list origin/renovate/* | grep "$1")
+  mapfile -t branches < <(git branch --format='%(refname)' -r --list origin/renovate/* |
+      awk -v "re=$1" -F/ 'match($NF, re) { printf "%s/%s/%s\n", $(NF-2), $(NF-1), $NF } ')
 
   case ${#branches[@]} in
     0)
@@ -187,15 +188,15 @@ cmd_integrate() {
       ;;
     *)
       echo "ERROR: multiple branches found by name: $1" >&2
-      printf "  * %s\n" "${branches[@]#refs/remotes/}"
+      printf "  * %s\n" "${branches[@]}"
       return 1
       ;;
   esac
 
-  mapfile -t updated_jobs < <(git show --format= --name-only "$branches")
+  local refname=${branches[0]}
+  mapfile -t updated_jobs < <(git show --format= --name-only "$refname")
   [[ $updated_jobs ]] || return 1
 
-  local refname=${branches#refs/remotes/}
   local remote=${refname%%/*} branch=${refname#*/}
   git pull "$remote" "$branch" || return 1
 
@@ -250,7 +251,6 @@ declare -A aliases=(
 if [[ -z $1 ]]; then
   known_commands
   exit 1
-
 fi
 
 if [[ ${aliases["$1"]} ]]; then
@@ -258,7 +258,6 @@ if [[ ${aliases["$1"]} ]]; then
 else
   cmd=$1
 fi
-
 shift
 
 run_command "$cmd" "$@"
