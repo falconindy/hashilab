@@ -66,7 +66,7 @@ job "frigate" {
 
       resources {
         cpu    = 5000
-        memory = 2048
+        memory = 3192
       }
 
       env {
@@ -116,6 +116,29 @@ job "frigate" {
         interval = "10s"
         timeout  = "2s"
         expose   = true
+      }
+    }
+
+    service {
+      name = "gortc"
+      port = 1984
+
+      tags = [
+        "traefik.enable=true",
+        "traefik.consulcatalog.connect=true",
+      ]
+
+      connect {
+        sidecar_service {
+          proxy {}
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 100
+            memory = 48
+          }
+        }
       }
     }
   }
