@@ -26,7 +26,7 @@ job "zwave-js" {
       kill_signal = "SIGINT"
 
       config {
-        image = "zwavejs/zwave-js-ui:11.12.0"
+        image = "zwavejs/zwave-js-ui:11.14.0"
 
         volumes = [
           "/clusterdata/zwave-js:/usr/src/app/store:rw",
