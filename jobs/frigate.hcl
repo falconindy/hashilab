@@ -71,7 +71,7 @@ job "frigate" {
 
       env {
         TZ                 = "America/New_York"
-        WEBRTC_LISTEN_ADDR = "${attr.unique.network.ip-address}:8555"
+        WEBRTC_LISTEN_ADDR = "${NOMAD_HOST_ADDR_webrtc}"
       }
     }
 
@@ -120,7 +120,19 @@ job "frigate" {
     }
 
     service {
-      name = "gortc"
+      name = "webrtc"
+      port = "webrtc"
+
+      tags = [
+        "traefik-ingress.enable=true",
+        "traefik-ingress.udp.routers.${NOMAD_JOB_NAME}.entrypoints=webrtc",
+      ]
+
+      # no service mesh because connect doesn't support udp
+    }
+
+    service {
+      name = "go2rtc"
       port = 1984
 
       tags = [
