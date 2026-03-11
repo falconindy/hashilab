@@ -22,10 +22,8 @@ job "x509-exporter" {
         ports = ["metrics"]
 
         args = [
-          "--watch-file=/certs/vault/client.crt",
-          "--watch-file=/certs/trust/pki.pem",
-          "--watch-file=/certs/trust/pki_int.pem",
-          "--watch-file=/certs/trust/pki_int_internal.pem",
+          "--watch-dir=/certs/vault",
+          "--watch-dir=/certs/trust",
           "--listen-address=:${NOMAD_HOST_PORT_metrics}",
         ]
 
@@ -37,22 +35,33 @@ job "x509-exporter" {
         ]
       }
 
-      artifact {
-        source      = "http://172.17.0.1:8200/v1/pki/ca/pem"
+      vault {}
+
+      template {
+        data        = <<-EOF
+          {{- with secret "pki/cert/ca" }}
+            {{- .Data.certificate }}
+          {{ end }}
+        EOF
         destination = "local/pki.pem"
-        mode        = "file"
       }
 
-      artifact {
-        source      = "http://172.17.0.1:8200/v1/pki_int/ca/pem"
+      template {
+        data        = <<-EOF
+          {{- with secret "pki_int/cert/ca" }}
+            {{- .Data.certificate }}
+          {{ end }}
+        EOF
         destination = "local/pki_int.pem"
-        mode        = "file"
       }
 
-      artifact {
-        source      = "http://172.17.0.1:8200/v1/pki_int_internal/ca/pem"
+      template {
+        data        = <<-EOF
+          {{- with secret "pki_int_internal/cert/ca" }}
+            {{- .Data.certificate }}
+          {{ end }}
+        EOF
         destination = "local/pki_int_internal.pem"
-        mode        = "file"
       }
 
       resources {
