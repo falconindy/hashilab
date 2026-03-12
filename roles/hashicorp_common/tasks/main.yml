@@ -1,12 +1,14 @@
-- name: Add HashiCorp APT repository key
-  get_url:
-    url: https://apt.releases.hashicorp.com/gpg
-    dest: /etc/apt/keyrings/hashicorp-archive-keyring.asc
-    checksum: sha256:cafb01beac341bf2a9ba89793e6dd2468110291adfbb6c62ed11a0cde6c09029
-    mode: '0644'
+- name: Add HashiCorp Repository
+  block:
+    - name: Add HashiCorp APT repository key
+      get_url:
+        url: https://apt.releases.hashicorp.com/gpg
+        dest: /etc/apt/keyrings/hashicorp-archive-keyring.asc
+        checksum: sha256:cafb01beac341bf2a9ba89793e6dd2468110291adfbb6c62ed11a0cde6c09029
+        mode: '0644'
 
-- name: Configure HashiCorp APT repository
-  apt_repository:
-    repo: deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
-    filename: hashicorp
-    state: present
+    - name: Configure HashiCorp APT repository
+      apt_repository:
+        repo: deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com {{ ansible_facts['distribution_release'] }} main
+        filename: hashicorp
+        state: present
