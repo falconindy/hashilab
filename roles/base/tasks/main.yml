@@ -41,7 +41,6 @@
     run_once: true
 
   - name: Install Root CA
-    become: true
     block:
       - name: Copy CA cert to trusted anchors
         copy:
