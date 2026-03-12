@@ -5,7 +5,7 @@
 {{- $altNames := printf "alt_names=active.vault.service.home,standby.vault.service.home,localhost" -}}
 {{- $ttl := printf "%s" "ttl=32d" -}}
 {{- $keyfile := printf "/etc/%s.d/server.key" $prog -}}
-{{- with pkiCert "pki_int_internal/issue/intermediate" $ttl $commonName $ipSans $altNames -}}
+{{- with pkiCert "pki_int_internal/issue/servers" $ttl $commonName $ipSans $altNames -}}
 {{- .Cert -}}
 {{- .CA -}}
 {{- if .Key -}}
