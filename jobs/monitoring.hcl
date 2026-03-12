@@ -104,9 +104,8 @@ job "monitoring" {
       template {
         data = <<-EOF
           global:
-            scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-            evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-            # scrape_timeout is set to the global default (10s).
+            scrape_interval:     15s # Scrape every 15 seconds (default 1m)
+            evaluation_interval: 15s # Evaluate rules every 15 seconds (default 1m)
 
           scrape_configs:
             - job_name: nomad
@@ -258,12 +257,10 @@ job "monitoring" {
                   target_label: "service_name"
 
             - job_name: 'node-exporter'
-                # Use Nomad's HTTP API for discovery
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
                   services: [node-exporter]
-              # Filter to only scrape services named 'node-exporter'
               relabel_configs:
                 - source_labels: [__meta_consul_dc]
                   target_label:  dc
