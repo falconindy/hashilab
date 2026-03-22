@@ -88,6 +88,7 @@ job "traefik-ingress" {
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
+          "/clusterdata/traefik/plugins/geoblock-0.3.7:/plugins-local/src/github.com/PascalMinder/geoblock:ro",
         ]
       }
 
@@ -113,6 +114,7 @@ job "traefik-ingress" {
               http:
                 middlewares:
                   - securedheaders@file
+                  - geoblock-us@file
                 tls:
                   certresolver: letsencrypt
 
@@ -188,6 +190,11 @@ job "traefik-ingress" {
                 dnsChallenge:
                   provider: cloudflare
                   delayBeforeCheck: 10
+
+          experimental:
+            localPlugins:
+              geoblock:
+                moduleName: github.com/PascalMinder/geoblock
         EOF
         destination     = "local/traefik.yml"
       }
@@ -250,6 +257,22 @@ job "traefik-ingress" {
                     Content-Type: "application/x-x509-ca-cert"
                     Content-Disposition: "attachment; filename=home.pem"
                     X-Frame-Options: "DENY"
+
+              geoblock-us:
+                plugin:
+                  geoblock:
+                    allowLocalRequests: true
+                    logLocalRequests: false
+                    logAllowedRequests: false
+                    logApiRequests: true
+                    api: "https://get.geojs.io/v1/ip/country/{ip}"
+                    apiTimeoutMs: 750
+                    cacheSize: 15
+                    forceMonthlyUpdate: true
+                    allowUnknownCountries: false
+                    unknownCountryApiResponse: nil
+                    countries:
+                      - US
         EOF
         destination     = "local/static_providers.yml"
       }
