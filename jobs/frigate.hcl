@@ -31,7 +31,7 @@ job "frigate" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/blakeblackshear/frigate:0.17.0"
+        image = "ghcr.io/blakeblackshear/frigate:0.17.1"
         ports = ["rtsp", "webrtc"]
 
         shm_size = 1048576000
