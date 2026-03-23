@@ -40,7 +40,9 @@ cmd_prepull() {
   local images node nodes
 
   mapfile -t images < <(nomad run -output "$1" |
-    jq -r '.Job.TaskGroups | map(.Tasks[].Config.image) | unique[]')
+    jq -r '[
+        .Job.TaskGroups[].Tasks[] | select(.Driver == "docker") | .Config.image
+      ] | unique[]')
   [[ $images ]] || return
 
   mapfile -t nodes < <(nomad node status -json |
