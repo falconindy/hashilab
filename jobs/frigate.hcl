@@ -65,8 +65,9 @@ job "frigate" {
       }
 
       resources {
-        cpu    = 5000
-        memory = 3192
+        cpu        = 5000
+        memory     = 2048
+        memory_max = 5120
       }
 
       env {
