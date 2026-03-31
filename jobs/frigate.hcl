@@ -43,8 +43,6 @@ job "frigate" {
           },
         ]
 
-        cap_add = ["PERFMON"]
-
         volumes = [
           "/clusterdata/frigate/config:/config",
           "/clusterdata/frigate/media:/media/frigate",

@@ -34,18 +34,9 @@
     - docker.service
     - nomad.service
 
-- name: Deploy sysctl network bridge settings
+- name: Deploy sysctl settings
   copy:
     src: os/etc/sysctl.d/bridge.conf
     dest: /etc/sysctl.d
-  notify:
-    - Apply sysctl
-
-- name: Deploy perf_event_paranoid sysctl settings
-  copy:
-    src: os/etc/sysctl.d/perf_event_paranoid.conf
-    dest: /etc/sysctl.d
-  when:
-    '"quicksync" in hardware_capabilities'
   notify:
     - Apply sysctl
