@@ -20,6 +20,12 @@ resolve_any() {
   resolve_all "$1" | shuf -n 1 | awk '{ print $1 }'
 }
 
+job_is_running() {
+  local jobname=$(nomad run -output "$1" | jq -r .Job.Name)
+
+  nomad job status "$jobname" &>/dev/null
+}
+
 cmd_lookupallocs() {
   resolve_all "$1"
 }
@@ -203,7 +209,9 @@ cmd_integrate() {
   git pull "$remote" "$branch" || return 1
 
   for job in "${updated_jobs[@]}"; do
-    cmd_prepull_and_push "$job"
+    if job_is_running "$job"; then
+      cmd_prepull_and_push "$job"
+    fi
   done
 }
 
