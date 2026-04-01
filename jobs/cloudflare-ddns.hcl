@@ -11,6 +11,7 @@ job "cloudflare-ddns" {
 
     task "updater" {
       driver = "docker"
+      user   = "1000:1000"
 
       config {
         image        = "favonia/cloudflare-ddns:1.16.1"
