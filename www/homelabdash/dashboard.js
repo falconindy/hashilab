@@ -74,4 +74,61 @@ function filter() {
     });
 }
 
+document.addEventListener('keydown', (e) => {
+    const searchInput = document.getElementById('search');
+    const isSearchFocused = document.activeElement === searchInput;
+
+    if (e.key === '/' && !isSearchFocused) {
+        e.preventDefault();
+        searchInput.focus();
+        return;
+    }
+
+    if (e.key === 'Escape' && isSearchFocused) {
+        searchInput.blur();
+        return;
+    }
+
+    if (e.key === 'Enter' && isSearchFocused) {
+        const visibleCards = Array.from(document.querySelectorAll('.card:not(.hidden)'));
+        if (visibleCards.length === 1) {
+            e.preventDefault();
+            window.open(visibleCards[0].href, '_blank');
+        }
+        return;
+    }
+
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    if (!isSearchFocused && ['h', 'j', 'k', 'l'].includes(e.key)) {
+        const visibleCards = Array.from(document.querySelectorAll('.card:not(.hidden)'));
+        if (visibleCards.length === 0) return;
+
+        let currentIndex = visibleCards.indexOf(document.activeElement);
+        e.preventDefault(); // Prevent scroll on j/k/Enter space
+
+        if (currentIndex === -1) {
+            currentIndex = 0;
+        } else {
+            let cols = 1;
+            if (visibleCards.length > 1) {
+                for (let i = 1; i < visibleCards.length; i++) {
+                    if (visibleCards[i].offsetTop === visibleCards[0].offsetTop) cols++;
+                    else break;
+                }
+            }
+
+            if (e.key === 'h') currentIndex--;
+            else if (e.key === 'l') currentIndex++;
+            else if (e.key === 'k') currentIndex -= cols;
+            else if (e.key === 'j') currentIndex += cols;
+
+            if (currentIndex < 0) currentIndex = 0;
+            if (currentIndex >= visibleCards.length) currentIndex = visibleCards.length - 1;
+        }
+
+        visibleCards[currentIndex].focus();
+    }
+});
+
 init();

@@ -151,10 +151,12 @@
             overflow: hidden;
         }
 
-        .card:hover {
+        .card:hover,
+        .card:focus {
             transform: translateY(-4px);
             border-color: var(--accent);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            outline: none;
         }
 
         .status-indicator {
