@@ -44,7 +44,7 @@ job "radarr" {
       driver = "docker"
 
       config {
-        image = "linuxserver/radarr:6.0.4"
+        image = "linuxserver/radarr:6.1.1"
         volumes = [
           "/clusterdata/media:/media",
           "/clusterdata/radarr:/config",
