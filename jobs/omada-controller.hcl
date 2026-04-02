@@ -26,7 +26,7 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "docker"
       config {
-        image        = "mbentley/omada-controller:6.1.0.19-openj9"
+        image        = "mbentley/omada-controller:6.2.0.17-openj9"
         network_mode = "host"
         volumes = [
           "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
