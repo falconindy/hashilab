@@ -18,7 +18,7 @@ job "x509-exporter" {
       driver = "docker"
 
       config {
-        image = "enix/x509-certificate-exporter:3.20.0-alpine"
+        image = "enix/x509-certificate-exporter:3.20.1-alpine"
         ports = ["metrics"]
 
         args = [
