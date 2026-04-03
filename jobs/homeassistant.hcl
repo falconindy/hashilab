@@ -92,8 +92,8 @@ job "homeassistant" {
               local_bind_port  = 1883
             }
             upstreams {
-              destination_name = "frigate"
-              local_bind_port  = 5000
+              destination_name = "go2rtc"
+              local_bind_port  = 1984
             }
             upstreams {
               destination_name = "nut"
