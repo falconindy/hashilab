@@ -189,7 +189,8 @@ job "traefik-ingress" {
                 storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.letsencrypt.json
                 dnsChallenge:
                   provider: cloudflare
-                  delayBeforeCheck: 10
+                  propagation:
+                    delayBeforeChecks: 10
 
           experimental:
             localPlugins:
@@ -218,8 +219,9 @@ job "traefik-ingress" {
                   - cert-download-headers
 
               ping:
-                rule: Host(`localhost`) && PathPrefix(`/ping`)
+                rule: ClientIP(`172.26.64.0/20`) && Path(`/ping`)
                 service: ping@internal
+                tls: {}
 
             services:
               vault-service-home:
