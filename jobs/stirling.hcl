@@ -17,7 +17,7 @@ job "stirling" {
       driver = "docker"
 
       config {
-        image = "stirlingtools/stirling-pdf:2.9.1-ultra-lite"
+        image = "stirlingtools/stirling-pdf:2.9.2-ultra-lite"
         volumes = [
           "/clusterdata/stirling/tessdata:/usr/share/tessdata:rw",
           "/clusterdata/stirling/configs:/configs:rw",
