@@ -27,7 +27,7 @@ job "jellyfin" {
       driver = "docker"
 
       config {
-        image = "jellyfin/jellyfin:10.11.7"
+        image = "jellyfin/jellyfin:10.11.8"
         ports = ["discovery"]
 
         volumes = [
