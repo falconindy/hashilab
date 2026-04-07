@@ -31,23 +31,28 @@ class Server:
 
 
 CLUSTER_CLIENTS = (
-    Server(hostname='nasty.node.home',
-           ip_address='10.0.100.50',
-           os=OSFlavor.SYNOLOGY,
-           has_consul=True,
-           has_nomad=True),
-    Server(hostname='bastion.node.home',
-           ip_address='10.0.1.99',
-           has_consul=True,
-           has_nomad=True),
+    Server(
+        hostname="nasty.node.home",
+        ip_address="10.0.100.50",
+        os=OSFlavor.SYNOLOGY,
+        has_consul=True,
+        has_nomad=True,
+    ),
+    Server(
+        hostname="bastion.node.home",
+        ip_address="10.0.1.99",
+        has_consul=True,
+        has_nomad=True,
+    ),
 )
 
-logger = logging.getLogger('certctl')
+logger = logging.getLogger("certctl")
 
 
 def SetupLogger() -> None:
-    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
@@ -66,7 +71,6 @@ class CertificateResponse:
 
 
 class CertificateResponseFormatter:
-
     def __init__(self, cert: CertificateResponse) -> None:
         self._cert = cert
 
@@ -74,41 +78,44 @@ class CertificateResponseFormatter:
         return self._cert.private_key
 
     def certificate(self) -> str:
-        return '\n'.join([self._cert.certificate, *self._cert.ca_chain])
+        return "\n".join([self._cert.certificate, *self._cert.ca_chain])
 
     def ca_chain(self) -> str:
-        return '\n'.join(self._cert.ca_chain)
+        return "\n".join(self._cert.ca_chain)
 
 
 class ClusterdataCertDeployer:
-
     def __init__(self, subdir) -> None:
-        self._path = f'/clusterdata/{subdir}'
+        self._path = f"/clusterdata/{subdir}"
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None,
-                 exc_value: BaseException | None,
-                 exc_traceback: TracebackType | None) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
         pass
 
     def write_file(self, dest: str, contents: str) -> None:
-        p = subprocess.Popen(('sudo', 'tee', f'{self._path}/{dest}'),
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            ("sudo", "tee", f"{self._path}/{dest}"),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         p.communicate(input=contents.encode())
 
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
-        self.write_file(f'{destdir}/home-ca.pem', formatter.ca_chain())
-        self.write_file(f'{destdir}/tls.crt', formatter.certificate())
-        self.write_file(f'{destdir}/tls.key', formatter.private_key())
+        self.write_file(f"{destdir}/home-ca.pem", formatter.ca_chain())
+        self.write_file(f"{destdir}/tls.crt", formatter.certificate())
+        self.write_file(f"{destdir}/tls.key", formatter.private_key())
 
 
 class SshCertDeployer:
-
     def __init__(self, host) -> None:
         self._client = paramiko.client.SSHClient()
         self._client.load_system_host_keys()
@@ -116,23 +123,24 @@ class SshCertDeployer:
         self._host = host
 
         self._ssh_config = paramiko.config.SSHConfig()
-        with open(os.path.expanduser('~/.ssh/config')) as f:
+        with open(os.path.expanduser("~/.ssh/config")) as f:
             self._ssh_config.parse(f)
 
     def __enter__(self) -> None:
         host_config = self._ssh_config.lookup(self._host)
-        self._client.connect(self._host,
-                             username=host_config.get('user', None))
+        self._client.connect(self._host, username=host_config.get("user", None))
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None,
-                 exc_value: BaseException | None,
-                 exc_traceback: TracebackType | None) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
         self._client.close()
 
     def write_file(self, dest: str, contents: str) -> None:
-        stdin, stdout, stderr = self._client.exec_command(
-            f'sudo tee >/dev/null {dest}')
+        stdin, stdout, stderr = self._client.exec_command(f"sudo tee >/dev/null {dest}")
 
         stdin.write(contents.encode())
         stdin.close()
@@ -143,34 +151,35 @@ class SshCertDeployer:
 
     def write_certs(self, destdir: str, cert: CertificateResponse) -> None:
         formatter = CertificateResponseFormatter(cert)
-        self.write_file(f'{destdir}/home-ca.pem', formatter.ca_chain())
-        self.write_file(f'{destdir}/tls.crt', formatter.certificate())
-        self.write_file(f'{destdir}/tls.key', formatter.private_key())
+        self.write_file(f"{destdir}/home-ca.pem", formatter.ca_chain())
+        self.write_file(f"{destdir}/tls.crt", formatter.certificate())
+        self.write_file(f"{destdir}/tls.key", formatter.private_key())
 
     def reload_service(self, service: str, os: OSFlavor) -> None:
         if os == OSFlavor.SYNOLOGY:
             # there's no reload verb, sadly.
             stdin, stdout, stderr = self._client.exec_command(
-                f'sudo /usr/syno/bin/synopkg restart {service}')
+                f"sudo /usr/syno/bin/synopkg restart {service}"
+            )
         else:  # assume debian (and sanity)
             stdin, stdout, stderr = self._client.exec_command(
-                f'sudo systemctl reload {service}')
+                f"sudo systemctl reload {service}"
+            )
 
         error = stderr.read().decode()
         if error:
             # don't raise an exception, try to reload everything
-            print(error, file=sys.stderr, end='')
+            print(error, file=sys.stderr, end="")
 
 
 class CertGenerator:
-
-    DEFAULT_TTL = '768h'
+    DEFAULT_TTL = "768h"
 
     def _is_ip_address(self, ip_string: str) -> bool:
-        '''
+        """
         Checks if a given string is a valid IPV4 or IPV6 address.
         Returns True if valid, False otherwise.
-        '''
+        """
         try:
             ipaddress.ip_address(ip_string)
             return True
@@ -178,16 +187,19 @@ class CertGenerator:
             return False
 
     def __init__(self) -> None:
-        self._client = hvac.Client(url='https://vault.service.home:8200',
-                                   verify='/etc/ssl/certs/home.pem')
+        self._client = hvac.Client(
+            url="https://vault.service.home:8200", verify="/etc/ssl/certs/home.pem"
+        )
 
-    def generate(self,
-                 mount_point: str,
-                 role: str,
-                 common_name: str,
-                 sans: list[str] = [],
-                 ttl: str = DEFAULT_TTL) -> CertificateResponse:
-        '''Generates a new certificate.'''
+    def generate(
+        self,
+        mount_point: str,
+        role: str,
+        common_name: str,
+        sans: list[str] = [],
+        ttl: str = DEFAULT_TTL,
+    ) -> CertificateResponse:
+        """Generates a new certificate."""
 
         ip_sans: list[str] = list()
         alt_names: list[str] = list()
@@ -199,33 +211,35 @@ class CertGenerator:
 
         extra_params: dict[str, str] = {}
         if ip_sans:
-            extra_params['ip_sans'] = ','.join(ip_sans)
+            extra_params["ip_sans"] = ",".join(ip_sans)
         if alt_names:
-            extra_params['alt_names'] = ','.join(alt_names)
+            extra_params["alt_names"] = ",".join(alt_names)
         if ttl:
-            extra_params['ttl'] = ttl
+            extra_params["ttl"] = ttl
 
         response = self._client.secrets.pki.generate_certificate(
             name=role,
             common_name=common_name,
             mount_point=mount_point,
-            extra_params=extra_params)
+            extra_params=extra_params,
+        )
 
-        return CertificateResponse(response['data']['ca_chain'],
-                                   response['data']['certificate'],
-                                   response['data']['private_key'],
-                                   response['data']['expiration'],
-                                   response['data']['serial_number'])
+        return CertificateResponse(
+            response["data"]["ca_chain"],
+            response["data"]["certificate"],
+            response["data"]["private_key"],
+            response["data"]["expiration"],
+            response["data"]["serial_number"],
+        )
 
 
-def deploy_hcl_certs(prog: str, certs: dict[Server,
-                                            CertificateResponse]) -> None:
+def deploy_hcl_certs(prog: str, certs: dict[Server, CertificateResponse]) -> None:
     for server, cert in certs.items():
         with SshCertDeployer(server.hostname) as d:
-            logger.info(f'writing new certificates to {server.hostname}')
-            d.write_certs(f'/etc/{prog}.d', cert)
+            logger.info(f"writing new certificates to {server.hostname}")
+            d.write_certs(f"/etc/{prog}.d", cert)
 
-            logger.info(f'reloading {prog} on {server.hostname}')
+            logger.info(f"reloading {prog} on {server.hostname}")
             d.reload_service(prog, os=server.os)
 
 
@@ -237,18 +251,20 @@ def renew_nomad_certificates() -> None:
         if not server.has_nomad:
             continue
 
-        logger.info(f'generating certificate for {server.hostname}')
-        certs[server] = generator.generate(mount_point='pki_int_internal',
-                                           role='intermediate',
-                                           common_name='nomad.service.home',
-                                           sans=[
-                                               server.ip_address,
-                                               'client.global.nomad',
-                                               'localhost',
-                                               '127.0.0.1',
-                                           ])
+        logger.info(f"generating certificate for {server.hostname}")
+        certs[server] = generator.generate(
+            mount_point="pki_int_internal",
+            role="intermediate",
+            common_name="nomad.service.home",
+            sans=[
+                server.ip_address,
+                "client.global.nomad",
+                "localhost",
+                "127.0.0.1",
+            ],
+        )
 
-    deploy_hcl_certs('nomad', certs)
+    deploy_hcl_certs("nomad", certs)
 
 
 def renew_consul_certificates() -> None:
@@ -259,54 +275,58 @@ def renew_consul_certificates() -> None:
         if not server.has_consul:
             continue
 
-        logger.info(f'generating certificate for {server.hostname}')
-        certs[server] = generator.generate(mount_point='pki_int_internal',
-                                           role='intermediate',
-                                           common_name='consul.service.home',
-                                           sans=[
-                                               server.ip_address,
-                                               'client.global.home',
-                                               '127.0.0.1',
-                                               'localhost',
-                                           ])
+        logger.info(f"generating certificate for {server.hostname}")
+        certs[server] = generator.generate(
+            mount_point="pki_int_internal",
+            role="intermediate",
+            common_name="consul.service.home",
+            sans=[
+                server.ip_address,
+                "client.global.home",
+                "127.0.0.1",
+                "localhost",
+            ],
+        )
 
-    deploy_hcl_certs('consul', certs)
+    deploy_hcl_certs("consul", certs)
 
 
 def renew_omada_certificates() -> None:
-    logger.info('renewing certificates for omada-controller')
+    logger.info("renewing certificates for omada-controller")
 
     generator = CertGenerator()
-    cert = generator.generate(mount_point='pki_int_internal',
-                              role='intermediate',
-                              common_name='omada-controller.service.home',
-                              sans=[
-                                  '10.0.1.99',
-                              ])
-    logger.info('new certificates generated')
+    cert = generator.generate(
+        mount_point="pki_int_internal",
+        role="intermediate",
+        common_name="omada-controller.service.home",
+        sans=[
+            "10.0.1.99",
+        ],
+    )
+    logger.info("new certificates generated")
 
     formatter = CertificateResponseFormatter(cert)
-    with ClusterdataCertDeployer('omada-controller') as d:
-        d.write_file('cert/tls.crt', formatter.certificate())
-        d.write_file('cert/tls.key', formatter.private_key())
+    with ClusterdataCertDeployer("omada-controller") as d:
+        d.write_file("cert/tls.crt", formatter.certificate())
+        d.write_file("cert/tls.key", formatter.private_key())
 
-    logger.info('new certificates deployed')
+    logger.info("new certificates deployed")
 
-    logger.info('restarting omada-controller job')
-    subprocess.run(('nomad', 'job', 'restart', 'omada-controller'))
+    logger.info("restarting omada-controller job")
+    subprocess.run(("nomad", "job", "restart", "omada-controller"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     SetupLogger()
 
     if len(sys.argv) < 2:
-        print('ERROR: no system name supplied', file=sys.stderr)
-        print('usage: certctl <certname>', file=sys.stderr)
+        print("ERROR: no system name supplied", file=sys.stderr)
+        print("usage: certctl <certname>", file=sys.stderr)
         sys.exit(1)
 
     certname = sys.argv[1]
-    renew_fn = globals().get(f'renew_{certname}_certificates', None)
+    renew_fn = globals().get(f"renew_{certname}_certificates", None)
     if renew_fn:
         renew_fn()
     else:
-        logger.error(f'no known certificate: {certname}')
+        logger.error(f"no known certificate: {certname}")
