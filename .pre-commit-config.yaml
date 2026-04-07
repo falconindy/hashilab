@@ -10,9 +10,9 @@ repos:
 
   - repo: local
     hooks:
-    -   id: yapf
-        name: yapf
-        entry: yapf3
+    -   id: ruff
+        name: ruff
+        entry: ruff
         language: system
         types: [python]
-        args: ['--in-place', '--parallel']
+        args: ['format']
