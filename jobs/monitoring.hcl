@@ -308,7 +308,7 @@ job "monitoring" {
       }
 
       config {
-        image = "prom/prometheus:v3.11.0"
+        image = "prom/prometheus:v3.11.1"
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--storage.tsdb.retention.time", "900d",
