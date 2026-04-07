@@ -32,7 +32,7 @@ job "esphome" {
     task "server" {
       driver = "docker"
       config {
-        image        = "esphome/esphome:2026.3.2"
+        image        = "esphome/esphome:2026.3.3"
         network_mode = "host"
         ports        = ["http"]
         volumes = [
