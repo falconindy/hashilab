@@ -302,6 +302,7 @@ def renew_omada_certificates() -> None:
         sans=[
             "10.0.1.99",
         ],
+        ttl="4380h",  # 182.5 days
     )
     logger.info("new certificates generated")
 
