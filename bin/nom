@@ -5,6 +5,7 @@ import glob
 import json
 import os
 import random
+import paramiko
 import re
 import shlex
 import shutil
@@ -152,14 +153,25 @@ def cmd_prepull(args):
     def pull_images_on_node(node):
         logfile = f"/tmp/prepull.{node}"
         with open(logfile, "w") as fout:
-            for img in images:
-                cmd = ["ssh", f"{node}.node.home", "docker", "pull", img]
-                res = subprocess.run(cmd, stdout=fout, stderr=fout)
-                if res.returncode == 0:
-                    print(f"SUCCESS: [{img}] prepull done on {node}")
-                else:
-                    print(f"ERROR: prepull on {node} failed; check {logfile}")
-                    return False
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                client.connect(f"{node}.node.home")
+                for img in images:
+                    stdin, stdout, stderr = client.exec_command(f"docker pull {img}")
+                    fout.write(stdout.read().decode())
+                    fout.write(stderr.read().decode())
+                    if stdout.channel.recv_exit_status() == 0:
+                        print(f"SUCCESS: [{img}] prepull done on {node}")
+                    else:
+                        print(f"ERROR: prepull on {node} failed; check {logfile}")
+                        return False
+            except Exception as e:
+                fout.write(f"SSH Error: {e}\n")
+                print(f"ERROR: SSH connection to {node} failed; check {logfile}")
+                return False
+            finally:
+                client.close()
         try:
             os.remove(logfile)
         except OSError:
@@ -398,12 +410,21 @@ def known_commands(parsers):
         print(f"\t{p.prog}")
 
 
+def resolve_command(cmd, parsers):
+    matches = []
+    for p in parsers:
+        if p.prog == cmd:
+            return [p]
+        if p.prog.startswith(cmd):
+            matches.append(p)
+    return matches
+
+
 def run_command(cmd, args):
     if cmd in ALIASES:
         cmd = ALIASES[cmd]
 
-    parsers = get_parsers()
-    matches = [p for p in parsers if p.prog.startswith(cmd)]
+    matches = resolve_command(cmd, get_parsers())
 
     match len(matches):
         case 1:
