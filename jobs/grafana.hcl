@@ -39,7 +39,7 @@ job "grafana" {
 
       resources {
         cpu    = 100
-        memory = 128
+        memory = 512
       }
     }
 
