@@ -64,7 +64,7 @@ job "coredns" {
             {{- else -}}
             forward . 1.1.1.1 8.8.8.8
             {{- end -}}
-            {{- else -}}
+            {{ else }}
             forward . 1.1.1.1 8.8.8.8
             {{- end }}
 
@@ -84,7 +84,7 @@ job "coredns" {
             {{- /* load balance requests to traefik instances if possible */}}
             {{- range services -}}
               {{- if in .Tags "traefik.enable=true" }}
-                {{- if not (.Name | contains "sidecar") }}
+                {{- if not (.Name | sprig_hasSuffix "-sidecar-proxy") }}
             rewrite name exact {{ .Name }}.service.home traefik.service.home
                 {{- end }}
               {{- end }}
