@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 
 import argparse
-import glob
 import json
 import os
 import random
 import paramiko
 import re
-import shlex
 import shutil
 import subprocess
 import sys
-import threading
 from typing import List, Optional
 
 
 def run_cmd(cmd, check=True, capture_output=True, text=True, input=None):
-    res = subprocess.run(
+    return subprocess.run(
         cmd, check=check, capture_output=capture_output, text=text, input=input
     )
-    return res
 
 
 def nomad_json(*args):
@@ -421,8 +417,7 @@ def resolve_command(cmd, parsers):
 
 
 def run_command(cmd, args):
-    if cmd in ALIASES:
-        cmd = ALIASES[cmd]
+    cmd = ALIASES.get(cmd, cmd)
 
     matches = resolve_command(cmd, get_parsers())
 
