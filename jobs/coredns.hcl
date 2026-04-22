@@ -47,7 +47,7 @@ job "coredns" {
       driver = "docker"
 
       config {
-        image = "coredns/coredns:1.14.2"
+        image = "coredns/coredns:1.14.3"
         ports = ["dns", "metrics", "health"]
         args  = ["-conf", "/local/corefile"]
       }
