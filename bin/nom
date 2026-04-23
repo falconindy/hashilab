@@ -9,6 +9,8 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import urllib.request
 from typing import List, Optional
 
 
@@ -327,6 +329,167 @@ def cmd_integrate(args):
     return True
 
 
+def ssh_restart(host, service, dry_run=False):
+    if dry_run:
+        print(f"[DRY-RUN] Would restart {service} on {host}")
+        return True
+
+    print(f">>> Restarting {service} on {host}")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(host)
+        stdin, stdout, stderr = client.exec_command(f"sudo systemctl restart {service}")
+        exit_status = stdout.channel.recv_exit_status()
+        if exit_status != 0:
+            err = stderr.read().decode().strip()
+            print(f" ❌ ERROR: {err}")
+            return False
+        print(" ✓ DONE")
+        return True
+    except Exception as e:
+        print(f" ❌ CONNECTION ERROR: {e}")
+        return False
+    finally:
+        client.close()
+
+
+def get_consul_config(addr):
+    url = f"{addr}/v1/operator/raft/configuration"
+    try:
+        with urllib.request.urlopen(url) as response:
+            return json.loads(response.read().decode())
+    except Exception as e:
+        print(f"Error fetching Consul config: {e}")
+        sys.exit(1)
+
+
+def get_consul_health(addr, node):
+    url = f"{addr}/v1/health/node/{node}"
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode())
+            if data and len(data) > 0:
+                return data[0].get("Status")
+    except Exception:
+        pass
+    return None
+
+
+def cmd_rollingrestart(args):
+    if args.service == "consul":
+        addr = os.environ.get("CONSUL_HTTP_ADDR", "https://consul.service.home:8501")
+        config = get_consul_config(addr)
+
+        servers = [s for s in config.get("Servers", []) if s.get("Voter")]
+        servers.sort(key=lambda s: s.get("Leader", False))
+
+        node_names = [s.get("Node") for s in servers]
+
+        if not node_names:
+            print("No voting servers found. Check your Consul connection.")
+            return False
+
+        print("Plan: Restart order:")
+        for name in node_names:
+            print(f" - {name}")
+        print("-" * 50)
+
+        if args.dry_run:
+            return True
+
+        for node in node_names:
+            host = f"{node}.node.home"
+            if not ssh_restart(host, "consul"):
+                return False
+
+            print(f"Waiting for {node} to return as a healthy voter...")
+            while True:
+                curr_config = get_consul_config(addr)
+                is_voter = False
+                for s in curr_config.get("Servers", []):
+                    if s.get("Node") == node and s.get("Voter"):
+                        is_voter = True
+                        break
+
+                if is_voter:
+                    health = get_consul_health(addr, node)
+                    if health == "passing":
+                        print(f"✓ {node} is back and healthy.")
+                        break
+
+                print(f"Waiting for {node}...")
+                time.sleep(5)
+
+            time.sleep(5)
+
+    elif args.service == "nomad":
+        res = run_cmd(["nomad", "server", "members", "-json"])
+        members = json.loads(res.stdout)
+        members.sort(key=lambda m: m.get("Tags", {}).get("Leader") == "true")
+
+        servers = []
+        for m in members:
+            name = m.get("Name")
+            addr = m.get("Addr")
+            servers.append((addr, name))
+
+        clients = []
+        res = run_cmd(["nomad", "node", "status", "-json"])
+        nodes = json.loads(res.stdout)
+        server_addrs = [s[0] for s in servers]
+
+        for n in nodes:
+            addr = n.get("Address")
+            name = n.get("Name")
+            if addr not in server_addrs:
+                clients.append((addr, name))
+
+        targets = servers
+        if args.all:
+            targets += clients
+
+        print("Plan: Restart order:")
+        for addr, name in targets:
+            print(f" - {name} ({addr})")
+        print("-" * 50)
+
+        if args.dry_run:
+            return True
+
+        for addr, name in targets:
+            if not ssh_restart(addr, "nomad"):
+                return False
+
+    elif args.service == "vault":
+        res = run_cmd(["vault", "operator", "raft", "list-peers", "-format=json"])
+        data = json.loads(res.stdout)
+        servers = data.get("data", {}).get("config", {}).get("servers", [])
+
+        servers.sort(key=lambda s: s.get("leader", False))
+
+        targets = []
+        for s in servers:
+            addr = s.get("address")
+            if ":" in addr:
+                addr = addr.split(":")[0]
+            targets.append(addr)
+
+        print("Plan: Restart order:")
+        for t in targets:
+            print(f" - {t}")
+        print("-" * 50)
+
+        if args.dry_run:
+            return True
+
+        for t in targets:
+            if not ssh_restart(t, "vault"):
+                return False
+
+    return True
+
+
 def get_parsers():
     parsers = []
 
@@ -373,6 +536,21 @@ def get_parsers():
     p.set_defaults(func=cmd_prepull_and_push)
     parsers.append(p)
 
+    p = argparse.ArgumentParser(prog="rollingrestart")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without doing it",
+    )
+    p.add_argument(
+        "-a", "--all", action="store_true", help="Also restart Nomad clients"
+    )
+    p.add_argument(
+        "service", choices=["consul", "nomad", "vault"], help="Service to restart"
+    )
+    p.set_defaults(func=cmd_rollingrestart)
+    parsers.append(p)
+
     p = argparse.ArgumentParser(prog="stale")
     p.add_argument("files", nargs="+")
     p.set_defaults(func=cmd_stale)
@@ -397,6 +575,7 @@ ALIASES = {
     "ep": "endpoint",
     "pp": "prepull",
     "ppp": "prepull_and_push",
+    "rr": "rollingrestart",
 }
 
 
