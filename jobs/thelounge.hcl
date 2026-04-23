@@ -36,7 +36,7 @@ job "thelounge" {
       ]
 
       meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics_ws}"
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
       }
 
       connect {
