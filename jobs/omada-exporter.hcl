@@ -6,14 +6,18 @@ job "omada-exporter" {
     network {
       mode = "bridge"
 
+      dns {
+        servers = ["172.17.0.1"]
+      }
+
       port "metrics" {}
     }
 
-    task "omada-exporter" {
+    task "server" {
       driver = "docker"
 
       config {
-        image = "chhaley/omada_exporter:0.13.1"
+        image = "rcooler/omada_exporter:2.1.2"
         ports = ["metrics"]
 
         volumes = [
@@ -22,9 +26,8 @@ job "omada-exporter" {
       }
 
       env {
-        OMADA_HOST = "https://10.0.1.99:8043"
-        OMADA_USER = "prometheus"
-        OMADA_SITE = "Default"
+        OMADA_HOST = "https://omada-controller.service.home:8043"
+        OMADA_USER = "exporter"
         OMADA_PORT = "${NOMAD_PORT_metrics}"
       }
 
@@ -34,6 +37,8 @@ job "omada-exporter" {
         data        = <<EOF
           {{ with secret "kv/data/default/omada-exporter" }}
             OMADA_PASS="{{ .Data.data.omada_password }}"
+            OMADA_CLIENT_ID="{{ .Data.data.openapi_client_id }}"
+            OMADA_SECRET_ID="{{ .Data.data.openapi_secret_id }}"
           {{ end }}
         EOF
         destination = "secrets/auth.env"
@@ -47,7 +52,7 @@ job "omada-exporter" {
 
       check {
         type     = "http"
-        path     = "/"
+        path     = "/healthz"
         name     = "http"
         interval = "5s"
         timeout  = "2s"
