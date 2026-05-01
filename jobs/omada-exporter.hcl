@@ -17,7 +17,7 @@ job "omada-exporter" {
       driver = "docker"
 
       config {
-        image = "rcooler/omada_exporter:2.1.2"
+        image = "rcooler/omada_exporter:2.1.6"
         ports = ["metrics"]
 
         volumes = [
