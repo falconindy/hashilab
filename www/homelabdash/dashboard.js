@@ -72,6 +72,18 @@ function filter() {
         const match = card.getAttribute('data-name').toLowerCase().includes(query);
         card.classList.toggle('hidden', !match);
     });
+
+    const clearBtn = document.getElementById('clear-search');
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', query.length === 0);
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('search');
+    searchInput.value = '';
+    filter();
+    searchInput.focus();
 }
 
 document.addEventListener('keydown', (e) => {
