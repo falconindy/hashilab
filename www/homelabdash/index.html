@@ -116,19 +116,46 @@
             font-weight: 700;
         }
 
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: min(200px, 30%);
+        }
+
         #search {
             background: var(--card-bg);
             border: 1px solid #334155;
-            padding: 12px 24px;
+            padding: 12px 36px 12px 24px;
             border-radius: 12px;
             color: white;
-            width: min(200px, 30%);
+            width: 100%;
+            box-sizing: border-box;
             outline: none;
             transition: border 0.2s;
         }
 
         #search:focus {
             border-color: var(--accent);
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            user-select: none;
+        }
+
+        .clear-btn:hover {
+            color: var(--text-main);
         }
 
         .grid {
@@ -252,9 +279,8 @@
                 border-left: none;
             }
 
-            #search {
+            .search-container {
                 width: 100%;
-                box-sizing: border-box;
             }
         }
     </style>
@@ -273,7 +299,10 @@
                         alt="Consul"></a>
             </div>
         </div>
-        <input type="text" id="search" placeholder="Filter services..." oninput="filter()">
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Filter services..." oninput="filter()">
+            <span id="clear-search" class="clear-btn hidden" onclick="clearSearch()">&times;</span>
+        </div>
     </div>
 
     <div id="loader">Loading...</div>
