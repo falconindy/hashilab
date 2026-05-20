@@ -13,7 +13,7 @@ job "thelounge" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/thelounge/thelounge:4.4.3"
+        image = "ghcr.io/thelounge/thelounge:4.5.0"
 
         volumes = [
           "/clusterdata/thelounge:/var/opt/thelounge"
