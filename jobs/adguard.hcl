@@ -15,7 +15,7 @@ job "adguard" {
       driver = "docker"
 
       config {
-        image = "adguard/adguardhome:v0.107.75"
+        image = "adguard/adguardhome:v0.107.76"
 
         volumes = [
           "/clusterdata/adguard:/opt/adguardhome/conf:rw",
