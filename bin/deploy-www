@@ -1,3 +1,8 @@
 #!/bin/bash
 
+if ! mountpoint /clusterdata; then
+  echo "FATAL: /clusterdata is not mounted" >&2
+  exit 1
+fi
+
 sudo rsync -av www/ /clusterdata/www/.
