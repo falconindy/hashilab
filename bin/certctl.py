@@ -27,7 +27,6 @@ class Server:
     os: OSFlavor = OSFlavor.DEBIAN
     has_vault: bool = False
     has_consul: bool = False
-    has_nomad: bool = False
 
 
 CLUSTER_CLIENTS = (
@@ -36,13 +35,6 @@ CLUSTER_CLIENTS = (
         ip_address="10.0.100.50",
         os=OSFlavor.SYNOLOGY,
         has_consul=True,
-        has_nomad=True,
-    ),
-    Server(
-        hostname="bastion.node.home",
-        ip_address="10.0.1.99",
-        has_consul=True,
-        has_nomad=True,
     ),
 )
 
@@ -233,40 +225,6 @@ class CertGenerator:
         )
 
 
-def deploy_hcl_certs(prog: str, certs: dict[Server, CertificateResponse]) -> None:
-    for server, cert in certs.items():
-        with SshCertDeployer(server.hostname) as d:
-            logger.info(f"writing new certificates to {server.hostname}")
-            d.write_certs(f"/etc/{prog}.d", cert)
-
-            logger.info(f"reloading {prog} on {server.hostname}")
-            d.reload_service(prog, os=server.os)
-
-
-def renew_nomad_certificates() -> None:
-    certs = dict()
-    generator = CertGenerator()
-
-    for server in CLUSTER_CLIENTS:
-        if not server.has_nomad:
-            continue
-
-        logger.info(f"generating certificate for {server.hostname}")
-        certs[server] = generator.generate(
-            mount_point="pki_int_internal",
-            role="intermediate",
-            common_name="nomad.service.home",
-            sans=[
-                server.ip_address,
-                "client.global.nomad",
-                "localhost",
-                "127.0.0.1",
-            ],
-        )
-
-    deploy_hcl_certs("nomad", certs)
-
-
 def renew_consul_certificates() -> None:
     certs = dict()
     generator = CertGenerator()
@@ -288,7 +246,13 @@ def renew_consul_certificates() -> None:
             ],
         )
 
-    deploy_hcl_certs("consul", certs)
+    for server, cert in certs.items():
+        with SshCertDeployer(server.hostname) as d:
+            logger.info(f"writing new certificates to {server.hostname}")
+            d.write_certs(f"/opt/{prog}/tls", cert)
+
+            logger.info(f"reloading {prog} on {server.hostname}")
+            d.reload_service(prog, os=server.os)
 
 
 def renew_omada_certificates() -> None:
