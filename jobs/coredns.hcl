@@ -82,12 +82,12 @@ job "coredns" {
 
           home.:53 consul.:53 {
             {{- /* load balance requests to traefik instances if possible */}}
-            {{- range services -}}
-              {{- if in .Tags "traefik.enable=true" }}
+            {{- range $tag, $services := services | byTag -}}
+              {{- if eq $tag "traefik.enable=true" }}{{- range $services }}
                 {{- if not (.Name | sprig_hasSuffix "-sidecar-proxy") }}
             rewrite name exact {{ .Name }}.service.home traefik.service.home
                 {{- end }}
-              {{- end }}
+              {{- end }}{{ end }}
             {{- end }}
 
             forward . {$NOMAD_HOST_IP_dns}:8600
