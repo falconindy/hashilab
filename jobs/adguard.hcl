@@ -74,6 +74,20 @@ job "adguard" {
     service {
       name = "adguard-dns"
       port = "dns"
+
+      check {
+        type     = "script"
+        command  = "nslookup"
+        args     = ["www.google.com", "127.0.0.1"]
+        interval = "10s"
+        timeout  = "5s"
+        task     = "server"
+
+        check_restart {
+          limit = 3
+          grace = "30s"
+        }
+      }
     }
   }
 }
