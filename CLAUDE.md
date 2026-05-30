@@ -1,0 +1,98 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Overview
+
+This repo manages a homelab built on the HashiCorp stack: **Consul** (service mesh + DNS + KV), **Nomad** (workload orchestration), and **Vault** (PKI + secrets). Ansible configures the underlying OS and deploys the daemons; Nomad HCL job files define the actual workloads.
+
+Cluster topology: three servers (`nomad0-2.node.home`) running in `dc1` act as Consul/Nomad/Vault servers and clients, plus a bastion node in `dc2`. All inter-service communication uses Consul Connect (Envoy sidecar proxies with mTLS).
+
+## Formatting and pre-commit
+
+Three pre-commit hooks run on every commit:
+
+- `nomad fmt` — formats all `jobs/*.hcl` files
+- `ruff format` — formats Python scripts in `bin/`
+- `prettier` — formats everything else (JS, HTML, JSON, YAML)
+
+Run them manually:
+
+```bash
+pre-commit run --all-files        # run all hooks
+nomad fmt jobs/<file>.hcl         # format a single job
+ruff format bin/<script>.py       # format a single script
+```
+
+## Deploying jobs
+
+```bash
+nomad job run jobs/<name>.hcl     # deploy or update a job
+nomad job status <name>           # check job status
+nomad job stop <name>             # stop a job
+```
+
+## Ansible
+
+```bash
+ansible-playbook site.yml -i inventory/hosts.yml                    # full run
+ansible-playbook site.yml -i inventory/hosts.yml --tags consul      # single role
+ansible-playbook site.yml -i inventory/hosts.yml -l nomad0.node.home  # single host
+```
+
+Available tags match role names: `base`, `systemd`, `keepalived`, `consul`, `nomad`, `vault`, `vault-agent`.
+
+## Architecture
+
+### Service discovery and DNS
+
+Consul runs as a server cluster on `nomad0-2` and as a client on all nodes. The `.service.home` and `.consul.` DNS zones are served by **CoreDNS** (running as a Nomad `system` job), which forwards those zones to Consul DNS on port 8600 and all other queries to AdGuard (falling back to `1.1.1.1`/`8.8.8.8`). `systemd-resolved` is configured to use `172.17.0.1` (the Docker bridge) as its upstream.
+
+### Ingress
+
+**Traefik** (two instances, `dc1`) reads the Consul catalog for services tagged `traefik.enable=true` and routes `<service-name>.service.home` to them. TLS is issued via Vault's ACME endpoint (`pki_int`) using the HTTP challenge. The `internal-only` middleware restricts access to RFC1918 ranges.
+
+To expose a new service through Traefik, add `"traefik.enable=true"` to its `service.tags`. To override the hostname slug, add `"traefik.http.routers.<name>.rule=Host(...)"`.
+
+To show a service in the homelab dashboard, also add `"homelabdash.uri=<path>"` (optional) or `"homelabdash.slug=<name>"` (to override the display name). Add `"homelabdash.hide"` to suppress it entirely.
+
+### PKI / TLS
+
+Vault runs three PKI secret engines:
+
+- `pki` — self-signed root CA (`home`, 10-year TTL)
+- `pki_int` — intermediate CA with ACME enabled; used by Traefik to issue TLS certs for `*.service.home`
+- `pki_int_internal` — intermediate CA for internal client certs (no ACME, no storage)
+
+All nodes run **vault-agent** (AppRole auth, role ID in `/etc/vault-agent.d/agent.roleid`) which renders TLS certs for Nomad, Consul, and Vault itself from templates in `/etc/vault-agent.d/*.tpl`. The CA bundle is at `/etc/ssl/certs/home.pem` on every node.
+
+### Nomad jobs
+
+Jobs live in `jobs/`. Key patterns:
+
+- **Template delimiters**: Jobs that embed Go-template-style config (e.g., Consul template syntax) use `left_delimiter = "[["` and `right_delimiter = "]]"` to avoid collisions with Nomad's own `{{ }}` template processing.
+- **Consul Connect**: Most services use `connect { sidecar_service {} }` for mTLS. Upstreams are declared as `upstreams { destination_name = "..." local_bind_port = ... }` and accessed via `127.0.0.1:<port>` from the task.
+- **Vault secrets**: Tasks that need Vault secrets include a bare `vault {}` block; Nomad injects a short-lived token and sets `VAULT_TOKEN`.
+- **Persistent data**: Host-mounted at `/clusterdata/<service>` for data that must survive allocation restarts.
+- **Envoy metrics**: Each sidecar exposes Prometheus metrics on a dynamic port; tasks set `meta { envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}" }` for Prometheus to scrape.
+
+### Monitoring
+
+Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service discovery — no static targets. Grafana reads from Prometheus. The Blackbox Exporter probes TLS endpoints for certificate expiry, and `x509-exporter` watches client certs on each node.
+
+### Dashboard
+
+`www/homelabdash/` is a static single-page app that polls the Consul HTTP API using blocking queries (long-poll on `x-consul-index`) to watch the service catalog and health state in real time. Deployed by running `bin/deploy-www`, which rsyncs to `/clusterdata/www/` (requires the mount to be present).
+
+### Utility scripts
+
+| Script | Purpose |
+|---|---|
+| `bin/cfctl` | Manage Cloudflare CNAME records tagged `#managed`; fetches API key + zone ID from Vault KV (`kv/cli/cfctl`) |
+| `bin/certctl.py` | Certificate lifecycle tooling |
+| `bin/vault-build-pki` | One-time PKI bootstrap script for Vault |
+| `bin/deploy-www` | Rsync `www/` to `/clusterdata/www/` |
+
+### Renovate
+
+`renovate.json` uses a custom regex manager to parse `image = "repo/name:tag"` lines in `jobs/*.hcl` and open PRs for updates. Major version bumps are disabled for `postgres` and `linuxserver/deluge`. LinuxServer images use a non-standard versioning scheme handled by the `versioning` regex rule.
