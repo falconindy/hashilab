@@ -47,6 +47,12 @@ tls {
   }
 }
 
+http_config {
+  response_headers {
+    "Access-Control-Expose-Headers" = "X-Consul-Index, X-Consul-Knownleader, X-Consul-Lastcontact"
+  }
+}
+
 ports {
   http     = 8500
   https    = 8501
