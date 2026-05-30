@@ -2,7 +2,7 @@
   apt:
     name:
       - vault
-    dpkg_options: 'force-confdef,force-confold'
+    dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Enable vault service

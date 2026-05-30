@@ -3,7 +3,7 @@
     name:
       - nomad
       - docker.io
-    dpkg_options: 'force-confdef,force-confold'
+    dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Perform hardware discovery
@@ -28,7 +28,7 @@
 
 - name: Enable systemd services
   systemd_service:
-    name: '{{ item }}'
+    name: "{{ item }}"
     enabled: true
   with_list:
     - docker.service

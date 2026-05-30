@@ -4,24 +4,24 @@
   become_method: sudo
   roles:
     - role: base
-      tags: ['base']
+      tags: ["base"]
 
     - role: systemd
-      tags: ['systemd']
+      tags: ["systemd"]
 
     - role: keepalived
-      tags: ['keepalived']
+      tags: ["keepalived"]
       when: "'keepalived_servers' in group_names"
 
     - role: consul
-      tags: ['consul']
+      tags: ["consul"]
 
     - role: nomad
-      tags: ['nomad']
+      tags: ["nomad"]
 
     - role: vault
-      tags: ['vault']
+      tags: ["vault"]
       when: "'vault_servers' in group_names"
 
     - role: vault-agent
-      tags: ['vault-agent']
+      tags: ["vault-agent"]

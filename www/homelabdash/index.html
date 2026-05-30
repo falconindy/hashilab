@@ -1,314 +1,335 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Homelab Dash</title>
     <style>
-        :root {
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #38bdf8;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #f1f5f9;
-            --text-dim: #94a3b8;
-        }
+      :root {
+        --bg: #0f172a;
+        --card-bg: #1e293b;
+        --accent: #38bdf8;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --text-main: #f1f5f9;
+        --text-dim: #94a3b8;
+      }
 
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('falconindustries.png');
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
-            opacity: 0.10;
-            z-index: -1;
-        }
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("falconindustries.png");
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.1;
+        z-index: -1;
+      }
 
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 40px;
+        min-height: 100vh;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto 40px;
+        position: relative;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo {
+        height: 48px;
+        width: auto;
+        border-radius: 8px;
+      }
+
+      .top-links {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-left: 24px;
+        border-left: 1px solid #334155;
+      }
+
+      .top-links a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        border-radius: 8px;
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid #334155;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .top-links a:hover {
+        background: var(--card-bg);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .top-links img {
+        height: 20px;
+        width: 20px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+
+      .top-links a:hover img {
+        opacity: 1;
+      }
+
+      h1 {
+        font-weight: 300;
+        letter-spacing: -1px;
+        margin: 0;
+      }
+
+      h1 span {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .search-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: min(200px, 30%);
+      }
+
+      #search {
+        background: var(--card-bg);
+        border: 1px solid #334155;
+        padding: 12px 36px 12px 24px;
+        border-radius: 12px;
+        color: white;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+        transition: border 0.2s;
+      }
+
+      #search:focus {
+        border-color: var(--accent);
+      }
+
+      .clear-btn {
+        position: absolute;
+        right: 12px;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+        user-select: none;
+      }
+
+      .clear-btn:hover {
+        color: var(--text-main);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--card-bg);
+        padding: 24px;
+        border-radius: 16px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #334155;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card:hover,
+      .card:focus {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        outline: none;
+      }
+
+      .status-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 4px;
+      }
+
+      .passing .status-indicator {
+        background: var(--success);
+        box-shadow: 0 0 15px var(--success);
+      }
+
+      .warning .status-indicator {
+        background: var(--warning);
+        box-shadow: 0 0 15px var(--warning);
+      }
+
+      .critical .status-indicator {
+        background: var(--danger);
+        box-shadow: 0 0 15px var(--danger);
+      }
+
+      .service-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: block;
+      }
+
+      .service-url {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        font-family: "Cascadia Code", monospace;
+      }
+
+      .status-text {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-top: 15px;
+        color: var(--text-dim);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .passing .dot {
+        background: var(--success);
+      }
+
+      .warning .dot {
+        background: var(--warning);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      #loader {
+        text-align: center;
+        color: var(--text-dim);
+        padding: 50px;
+      }
+
+      @media (max-width: 768px) {
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 40px;
-            min-height: 100vh;
+          padding: 24px;
         }
 
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto 40px;
-            position: relative;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
         }
 
         .header-left {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .logo {
-            height: 48px;
-            width: auto;
-            border-radius: 8px;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
         }
 
         .top-links {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-left: 24px;
-            border-left: 1px solid #334155;
-        }
-
-        .top-links a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px;
-            border-radius: 8px;
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid #334155;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .top-links a:hover {
-            background: var(--card-bg);
-            border-color: var(--accent);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .top-links img {
-            height: 20px;
-            width: 20px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .top-links a:hover img {
-            opacity: 1;
-        }
-
-        h1 {
-            font-weight: 300;
-            letter-spacing: -1px;
-            margin: 0;
-        }
-
-        h1 span {
-            color: var(--accent);
-            font-weight: 700;
+          padding-left: 0;
+          border-left: none;
         }
 
         .search-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            width: min(200px, 30%);
+          width: 100%;
         }
-
-        #search {
-            background: var(--card-bg);
-            border: 1px solid #334155;
-            padding: 12px 36px 12px 24px;
-            border-radius: 12px;
-            color: white;
-            width: 100%;
-            box-sizing: border-box;
-            outline: none;
-            transition: border 0.2s;
-        }
-
-        #search:focus {
-            border-color: var(--accent);
-        }
-
-        .clear-btn {
-            position: absolute;
-            right: 12px;
-            color: var(--text-dim);
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-            user-select: none;
-        }
-
-        .clear-btn:hover {
-            color: var(--text-main);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 16px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid #334155;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover,
-        .card:focus {
-            transform: translateY(-4px);
-            border-color: var(--accent);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            outline: none;
-        }
-
-        .status-indicator {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 4px;
-        }
-
-        .passing .status-indicator {
-            background: var(--success);
-            box-shadow: 0 0 15px var(--success);
-        }
-
-        .warning .status-indicator {
-            background: var(--warning);
-            box-shadow: 0 0 15px var(--warning);
-        }
-
-        .critical .status-indicator {
-            background: var(--danger);
-            box-shadow: 0 0 15px var(--danger);
-        }
-
-        .service-name {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            display: block;
-        }
-
-        .service-url {
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            font-family: 'Cascadia Code', monospace;
-        }
-
-        .status-text {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            margin-top: 15px;
-            color: var(--text-dim);
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .passing .dot {
-            background: var(--success);
-        }
-
-        .warning .dot {
-            background: var(--warning);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        #loader {
-            text-align: center;
-            color: var(--text-dim);
-            padding: 50px;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 24px;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 20px;
-            }
-
-            .header-left {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 16px;
-            }
-
-            .top-links {
-                padding-left: 0;
-                border-left: none;
-            }
-
-            .search-container {
-                width: 100%;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="header">
-        <div class="header-left">
-            <h1><span>HomelabDash</span></h1>
-            <div class="top-links">
-                <a href="https://nomad.service.home:4646" title="Nomad" target="_blank"><img src="nomad.svg"
-                        alt="Nomad"></a>
-                <a href="https://vault.service.home:8200" title="Vault" target="_blank"><img src="vault.svg"
-                        alt="Vault"></a>
-                <a href="https://consul.service.home:8501" title="Consul" target="_blank"><img src="consul.svg"
-                        alt="Consul"></a>
-            </div>
+      <div class="header-left">
+        <h1><span>HomelabDash</span></h1>
+        <div class="top-links">
+          <a
+            href="https://nomad.service.home:4646"
+            title="Nomad"
+            target="_blank"
+            ><img src="nomad.svg" alt="Nomad"
+          /></a>
+          <a
+            href="https://vault.service.home:8200"
+            title="Vault"
+            target="_blank"
+            ><img src="vault.svg" alt="Vault"
+          /></a>
+          <a
+            href="https://consul.service.home:8501"
+            title="Consul"
+            target="_blank"
+            ><img src="consul.svg" alt="Consul"
+          /></a>
         </div>
-        <div class="search-container">
-            <input type="text" id="search" placeholder="Filter services..." oninput="filter()">
-            <span id="clear-search" class="clear-btn hidden" onclick="clearSearch()">&times;</span>
-        </div>
+      </div>
+      <div class="search-container">
+        <input
+          type="text"
+          id="search"
+          placeholder="Filter services..."
+          oninput="filter()"
+        />
+        <span id="clear-search" class="clear-btn hidden" onclick="clearSearch()"
+          >&times;</span
+        >
+      </div>
     </div>
 
     <div id="loader">Loading...</div>
     <div id="dashboard" class="grid"></div>
 
     <script src="dashboard.js"></script>
-</body>
-
+  </body>
 </html>

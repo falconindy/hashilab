@@ -1,7 +1,7 @@
 - name: Install keepalived package
   apt:
     name: keepalived
-    dpkg_options: 'force-confdef,force-confold'
+    dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Update keepalived config

@@ -3,7 +3,7 @@
     name:
       - linux-sysctl-defaults
       - vim
-    dpkg_options: 'force-confdef,force-confold'
+    dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Setup sane editor
@@ -17,7 +17,7 @@
     path: /clusterdata
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
 
 - name: Add clusterdata mount point to fstab
   ansible.posix.mount:
@@ -31,21 +31,21 @@
 
 - name: Internal Root CA installation
   block:
-  - name: Fetch Root CA Public Certificate from Vault
-    community.hashi_vault.vault_read:
-      url: https://vault.service.home:8200
-      path: pki/cert/ca
-      auth_method: none
-    register: root_ca_info
-    delegate_to: localhost
-    run_once: true
+    - name: Fetch Root CA Public Certificate from Vault
+      community.hashi_vault.vault_read:
+        url: https://vault.service.home:8200
+        path: pki/cert/ca
+        auth_method: none
+      register: root_ca_info
+      delegate_to: localhost
+      run_once: true
 
-  - name: Install Root CA
-    block:
-      - name: Copy CA cert to trusted anchors
-        copy:
-          content: "{{ root_ca_info.data.data.certificate }}"
-          dest: /usr/local/share/ca-certificates/home.crt
-          mode: '0644'
-      - name: Update CA store
-        command: update-ca-certificates
+    - name: Install Root CA
+      block:
+        - name: Copy CA cert to trusted anchors
+          copy:
+            content: "{{ root_ca_info.data.data.certificate }}"
+            dest: /usr/local/share/ca-certificates/home.crt
+            mode: "0644"
+        - name: Update CA store
+          command: update-ca-certificates

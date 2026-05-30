@@ -16,8 +16,7 @@
 - name: Detect Intel Quicksync
   set_fact:
     hardware_capabilities: "{{ hardware_capabilities + ['quicksync'] }}"
-  when:
-    "'Intel(R) N100' in ansible_facts['processor']"
+  when: "'Intel(R) N100' in ansible_facts['processor']"
 
 - name: Detect UPS
   set_fact:
@@ -32,4 +31,3 @@
   when:
     # Realtek Semiconductor Corp. RTL2838 DVB-T
     "'0bda:2838' in ansible_facts['usb_devices'] | map(attribute='id')"
-

@@ -2,7 +2,7 @@
   apt:
     name:
       - systemd-resolved
-    dpkg_options: 'force-confdef,force-confold'
+    dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Update systemd-networkd config
@@ -21,7 +21,7 @@
 
 - name: Enable systemd services
   systemd_service:
-    name: '{{ item }}'
+    name: "{{ item }}"
     enabled: true
   with_list:
     - systemd-networkd.service

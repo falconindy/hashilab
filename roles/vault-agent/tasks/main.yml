@@ -7,7 +7,7 @@
   file:
     path: /etc/vault-agent.d
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Deploy config
   template:
