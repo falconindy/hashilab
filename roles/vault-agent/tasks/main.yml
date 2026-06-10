@@ -46,6 +46,18 @@
     - vault-client.tpl
   when: "'vault_servers' in group_names"
 
+- name: Create vault TLS cert/key directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: vault
+    group: vault
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: /etc/vault.d/certs, mode: "0755" }
+    - { path: /etc/vault.d/private, mode: "0700" }
+  when: "'vault_servers' in group_names"
+
 - name: Enable systemd services
   systemd_service:
     name: vault-agent.service

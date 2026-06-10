@@ -28,7 +28,7 @@ job "x509-exporter" {
         ]
 
         volumes = [
-          "/etc/vault.d/client.crt:/certs/vault/client.crt:ro",
+          "/etc/vault.d/certs:/certs/vault:ro",
           "local/pki.pem:/certs/trust/pki.pem:ro",
           "local/pki_int.pem:/certs/trust/pki_int.pem:ro",
           "local/pki_int_internal.pem:/certs/trust/pki_int_internal.pem:ro",

@@ -4,7 +4,7 @@
 {{- $ipSans := printf "ip_sans=127.0.0.1,%s" $privateIp -}}
 {{- $altNames := printf "alt_names=active.vault.service.home,standby.vault.service.home,localhost" -}}
 {{- $ttl := printf "%s" "ttl=32d" -}}
-{{- $keyfile := printf "/etc/%s.d/server.key" $prog -}}
+{{- $keyfile := printf "/etc/%s.d/private/server.key" $prog -}}
 {{- with pkiCert "pki_int_internal/issue/servers" $ttl $commonName $ipSans $altNames -}}
 {{- .Cert -}}
 {{- .CA -}}
