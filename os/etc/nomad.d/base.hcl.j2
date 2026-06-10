@@ -54,6 +54,10 @@ vault {
   }
 }
 
+http_api_response_headers {
+  "Access-Control-Allow-Origin" = "*"
+}
+
 telemetry {
   disable_hostname           = true
   prometheus_metrics         = true

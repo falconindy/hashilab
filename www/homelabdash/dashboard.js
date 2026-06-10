@@ -1,5 +1,45 @@
 const CONSUL_ADDR = "https://consul.service.home:8501";
+const NOMAD_ADDR = "https://nomad.service.home:4646";
 const DOMAIN = "service.home";
+
+const allocJobCache = {};
+const serviceAllocCache = {};
+
+async function resolveAllocId(name) {
+  if (name in serviceAllocCache) return serviceAllocCache[name];
+  try {
+    const res = await fetch(
+      `${CONSUL_ADDR}/v1/catalog/service/${encodeURIComponent(name)}`,
+    );
+    const data = res.ok ? await res.json() : [];
+    const allocId = extractAllocId(data[0]?.ServiceID);
+    serviceAllocCache[name] = allocId;
+    return allocId;
+  } catch {
+    serviceAllocCache[name] = null;
+    return null;
+  }
+}
+
+function extractAllocId(serviceId) {
+  const m = serviceId?.match(
+    /_nomad-task-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-/,
+  );
+  return m ? m[1] : null;
+}
+
+async function resolveNomadJob(allocId) {
+  if (allocId in allocJobCache) return allocJobCache[allocId];
+  try {
+    const res = await fetch(`${NOMAD_ADDR}/v1/allocation/${allocId}`);
+    const jobId = res.ok ? (await res.json()).JobID : null;
+    allocJobCache[allocId] = jobId;
+    return jobId;
+  } catch {
+    allocJobCache[allocId] = null;
+    return null;
+  }
+}
 
 let servicesData = {};
 let checksData = [];
@@ -137,6 +177,7 @@ function render() {
 
       card.innerHTML = `
                 <div class="status-indicator"></div>
+                <span class="nomad-link hidden" title="Nomad job"></span>
                 <span class="service-name"></span>
                 <span class="service-url"></span>
                 <div class="status-text">
@@ -161,6 +202,27 @@ function render() {
     if (status === "warning") statusText = "DEGRADED";
     if (status === "critical") statusText = "CRITICAL";
     card.querySelector(".status-label").textContent = statusText;
+
+    const nomadLink = card.querySelector(".nomad-link");
+    const applyJobId = (jobId) => {
+      if (!jobId) return;
+      nomadLink.dataset.href = `${NOMAD_ADDR}/ui/jobs/${jobId}@default`;
+      nomadLink.classList.remove("hidden");
+    };
+    const applyAllocId = (allocId) => {
+      if (!allocId) return;
+      if (allocId in allocJobCache) {
+        applyJobId(allocJobCache[allocId]);
+      } else {
+        resolveNomadJob(allocId).then(applyJobId);
+      }
+    };
+
+    if (name in serviceAllocCache) {
+      applyAllocId(serviceAllocCache[name]);
+    } else {
+      resolveAllocId(name).then(applyAllocId);
+    }
 
     processedCards.add(name);
   }
@@ -255,6 +317,15 @@ document.addEventListener("keydown", (e) => {
     }
 
     visibleCards[currentIndex].focus();
+  }
+});
+
+document.getElementById("dashboard").addEventListener("click", (e) => {
+  const link = e.target.closest(".nomad-link");
+  if (link?.dataset.href) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(link.dataset.href, "_blank");
   }
 });
 
