@@ -249,9 +249,9 @@ def renew_consul_certificates() -> None:
     for server, cert in certs.items():
         with SshCertDeployer(server.hostname) as d:
             logger.info(f"writing new certificates to {server.hostname}")
-            d.write_certs(f"/opt/{prog}/tls", cert)
+            d.write_certs(f"/opt/consul/tls", cert)
 
-            logger.info(f"reloading {prog} on {server.hostname}")
+            logger.info(f"reloading consul on {server.hostname}")
             d.reload_service(prog, os=server.os)
 
 
