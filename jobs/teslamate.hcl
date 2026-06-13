@@ -33,7 +33,7 @@ job "teslamate" {
       driver = "docker"
 
       config {
-        image = "teslamate/teslamate:3.1.0"
+        image = "teslamate/teslamate:4.0.0"
       }
 
       vault {}
