@@ -63,6 +63,17 @@ job "docker-registry" {
     service {
       name = "docker-registry"
       port = "http"
+
+      tags = [
+        "traefik.enable=true",
+      ]
+
+      check {
+        type     = "http"
+        path     = "/v2/_catalog"
+        interval = "10s"
+        timeout  = "2s"
+      }
     }
   }
 }
