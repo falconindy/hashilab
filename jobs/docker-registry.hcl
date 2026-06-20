@@ -31,6 +31,10 @@ job "docker-registry" {
         memory = 512
       }
 
+      env {
+        REGISTRY_STORAGE_DELETE_ENABLED = "true"
+      }
+
       template {
         data          = <<-EOF
           version: 0.1
