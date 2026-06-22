@@ -29,7 +29,7 @@ job "mosquitto" {
       driver = "docker"
 
       config {
-        image = "eclipse-mosquitto:2.0.22"
+        image = "eclipse-mosquitto:2.1.2-alpine"
 
         volumes = [
           "/clusterdata/mosquitto:/mosquitto:rw",
@@ -68,9 +68,17 @@ job "mosquitto" {
       }
 
       check {
-        type     = "script"
-        command  = "/usr/bin/mosquitto_sub"
-        args     = ["-h", "localhost", "-p", "1883", "-t", "$$SYS/#", "-E", "-i", "probe"]
+        type    = "script"
+        command = "/usr/bin/mosquitto_sub"
+        args = [
+          "--host", "localhost",
+          "--port", "1883",
+          "--topic", "$$SYS/#",
+          "--id", "consul_probe",
+          "--username", "probe",
+          "--pw", "probe",
+          "-E",
+        ]
         interval = "10s"
         task     = "server"
         timeout  = "2s"
