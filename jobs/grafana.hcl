@@ -17,7 +17,7 @@ job "grafana" {
       driver = "docker"
       user   = "1000:1000"
       config {
-        image       = "grafana/grafana:13.0.2"
+        image       = "grafana/grafana:13.1.0"
         userns_mode = "host"
 
         volumes = [
