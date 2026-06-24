@@ -2,6 +2,22 @@ job "mqtt-explorer" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "An all-round MQTT client with a structured topic overview"
+    link {
+      label = "Upstream"
+      url   = "http://mqtt-explorer.com"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/thomasnordquist/MQTT-Explorer"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/smeagolworms4/mqtt-explorer"
+    }
+  }
+
   group "mqtt-explorer" {
     network {
       mode = "bridge"

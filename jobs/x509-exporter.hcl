@@ -2,6 +2,18 @@ job "x509-exporter" {
   datacenters = ["dc1"]
   type        = "system"
 
+  ui {
+    description = "A Prometheus exporter to monitor x509 certificate expiry"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/enix/x509-certificate-exporter"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/enix/x509-certificate-exporter"
+    }
+  }
+
   group "x509-exporter" {
     constraint {
       attribute = "${meta.has_vault}"

@@ -2,6 +2,18 @@ job "omada-exporter" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Prometheus exporter for TP-Link Omada controller metrics"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/RCooLeR/omada_exporter"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/rcooler/omada_exporter"
+    }
+  }
+
   group "omada-exporter" {
     network {
       mode = "bridge"

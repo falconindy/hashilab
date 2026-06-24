@@ -2,6 +2,22 @@ job "grafana" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "An open and composable observability and data visualization platform"
+    link {
+      label = "Upstream"
+      url   = "https://grafana.com/oss/grafana/"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/grafana/grafana"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/grafana/grafana"
+    }
+  }
+
   group "grafana" {
     network {
       mode = "bridge"

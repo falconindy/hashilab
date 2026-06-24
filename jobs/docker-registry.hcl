@@ -2,6 +2,22 @@ job "docker-registry" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A stateless, highly scalable server for storing and distributing container images"
+    link {
+      label = "Upstream"
+      url   = "https://distribution.github.io/distribution/"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/distribution/distribution"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/_/registry"
+    }
+  }
+
   group "docker-registry" {
     network {
       mode = "bridge"

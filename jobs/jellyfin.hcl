@@ -2,6 +2,22 @@ job "jellyfin" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "The Free Software Media System"
+    link {
+      label = "Upstream"
+      url   = "https://jellyfin.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/jellyfin/jellyfin"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/jellyfin/jellyfin"
+    }
+  }
+
   constraint {
     attribute = "${meta.has_quicksync}"
     operator  = "="

@@ -2,6 +2,22 @@ job "zwave-js" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Full-featured Z-Wave control panel and MQTT gateway"
+    link {
+      label = "Upstream"
+      url   = "https://zwave-js.github.io/zwave-js-ui/"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/zwave-js/zwave-js-ui"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/zwavejs/zwave-js-ui"
+    }
+  }
+
   constraint {
     attribute = "${meta.has_zwave}"
     operator  = "="

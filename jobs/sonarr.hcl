@@ -2,6 +2,22 @@ job "sonarr" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A PVR for Usenet and BitTorrent users to manage TV series"
+    link {
+      label = "Upstream"
+      url   = "https://sonarr.tv"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/Sonarr/Sonarr"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/linuxserver/sonarr"
+    }
+  }
+
   group "sonarr" {
     network {
       mode = "bridge"

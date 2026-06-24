@@ -2,6 +2,18 @@ job "cloudflare-ddns" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A feature-rich and robust Cloudflare DDNS updater"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/favonia/cloudflare-ddns"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/favonia/cloudflare-ddns"
+    }
+  }
+
   group "cloudflare-ddns" {
     network {
       dns {

@@ -2,6 +2,22 @@ job "adguard" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A network-wide DNS server that blocks ads and trackers"
+    link {
+      label = "Upstream"
+      url   = "https://adguard.com/en/adguard-home/overview.html"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/AdguardTeam/AdGuardHome"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/adguard/adguardhome"
+    }
+  }
+
   group "adguard" {
     network {
       mode = "bridge"

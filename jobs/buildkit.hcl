@@ -2,6 +2,22 @@ job "buildkit" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A toolkit for building OCI/Docker container images"
+    link {
+      label = "Upstream"
+      url   = "https://docs.docker.com/build/buildkit/"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/moby/buildkit"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/moby/buildkit"
+    }
+  }
+
   group "buildkit" {
     network {
       mode = "bridge"

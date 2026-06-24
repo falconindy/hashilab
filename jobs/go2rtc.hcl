@@ -2,6 +2,18 @@ job "go2rtc" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Ultimate camera streaming application with support for RTSP, WebRTC, HomeKit, and more"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/AlexxIT/go2rtc"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/alexxit/go2rtc"
+    }
+  }
+
   constraint {
     attribute = "${meta.has_quicksync}"
     operator  = "="

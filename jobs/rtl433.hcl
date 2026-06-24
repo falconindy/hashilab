@@ -2,6 +2,18 @@ job "rtl433" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Decodes radio transmissions from devices on the ISM bands"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/merbanan/rtl_433"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/hertzg/rtl_433"
+    }
+  }
+
   constraint {
     attribute = "${meta.has_rtl433}"
     operator  = "="

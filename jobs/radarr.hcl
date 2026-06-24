@@ -2,6 +2,22 @@ job "radarr" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A movie collection manager for Usenet and BitTorrent users"
+    link {
+      label = "Upstream"
+      url   = "https://radarr.video"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/Radarr/Radarr"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/linuxserver/radarr"
+    }
+  }
+
   group "radarr" {
     network {
       mode = "bridge"

@@ -2,6 +2,22 @@ job "postgres" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "The world's most advanced open source relational database"
+    link {
+      label = "Upstream"
+      url   = "https://www.postgresql.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/postgres/postgres"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/_/postgres"
+    }
+  }
+
   group "postgres" {
     network {
       mode = "bridge"

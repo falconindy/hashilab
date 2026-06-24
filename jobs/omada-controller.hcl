@@ -2,6 +2,22 @@ job "omada-controller" {
   datacenters = ["dc2"]
   type        = "service"
 
+  ui {
+    description = "TP-Link Omada SDN controller for managing network devices"
+    link {
+      label = "Upstream"
+      url   = "https://www.tp-link.com/us/omada-sdn/"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/mbentley/docker-omada-controller"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/mbentley/omada-controller"
+    }
+  }
+
   group "omada-controller" {
     network {
       dns {

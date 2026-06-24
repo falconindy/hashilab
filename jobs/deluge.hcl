@@ -2,6 +2,22 @@ job "deluge" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A lightweight, cross-platform BitTorrent client"
+    link {
+      label = "Upstream"
+      url   = "https://deluge-torrent.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/deluge-torrent/deluge"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/linuxserver/deluge"
+    }
+  }
+
   group "deluge" {
     network {
       mode = "bridge"

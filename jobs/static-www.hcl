@@ -2,6 +2,22 @@ job "static-www" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A high-performance HTTP server serving static content"
+    link {
+      label = "Upstream"
+      url   = "https://nginx.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/nginx/nginx"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/_/nginx"
+    }
+  }
+
   group "static-www" {
     network {
       mode = "bridge"

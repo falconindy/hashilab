@@ -2,6 +2,18 @@ job "jackett" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "API support for your favorite torrent trackers"
+    link {
+      label = "GitHub"
+      url   = "https://github.com/Jackett/Jackett"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/linuxserver/jackett"
+    }
+  }
+
   group "jackett" {
     network {
       mode = "bridge"

@@ -2,6 +2,22 @@ job "node-exporter" {
   datacenters = ["*"]
   type        = "system"
 
+  ui {
+    description = "Prometheus exporter for hardware and OS metrics exposed by *NIX kernels"
+    link {
+      label = "Upstream"
+      url   = "https://prometheus.io"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/prometheus/node_exporter"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/prom/node-exporter"
+    }
+  }
+
   group "node-exporter" {
     network {
       port "metrics" {

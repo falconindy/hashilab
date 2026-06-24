@@ -2,6 +2,22 @@ job "nut" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "Network UPS Tools monitoring and management daemon"
+    link {
+      label = "Upstream"
+      url   = "https://networkupstools.org"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/networkupstools/nut"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/instantlinux/nut-upsd"
+    }
+  }
+
   constraint {
     attribute = "${meta.has_ups}"
     operator  = "="

@@ -2,6 +2,22 @@ job "thelounge" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A modern, self-hosted web IRC client"
+    link {
+      label = "Upstream"
+      url   = "https://thelounge.chat"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/thelounge/thelounge"
+    }
+    link {
+      label = "Container Image"
+      url   = "https://github.com/thelounge/thelounge/pkgs/container/thelounge"
+    }
+  }
+
   group "thelounge" {
     network {
       mode = "bridge"

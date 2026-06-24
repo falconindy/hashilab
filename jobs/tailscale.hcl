@@ -2,6 +2,22 @@ job "tailscale" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A zero-config VPN built on WireGuard"
+    link {
+      label = "Upstream"
+      url   = "https://tailscale.com"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/tailscale/tailscale"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/tailscale/tailscale"
+    }
+  }
+
   group "tailscale" {
     network {
       dns {

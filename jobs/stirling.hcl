@@ -2,6 +2,22 @@ job "stirling" {
   datacenters = ["dc1"]
   type        = "service"
 
+  ui {
+    description = "A locally hosted web application for performing operations on PDFs"
+    link {
+      label = "Upstream"
+      url   = "https://www.stirlingpdf.com"
+    }
+    link {
+      label = "GitHub"
+      url   = "https://github.com/Stirling-Tools/Stirling-PDF"
+    }
+    link {
+      label = "Docker Hub"
+      url   = "https://hub.docker.com/r/stirlingtools/stirling-pdf"
+    }
+  }
+
   group "stirling" {
     network {
       mode = "bridge"
