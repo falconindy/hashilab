@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 
 import hvac
@@ -29,26 +30,41 @@ class Manager:
         try:
             with urllib.request.urlopen(req) as resp:
                 return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            try:
+                detail = json.dumps(json.loads(body).get("errors", body), indent=2)
+            except json.JSONDecodeError:
+                detail = body
+            print(f"Error: {e}\n{detail}")
+            sys.exit(1)
         except Exception as e:
             print(f"Error: {e}")
             sys.exit(1)
 
+    def is_managed(self, record):
+        comment = record.get("comment", None) or ""
+        return self.MANAGED_TAG in comment.split()
+
+    def get_all_records(self):
+        res = self.cf_request("dns_records?type=CNAME")
+        return res["result"]
+
     def get_managed_records(self):
         # Fetch CNAMEs and filter locally for the managed tag
-        res = self.cf_request("dns_records?type=CNAME")
-
-        return [
-            r
-            for r in res["result"]
-            if self.MANAGED_TAG in ((r.get("comment", None) or "").split() or [])
-        ]
+        return [r for r in self.get_all_records() if self.is_managed(r)]
 
     def list_records(self):
-        records = self.get_managed_records()
-        print(f"{'ID':<35} | {'NAME':<30} | {'TARGET':<20}")
-        print("-" * 90)
+        records = [
+            r
+            for r in self.get_all_records()
+            if r["content"] == self.DEFAULT_CNAME_TARGET
+        ]
+        print(f"{'MANAGED':<7} | {'ID':<35} | {'NAME':<30} | {'TARGET':<20}")
+        print("-" * 100)
         for r in records:
-            print(f"{r['id']:<35} | {r['name']:<30} | {r['content']:<20}")
+            flag = "yes" if self.is_managed(r) else "no"
+            print(f"{flag:<7} | {r['id']:<35} | {r['name']:<30} | {r['content']:<20}")
 
     def add_record(self, name, target):
         print(f"Adding managed CNAME: {name} -> {target}")
@@ -61,6 +77,34 @@ class Manager:
         }
         self.cf_request("dns_records", method="POST", data=payload)
         print("Success.")
+
+    def find_record(self, name):
+        return next((r for r in self.get_all_records() if r["name"] == name), None)
+
+    def set_managed(self, name, managed):
+        record = self.find_record(name)
+        if not record:
+            print(f"No CNAME record found for {name}")
+            return
+
+        tokens = (record.get("comment", None) or "").split()
+        if managed and self.MANAGED_TAG not in tokens:
+            tokens.append(self.MANAGED_TAG)
+        elif not managed and self.MANAGED_TAG in tokens:
+            tokens = [t for t in tokens if t != self.MANAGED_TAG]
+        else:
+            verb = "managed" if managed else "unmanaged"
+            print(f"{name} is already {verb}.")
+            return
+
+        verb = "Managing" if managed else "Unmanaging"
+        print(f"{verb} {record['id']} ({name})...")
+        self.cf_request(
+            f"dns_records/{record['id']}",
+            method="PATCH",
+            data={"comment": " ".join(tokens)},
+        )
+        print("Done.")
 
     def delete_record(self, name):
         # Find the ID by name
@@ -115,6 +159,18 @@ if __name__ == "__main__":
     )
     del_p.add_argument("name", help="The FQDN to delete")
 
+    # Manage
+    manage_p = subparsers.add_parser(
+        "manage", help="Set the #managed tag on an existing CNAME record"
+    )
+    manage_p.add_argument("name", help="The FQDN to manage")
+
+    # Unmanage
+    unmanage_p = subparsers.add_parser(
+        "unmanage", help="Remove the #managed tag from an existing CNAME record"
+    )
+    unmanage_p.add_argument("name", help="The FQDN to unmanage")
+
     args = parser.parse_args()
 
     (apikey, zoneid) = get_cloudflare_secrets()
@@ -126,5 +182,9 @@ if __name__ == "__main__":
         manager.add_record(args.name, args.target)
     elif args.command == "delete":
         manager.delete_record(args.name)
+    elif args.command == "manage":
+        manager.set_managed(args.name, True)
+    elif args.command == "unmanage":
+        manager.set_managed(args.name, False)
     else:
         parser.print_help()
