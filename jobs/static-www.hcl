@@ -29,7 +29,7 @@ job "static-www" {
       driver = "docker"
 
       config {
-        image = "nginx"
+        image = "nginx:1.31.2-alpine"
         volumes = [
           "local/nginx.conf:/etc/nginx/conf.d/default.conf",
           "/clusterdata/www:/srv/www:ro",
