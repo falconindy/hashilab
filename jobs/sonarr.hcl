@@ -60,7 +60,7 @@ job "sonarr" {
       driver = "docker"
 
       config {
-        image = "linuxserver/sonarr:4.0.18"
+        image = "linuxserver/sonarr:4.0.19"
         volumes = [
           "/clusterdata/media:/media",
           "/clusterdata/sonarr:/config",
