@@ -33,7 +33,7 @@ job "pocket-id" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/pocket-id/pocket-id:v1.6.0"
+        image = "ghcr.io/pocket-id/pocket-id:v2.9.0"
 
         volumes = [
           "/clusterdata/pocket-id:/app/data:rw",
@@ -41,15 +41,21 @@ job "pocket-id" {
       }
 
       env {
-        TZ = "America/New_York"
-
-        # The canonical, externally-resolvable URL. This is the OIDC issuer
-        # AND the WebAuthn RP ID, so it must be a single stable hostname that
-        # every client (LAN and remote, browser and mobile) reaches it by.
-        APP_URL = "https://id.falconindy.com"
-
-        # We sit behind Envoy + Traefik; honor X-Forwarded-* headers.
+        TZ          = "America/New_York"
+        APP_URL     = "https://id.falconindy.com"
         TRUST_PROXY = "true"
+      }
+
+      vault {}
+
+      template {
+        data        = <<-EOF
+          {{ with secret "kv/data/default/pocket-id" }}
+            ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
+          {{ end }}
+        EOF
+        destination = "secrets/pocket-id.env"
+        env         = true
       }
 
       resources {
