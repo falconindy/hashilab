@@ -186,6 +186,24 @@ job "monitoring" {
                   replacement: $1
                   target_label: __address__
 
+            - job_name: traefik-ingress
+              metrics_path: /metrics
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [traefik-ingress]
+              relabel_configs:
+                - source_labels: [__meta_consul_dc]
+                  target_label:  dc
+                - source_labels: [__meta_consul_node]
+                  target_label:  host
+                # The service port (8080) is the in-mesh dashboard entrypoint and
+                # isn't bound on the host; scrape the host-mapped metrics port.
+                - source_labels: [__address__, __meta_consul_service_metadata_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+
             - job_name: tls-expiration
               metrics_path: /probe
               params:

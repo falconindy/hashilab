@@ -39,6 +39,7 @@ job "traefik-ingress" {
       port "deluge" { static = 52520 }
 
       port "envoy_metrics" { to = 9102 }
+      port "metrics" { to = 8082 }
     }
 
     ephemeral_disk {
@@ -52,6 +53,7 @@ job "traefik-ingress" {
 
       meta {
         envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+        metrics_port       = "${NOMAD_HOST_PORT_metrics}"
       }
 
       # Expose the dashboard on the internal traefik instance.
@@ -126,6 +128,10 @@ job "traefik-ingress" {
               address: :[[ env "NOMAD_HOST_PORT_webrtc" ]]/udp
               asDefault: false
 
+            metrics:
+              address: :8082
+              asDefault: false
+
           tls:
             stores:
               default:
@@ -166,6 +172,12 @@ job "traefik-ingress" {
             fields:
               names:
                 StartUTC: drop
+
+          metrics:
+            prometheus:
+              addEntryPointsLabels: true
+              addRoutersLabels: true
+              entryPoint: metrics
 
           providers:
             consulCatalog:
