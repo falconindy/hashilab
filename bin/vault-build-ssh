@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+# vault-build-ssh — stand up an SSH client-certificate CA in Vault so the solo
+# sysadmin can SSH into any node with a short-lived certificate signed off the
+# back of a `vault login -method=oidc` (pocket-id passkey), instead of carrying
+# static keys in everyone's authorized_keys.
+#
+# Flow once this is configured:
+#   vault login -method=oidc      # passkey in a browser -> admin token
+#   bin/vault-ssh nomad0.node.home
+# `vault-ssh` signs your public key against the role below; the resulting cert
+# expires per the role TTL (minutes), so a leaked cert is near-useless and there
+# is nothing to rotate or revoke on the hosts.
+#
+# Hosts trust this CA via the `base` Ansible role, which fetches the CA public
+# key from Vault's unauthenticated `<mount>/public_key` endpoint and drops it at
+# /etc/ssh/trusted-user-ca-keys.pem (TrustedUserCAKeys). Re-run the base role
+# (or just the file/handler) after first running this script:
+#   ansible-playbook site.yml -i inventory/hosts.yml --tags base
+#
+# Run with a token that can enable secret engines (your OIDC admin login, or the
+# root token for cold start):
+#   vault login -method=oidc
+#   bin/vault-build-ssh
+#
+# The `admin` policy already covers signing (it has path "*"), so OIDC admins can
+# sign immediately. The dedicated `ssh` policy written here (ssh.hcl) exists so
+# you can later grant SSH-only access to a less-privileged identity without
+# handing out admin.
+
+set -euo pipefail
+
+export VAULT_ADDR=${VAULT_ADDR:-https://vault.service.home:8200}
+
+mount=${VAULT_SSH_MOUNT:-ssh-client-signer}
+role=${VAULT_SSH_ROLE:-admin}
+
+# Principals (Unix usernames) a signed cert is allowed to log in as. Override if
+# you log in as something other than root; keep it tight — this is the gate on
+# which accounts an OIDC-issued cert can reach.
+allowed_users=${SSH_ALLOWED_USERS:-root}
+default_user=${SSH_DEFAULT_USER:-root}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+
+mount_exists() {
+  vault read "sys/mounts/$1" &>/dev/null
+}
+
+# Enable the SSH secrets engine in CA mode (idempotent).
+if mount_exists "$mount"; then
+  echo "INFO: $mount already enabled, skipping mount + CA generation"
+else
+  vault secrets enable -path="$mount" ssh
+
+  # Generate the CA signing keypair. The private half never leaves Vault; the
+  # public half is what the hosts trust (TrustedUserCAKeys).
+  vault write "$mount/config/ca" generate_signing_key=true
+fi
+
+# The signing role. JSON on stdin so default_extensions (a map) is expressible.
+# Short TTLs keep a leaked cert from being useful for long; permit-pty is the
+# minimum for an interactive shell, port-forwarding is convenience.
+vault write "$mount/roles/$role" - <<JSON
+{
+  "key_type": "ca",
+  "algorithm_signer": "rsa-sha2-256",
+  "allow_user_certificates": true,
+  "allowed_users": "${allowed_users}",
+  "allowed_users_template": false,
+  "default_user": "${default_user}",
+  "allowed_extensions": "permit-pty,permit-port-forwarding,permit-agent-forwarding",
+  "default_extensions": { "permit-pty": "" },
+  "ttl": "30m0s",
+  "max_ttl": "2h0m0s"
+}
+JSON
+
+# Focused policy: sign against this role only. The admin policy already implies
+# this, so attaching `ssh` is only needed to grant SSH without full admin.
+vault policy write ssh "$repo_root/ssh.hcl"
+
+echo
+echo "Vault SSH CA configured on mount '$mount', role '$role'."
+echo
+echo "1. Distribute the CA public key to the hosts:"
+echo "     ansible-playbook site.yml -i inventory/hosts.yml --tags base"
+echo "   (inspect it directly with:"
+echo "     curl -s $VAULT_ADDR/v1/$mount/public_key )"
+echo
+echo "2. Log in and connect:"
+echo "     vault login -method=oidc"
+echo "     bin/vault-ssh $default_user@nomad0.node.home"
+
+# ---------------------------------------------------------------------------
+# Tie the cert's principal to the OIDC identity instead of a fixed allow-list:
+# set "allowed_users_template": true and "allowed_users":
+#   "{{identity.entity.aliases.<oidc-accessor>.name}}"
+# so a user can only request a cert for their own username. Requires the host
+# account name to match the OIDC user_claim (email/sub) — usually only worth it
+# with more than one human.
+#
+# Host-key signing (so clients stop seeing "unknown host" prompts) is a separate
+# CA concern: `vault write <mount>/roles/host key_type=ca allow_host_certificates=true`,
+# sign each host's /etc/ssh/ssh_host_*_key.pub, and add `@cert-authority *.node.home`
+# + the host CA pubkey to clients' known_hosts. Out of scope here.
+# ---------------------------------------------------------------------------

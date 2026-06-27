@@ -49,3 +49,27 @@
             mode: "0644"
         - name: Update CA store
           command: update-ca-certificates
+
+# Trust the Vault SSH client CA so OIDC-signed certs (bin/vault-ssh) can log in.
+# The /public_key endpoint is unauthenticated; fetched over TLS validated by the
+# Root CA installed above. Stood up by bin/vault-build-ssh.
+- name: SSH user CA trust
+  block:
+    - name: Fetch SSH user CA public key from Vault
+      ansible.builtin.get_url:
+        url: https://vault.service.home:8200/v1/ssh-client-signer/public_key
+        dest: /etc/ssh/trusted-user-ca-keys.pem
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Reload ssh
+
+    - name: Configure sshd to trust the user CA
+      ansible.builtin.copy:
+        content: "TrustedUserCAKeys /etc/ssh/trusted-user-ca-keys.pem\n"
+        dest: /etc/ssh/sshd_config.d/10-vault-user-ca.conf
+        mode: "0644"
+        owner: root
+        group: root
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Reload ssh

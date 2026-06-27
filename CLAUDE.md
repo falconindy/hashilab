@@ -66,6 +66,8 @@ Vault runs three PKI secret engines:
 
 All nodes run **vault-agent** (AppRole auth, role ID in `/etc/vault-agent.d/agent.roleid`) which renders TLS certs for Nomad, Consul, and Vault itself from templates in `/etc/vault-agent.d/*.tpl`. The CA bundle is at `/etc/ssl/certs/home.pem` on every node.
 
+Vault also runs an **SSH client CA** on the `ssh-client-signer` mount (stood up by `bin/vault-build-ssh`). The `base` role trusts its public key on every host (`/etc/ssh/trusted-user-ca-keys.pem` via a `sshd_config.d` drop-in), so `vault login -method=oidc` followed by `bin/vault-ssh <host>` logs in with a short-lived, pocket-id-gated certificate — no static keys in `authorized_keys`.
+
 ### Nomad jobs
 
 Jobs live in `jobs/`. Key patterns:
@@ -86,12 +88,15 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 
 ### Utility scripts
 
-| Script | Purpose |
-|---|---|
-| `bin/cfctl` | Manage Cloudflare CNAME records tagged `#managed`; fetches API key + zone ID from Vault KV (`kv/cli/cfctl`) |
-| `bin/certctl.py` | Certificate lifecycle tooling |
-| `bin/vault-build-pki` | One-time PKI bootstrap script for Vault |
-| `bin/deploy-www` | Rsync `www/` to `/clusterdata/www/` |
+| Script                                          | Purpose                                                                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `bin/cfctl`                                     | Manage Cloudflare CNAME records tagged `#managed`; fetches API key + zone ID from Vault KV (`kv/cli/cfctl`)                     |
+| `bin/certctl.py`                                | Certificate lifecycle tooling                                                                                                   |
+| `bin/vault-build-pki`                           | One-time PKI bootstrap script for Vault                                                                                         |
+| `bin/vault-build-oidc` / `bin/nomad-build-oidc` | Configure OIDC auth (pocket-id) for Vault / Nomad                                                                               |
+| `bin/vault-build-ssh`                           | One-time bootstrap of Vault's SSH client CA (`ssh-client-signer` mount, `admin` role, `ssh` policy)                             |
+| `bin/vault-ssh`                                 | Mint an ephemeral keypair, sign it off the Vault SSH CA (after `vault login -method=oidc`), and connect with a short-lived cert |
+| `bin/deploy-www`                                | Rsync `www/` to `/clusterdata/www/`                                                                                             |
 
 ### Renovate
 

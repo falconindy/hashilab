@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# vault-build-oidc — enable OIDC auth in Vault, backed by Pocket-ID, so the
+# solo sysadmin can `vault login -method=oidc` (passkey in a browser) instead of
+# carrying the root token.
+#
+# Prereqs, done once in the Pocket-ID admin UI (https://id.falconindy.com):
+#
+#   1. Create an OIDC client named "Vault".
+#   2. Set its callback / redirect URLs to BOTH of these (UI login + CLI login):
+#        https://vault.service.home:8200/ui/vault/auth/oidc/oidc/callback
+#        http://localhost:8250/oidc/callback
+#   3. (recommended) Restrict the client to an allowed group (e.g. create a
+#      "vault-admins" group, add yourself, and scope the client to it). That is
+#      how we gate who gets the admin policy — anyone allowed to use this client
+#      gets it. Alternatively, gate inside Vault instead (see GROUP MAPPING note
+#      at the bottom of this file).
+#   4. Make sure your account has an email set, and the client is allowed to
+#      request the "email" scope (we key Vault identities on the email claim).
+#   5. Copy the generated client ID and secret and export them before running:
+#        export OIDC_CLIENT_ID=...
+#        export OIDC_CLIENT_SECRET=...
+#
+# Run with a token that can enable auth methods (your admin login or, for now,
+# the root token):
+#   vault login -method=...        # get an admin token first
+#   OIDC_CLIENT_ID=... OIDC_CLIENT_SECRET=... bin/vault-build-oidc
+
+set -euo pipefail
+
+export VAULT_ADDR=${VAULT_ADDR:-https://vault.service.home:8200}
+
+: "${OIDC_CLIENT_ID:?set OIDC_CLIENT_ID (from the Pocket-ID client)}"
+: "${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET (from the Pocket-ID client)}"
+
+issuer="https://id.falconindy.com"
+redirect_uris="https://vault.service.home:8200/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback"
+
+# Enable the oidc auth method on its default path (idempotent).
+if ! vault auth list -format=json | grep -q '"oidc/"'; then
+  vault auth enable oidc
+fi
+
+# Point Vault at Pocket-ID. default_role lets `vault login -method=oidc` work
+# without naming a role on the command line.
+vault write auth/oidc/config \
+  oidc_discovery_url="$issuer" \
+  oidc_client_id="$OIDC_CLIENT_ID" \
+  oidc_client_secret="$OIDC_CLIENT_SECRET" \
+  default_role="admin"
+
+# The admin role: every user who authenticates through the Pocket-ID client gets
+# the admin policy. We key identities on the email claim for readable audit-log
+# entries; this REQUIRES the "email" scope below so Pocket-ID actually releases
+# it (without the scope you get: claim "email" is missing). Short renewable TTLs
+# keep a leaked token from being useful for long.
+vault write auth/oidc/role/admin \
+  user_claim="email" \
+  oidc_scopes="profile email" \
+  allowed_redirect_uris="$redirect_uris" \
+  token_policies="admin" \
+  token_ttl="1h" \
+  token_max_ttl="8h"
+
+echo
+echo "OIDC configured. Test it:"
+echo "    vault login -method=oidc"
+echo "    vault token lookup    # policies should include 'admin'"
+
+# ---------------------------------------------------------------------------
+# Prefer opaque, email-independent identities? Key on the subject instead:
+#   user_claim="sub"   oidc_scopes="profile"
+# (drops the email-scope requirement entirely.)
+#
+# GROUP MAPPING (alternative to gating on the Pocket-ID client side)
+#
+# If you would rather decide admin-ness in Vault from a Pocket-ID group claim,
+# add "groups" to oidc_scopes and set groups_claim="groups" on the role, give
+# the role no token_policies, and wire an external group:
+#
+#   vault write auth/oidc/role/admin ... groups_claim="groups" oidc_scopes="profile email groups"
+#   accessor=$(vault auth list -format=json | jq -r '."oidc/".accessor')
+#   gid=$(vault write -field=id identity/group name="vault-admins" \
+#           type="external" policies="admin")
+#   vault write identity/group-alias name="vault-admins" \
+#     mount_accessor="$accessor" canonical_id="$gid"
+# ---------------------------------------------------------------------------

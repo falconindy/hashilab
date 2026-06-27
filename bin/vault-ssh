@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# vault-ssh — generate a throwaway SSH keypair, have Vault's SSH client CA sign
+# it, and connect with the resulting short-lived certificate. The CA is backed
+# by your pocket-id OIDC login, so this is the SSH equivalent of
+# `vault login -method=oidc`: passkey -> cert -> shell.
+#
+# The keypair is ephemeral: generated in a temp dir, used once, and shredded on
+# exit. Your identity comes from the Vault login and is stamped into the cert
+# (principal + key_id for the host's audit log) — the key itself is anonymous
+# crypto material, so there is nothing standing to manage, rotate, or leak.
+#
+# Prereqs:
+#   - `vault login -method=oidc` first (the token must be allowed to sign — the
+#     `admin` or `ssh` policy; see bin/vault-build-ssh).
+#   - Target hosts trust the Vault user CA (base role ->
+#     /etc/ssh/trusted-user-ca-keys.pem).
+#
+# Usage:
+#   bin/vault-ssh [user@]host [extra ssh args...]
+#
+# Env overrides: VAULT_ADDR, VAULT_SSH_MOUNT, VAULT_SSH_ROLE.
+
+set -euo pipefail
+
+export VAULT_ADDR=${VAULT_ADDR:-https://vault.service.home:8200}
+mount=${VAULT_SSH_MOUNT:-ssh-client-signer}
+role=${VAULT_SSH_ROLE:-admin}
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: vault-ssh [user@]host [ssh args...]" >&2
+  exit 2
+fi
+
+target=$1
+shift
+
+# Split [user@]host; default to root to match the role's default_user.
+if [[ $target == *@* ]]; then
+  user=${target%%@*}
+  host=${target#*@}
+else
+  user=root
+  host=$target
+fi
+
+# Everything lives in a private temp dir that we shred on exit — the keypair
+# never touches your ~/.ssh.
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+chmod 700 "$workdir"
+
+key="$workdir/id"
+cert="$workdir/id-cert.pub"
+
+# Fresh ed25519 keypair, no passphrase, no agent. It exists only for this login.
+ssh-keygen -t ed25519 -N "" -C "vault-ssh ephemeral" -f "$key" -q
+
+# Sign the public half. valid_principals scopes the cert to exactly the account
+# we're logging in as.
+vault write -field=signed_key "$mount/sign/$role" \
+  public_key=@"$key.pub" \
+  valid_principals="$user" >"$cert"
+
+# IdentitiesOnly + explicit key/cert so we present exactly this ephemeral
+# identity and don't fall back to whatever the agent is offering.
+exec ssh \
+  -o IdentitiesOnly=yes \
+  -o CertificateFile="$cert" \
+  -i "$key" \
+  "$user@$host" "$@"
