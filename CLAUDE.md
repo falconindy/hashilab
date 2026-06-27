@@ -34,6 +34,16 @@ nomad job stop <name>             # stop a job
 
 ## Ansible
 
+Ansible connects as `root` (`remote_user` in `ansible.cfg`) using a Vault-signed
+SSH certificate, not a static key. Load one into your ssh-agent first:
+
+```bash
+vault login -method=oidc      # passkey
+bin/vault-ssh-agent           # signs a root cert, loads it into the agent
+```
+
+Then run as usual:
+
 ```bash
 ansible-playbook site.yml -i inventory/hosts.yml                    # full run
 ansible-playbook site.yml -i inventory/hosts.yml --tags consul      # single role
@@ -96,6 +106,7 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 | `bin/vault-build-oidc` / `bin/nomad-build-oidc` | Configure OIDC auth (pocket-id) for Vault / Nomad                                                                               |
 | `bin/vault-build-ssh`                           | One-time bootstrap of Vault's SSH client CA (`ssh-client-signer` mount, `admin` role, `ssh` policy)                             |
 | `bin/vault-ssh`                                 | Mint an ephemeral keypair, sign it off the Vault SSH CA (after `vault login -method=oidc`), and connect with a short-lived cert |
+| `bin/vault-ssh-agent`                           | Mint a Vault-signed cert and load it into ssh-agent so `ssh`/`ansible-playbook` authenticate with it (drives Ansible keylessly) |
 | `bin/deploy-www`                                | Rsync `www/` to `/clusterdata/www/`                                                                                             |
 
 ### Renovate

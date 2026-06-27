@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# vault-ssh-agent — mint a Vault-signed SSH certificate and load it into your
+# ssh-agent, so plain `ssh` and `ansible-playbook` in this shell authenticate
+# with it for the cert's lifetime. The CA is backed by your pocket-id OIDC login.
+#
+# This is how you drive Ansible without static keys:
+#   vault login -method=oidc
+#   bin/vault-ssh-agent                                  # loads a root cert
+#   ansible-playbook site.yml -i inventory/hosts.yml     # connects as root
+#
+# The ephemeral keypair is generated in a temp dir and shredded on exit; ssh-add
+# copies the key+cert into the agent's memory, which holds them until the TTL
+# expires. Nothing persists on disk.
+#
+# Prereqs:
+#   - a running ssh-agent ($SSH_AUTH_SOCK set)
+#   - `vault login -method=oidc` first (token allowed to sign: admin/ssh policy)
+#   - target hosts trust the Vault user CA (base role)
+#
+# Usage: bin/vault-ssh-agent [principal]   (default: root)
+# Env:   VAULT_ADDR, VAULT_SSH_MOUNT, VAULT_SSH_ROLE, SSH_CERT_TTL
+
+set -euo pipefail
+
+export VAULT_ADDR=${VAULT_ADDR:-https://vault.service.home:8200}
+mount=${VAULT_SSH_MOUNT:-ssh-client-signer}
+role=${VAULT_SSH_ROLE:-admin}
+principal=${1:-root}
+ttl=${SSH_CERT_TTL:-30m}
+
+if [[ -z ${SSH_AUTH_SOCK:-} ]]; then
+  echo 'vault-ssh-agent: no ssh-agent ($SSH_AUTH_SOCK unset); start one with: eval "$(ssh-agent)"' >&2
+  exit 1
+fi
+
+dir=$(mktemp -d)
+trap 'rm -rf "$dir"' EXIT
+chmod 700 "$dir"
+
+# Fresh ed25519 keypair, no passphrase. It exists only long enough to be signed
+# and handed to the agent.
+ssh-keygen -t ed25519 -N "" -C "vault-ssh-agent ephemeral" -f "$dir/id" -q
+
+# Sign the public half scoped to the login principal. ttl must be <= the role's
+# max_ttl (2h); SSH_CERT_TTL lets a long playbook run ask for more.
+vault write -field=signed_key "$mount/sign/$role" \
+  public_key=@"$dir/id.pub" \
+  valid_principals="$principal" \
+  ttl="$ttl" >"$dir/id-cert.pub"
+
+# ssh-add pulls in the matching id-cert.pub alongside the key, into agent memory.
+# -t bounds the agent identity's life to the cert TTL so it can't outlive it.
+ssh-add -t "$ttl" "$dir/id"
+
+echo "Loaded Vault SSH cert for principal '$principal' (expires in $ttl)."
