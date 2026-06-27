@@ -39,14 +39,57 @@ job "grafana" {
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/grafana:/var/lib/grafana:rw",
+          "local/victorialogs.yml:/etc/grafana/provisioning/datasources/victorialogs.yml:ro",
+          "local/dashboards.yml:/etc/grafana/provisioning/dashboards/hashilab.yml:ro",
         ]
+      }
+
+      # Provision the VictoriaLogs datasource declaratively. Reached over the
+      # Consul service mesh (transparent proxy) — Envoy handles mTLS, so plain
+      # http. The victoriametrics-logs-datasource plugin is preinstalled below.
+      template {
+        data        = <<-EOF
+          apiVersion: 1
+          # Delete any pre-existing VictoriaLogs datasource first so it is recreated
+          # with the stable uid below. Grafana won't change an existing datasource's
+          # uid on update, and provisioned dashboards reference it by uid.
+          deleteDatasources:
+            - name: VictoriaLogs
+              orgId: 1
+          datasources:
+            - name: VictoriaLogs
+              type: victoriametrics-logs-datasource
+              uid: victorialogs
+              access: proxy
+              url: http://victorialogs.virtual.home
+        EOF
+        destination = "local/victorialogs.yml"
+      }
+
+      # Dashboard provider. Dashboards live as standalone JSON files in the repo
+      # (grafana/dashboards/*.json) and are rsynced to /clusterdata/grafana/dashboards
+      # by bin/deploy-grafana-dashboards — NOT embedded in this job. Grafana polls the
+      # folder and hot-reloads changes, so editing a dashboard needs no job redeploy.
+      template {
+        data        = <<-EOF
+          apiVersion: 1
+          providers:
+            - name: hashilab
+              type: file
+              allowUiUpdates: true
+              updateIntervalSeconds: 30
+              options:
+                path: /var/lib/grafana/dashboards
+                foldersFromFilesStructure: true
+        EOF
+        destination = "local/dashboards.yml"
       }
 
       env {
         GF_SERVER_ROOT_URL    = "https://grafana.service.home"
         GF_PATHS_DATA         = "/var/lib/grafana"
         GF_AUTH_BASIC_ENABLED = "false"
-        GF_PLUGINS_PREINSTALL = "grafana-piechart-panel"
+        GF_PLUGINS_PREINSTALL = "victoriametrics-logs-datasource"
 
         GF_SECURITY_ALLOW_EMBEDDING = "true"
 

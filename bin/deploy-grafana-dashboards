@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Sync the repo's Grafana dashboards (grafana/dashboards/*.json) to the cluster.
+# Grafana's file provisioner (see jobs/grafana.hcl) polls this folder and
+# hot-reloads changes, so no `nomad job run` is needed after editing a dashboard.
+
+if ! mountpoint /clusterdata; then
+  echo "FATAL: /clusterdata is not mounted" >&2
+  exit 1
+fi
+
+sudo rsync -av --delete grafana/dashboards/ /clusterdata/grafana/dashboards/

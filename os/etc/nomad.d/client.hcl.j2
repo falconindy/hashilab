@@ -50,6 +50,10 @@ plugin "docker" {
     allow_privileged = true
     allow_caps       = ["ALL"]
 
+    # Stamp each container with its Nomad identity so the Vector log shipper can
+    # turn these into Loki labels (com.hashicorp.nomad.<name>).
+    extra_labels = ["job_name", "task_group_name", "task_name", "namespace", "node_name"]
+
     volumes {
       enabled = "true"
     }

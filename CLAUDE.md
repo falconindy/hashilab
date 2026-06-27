@@ -108,6 +108,7 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 | `bin/vault-ssh`                                 | Mint an ephemeral keypair, sign it off the Vault SSH CA (after `vault login -method=oidc`), and connect with a short-lived cert |
 | `bin/vault-ssh-agent`                           | Mint a Vault-signed cert and load it into ssh-agent so `ssh`/`ansible-playbook` authenticate with it (drives Ansible keylessly) |
 | `bin/deploy-www`                                | Rsync `www/` to `/clusterdata/www/`                                                                                             |
+| `bin/deploy-grafana-dashboards`                 | Rsync `grafana/dashboards/*.json` to `/clusterdata/grafana/dashboards/`; Grafana file-provisions and hot-reloads them           |
 
 ### Renovate
 

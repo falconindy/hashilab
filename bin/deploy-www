@@ -5,4 +5,4 @@ if ! mountpoint /clusterdata; then
   exit 1
 fi
 
-sudo rsync -av www/ /clusterdata/www/.
+sudo rsync -av --delete www/ /clusterdata/www/.

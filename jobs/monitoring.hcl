@@ -299,6 +299,46 @@ job "monitoring" {
                   target_label:  dc
                 - source_labels: [__meta_consul_node]
                   target_label:  host
+
+            - job_name: victorialogs
+              metrics_path: /metrics
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [victorialogs]
+              relabel_configs:
+                # Scrape VictoriaLogs' metrics via the sidecar-exposed port.
+                - source_labels: [__meta_consul_service_metadata_vl_metrics_port]
+                  action: keep
+                  regex: (.+)
+                - source_labels: [__address__, __meta_consul_service_metadata_vl_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+                - source_labels: [__meta_consul_dc]
+                  target_label:  dc
+                - source_labels: [__meta_consul_node]
+                  target_label:  host
+
+            - job_name: vector
+              metrics_path: /metrics
+              consul_sd_configs:
+                - server: consul.service.home:8501
+                  scheme: https
+                  services: [vector]
+              relabel_configs:
+                # Scrape Vector's own pipeline metrics via the sidecar-exposed port.
+                - source_labels: [__meta_consul_service_metadata_vector_metrics_port]
+                  action: keep
+                  regex: (.+)
+                - source_labels: [__address__, __meta_consul_service_metadata_vector_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+                - source_labels: [__meta_consul_dc]
+                  target_label:  dc
+                - source_labels: [__meta_consul_node]
+                  target_label:  host
         EOF
 
         destination   = "local/prometheus.yml"
