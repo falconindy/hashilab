@@ -133,10 +133,88 @@ job "vector" {
                   }
                 }
 
+            # Infer a "level" field so VictoriaLogs/vmui can colour severity —
+            # it reads the first present of: level, lvl, log_level, severity, ...
+            # Reliable for structured logs (JSON loggers, and level=/severity=
+            # logfmt — which covers the Go apps); best-effort for a leading
+            # [LEVEL] tag; left unset (shown as "other") when nothing matches.
+            log_level:
+              type: remap
+              inputs: [traefik_access]
+              source: |
+                # Traefik access logs are structured but levelless — derive a
+                # level from the HTTP status so 5xx (server errors) stand out.
+                # 4xx are client errors, not something to flag — treat as info.
+                if !exists(.level) && exists(.DownstreamStatus) {
+                  st = to_int(.DownstreamStatus) ?? 0
+                  if st >= 500 {
+                    .level = "error"
+                  } else if st > 0 {
+                    .level = "info"
+                  }
+                }
+
+                if !exists(.level) {
+                  msg = to_string(.message) ?? ""
+                  lvl = ""
+
+                  # JSON loggers: pull a level/severity key.
+                  if starts_with(msg, "{") {
+                    parsed, err = parse_json(msg)
+                    if err == null {
+                      o = object(parsed) ?? {}
+                      lvl = string(o.level) ?? string(o.severity) ?? string(o.lvl) ?? string(o.severityText) ?? string(o.SeverityText) ?? ""
+                    }
+                  }
+
+                  # logfmt (Go apps, the registry, ...): level=info / lvl="warn".
+                  if lvl == "" {
+                    m, e = parse_regex(msg, r'(?i)\b(?:level|lvl|severity)="?(?P<l>[a-z]+)')
+                    if e == null { lvl = string(m.l) ?? "" }
+                  }
+
+                  # Bracketed level anywhere, e.g. "... [info] ..." / "[ERROR]"
+                  # (covers loggers that put it after a timestamp, like teslamate).
+                  if lvl == "" {
+                    m2, e2 = parse_regex(msg, r'\[(?P<l>(?i:trace|debug|info|warn|warning|notice|error|err|fatal|critical|crit|panic))\]')
+                    if e2 == null { lvl = string(m2.l) ?? "" }
+                  }
+
+                  # A capitalised level word as a standalone token — UPPER or Title
+                  # case only, so lowercase prose ("no error here") is ignored.
+                  # Covers "06-28 10:25:53 Warn ..." (jackett) and "ERROR: ...".
+                  if lvl == "" {
+                    m3, e3 = parse_regex(msg, r'\b(?P<l>TRACE|DEBUG|INFO|WARN|WARNING|NOTICE|ERROR|FATAL|CRITICAL|PANIC|Trace|Debug|Info|Warn|Warning|Notice|Error|Fatal|Critical|Panic)\b')
+                    if e3 == null { lvl = string(m3.l) ?? "" }
+                  }
+
+                  if lvl != "" {
+                    .level = downcase(lvl)
+                  }
+                }
+
+                # Web access logs in Common/Combined Log Format (nginx static-www,
+                # the registry's own access line, ...) carry no level — derive it
+                # from the HTTP status and expose method/path/status as fields.
+                if !exists(.level) {
+                  am, ae = parse_regex(to_string(.message) ?? "", r'^\S+ \S+ \S+ \[[^\]]+\] "(?P<method>[A-Z]+) (?P<path>\S+)[^"]*" (?P<status>\d{3})')
+                  if ae == null {
+                    code = to_int(am.status) ?? 0
+                    .http_method = am.method
+                    .http_path   = am.path
+                    .http_status = code
+                    if code >= 500 {
+                      .level = "error"
+                    } else {
+                      .level = "info"
+                    }
+                  }
+                }
+
           sinks:
             vlogs:
               type: elasticsearch
-              inputs: [traefik_access]
+              inputs: [log_level]
               # VictoriaLogs reached over the Consul service mesh via the sidecar
               # upstream below — Envoy provides mTLS, so this is plain local http.
               endpoints:
