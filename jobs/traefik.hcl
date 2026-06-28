@@ -154,6 +154,7 @@ job "traefik" {
             level: INFO
 
           accessLog:
+            format: json
             fields:
               names:
                 StartUTC: drop

@@ -86,10 +86,57 @@ job "vector" {
                 del(.label)
                 del(.host)
 
+            # Parse Traefik's JSON access logs (the traefik / traefik-ingress jobs
+            # set accessLog.format=json) into first-class fields, so ClientHost,
+            # status, host/path and latency are filterable in VictoriaLogs/Grafana.
+            # We also synthesize a compact, human-readable _msg so the log viewers
+            # stay legible instead of showing a raw JSON blob. Scoped by job name;
+            # Traefik's own (non-JSON) app logs fall through untouched.
+            traefik_access:
+              type: remap
+              inputs: [nomad_meta]
+              source: |
+                if (.nomad_job == "traefik") || (.nomad_job == "traefik-ingress") {
+                  msg = to_string(.message) ?? ""
+                  if starts_with(msg, "{") {
+                    parsed, err = parse_json(msg)
+                    if err == null {
+                      obj = object(parsed) ?? {}
+
+                      .ClientHost            = obj.ClientHost
+                      .RequestMethod         = obj.RequestMethod
+                      .RequestHost           = obj.RequestHost
+                      .RequestPath           = obj.RequestPath
+                      .RequestProtocol       = obj.RequestProtocol
+                      .RouterName            = obj.RouterName
+                      .ServiceName           = obj.ServiceName
+                      .DownstreamStatus      = obj.DownstreamStatus
+                      .OriginStatus          = obj.OriginStatus
+                      .RetryAttempts         = obj.RetryAttempts
+                      .RequestContentSize    = obj.RequestContentSize
+                      .DownstreamContentSize = obj.DownstreamContentSize
+
+                      # Traefik reports Duration in nanoseconds; expose milliseconds.
+                      dur = (to_float(obj.Duration) ?? 0.0) / 1000000.0
+                      .DurationMs = dur
+
+                      # Compact access line, e.g. "1.2.3.4 GET host.tld/path -> 200 (12ms)".
+                      # to_string() is fallible on dynamic fields, so coalesce each part.
+                      cli  = to_string(obj.ClientHost) ?? "-"
+                      meth = to_string(obj.RequestMethod) ?? "-"
+                      host = to_string(obj.RequestHost) ?? "-"
+                      path = to_string(obj.RequestPath) ?? ""
+                      code = to_string(obj.DownstreamStatus) ?? "-"
+                      durs = to_string(round(dur))
+                      .message = cli + " " + meth + " " + host + path + " -> " + code + " (" + durs + "ms)"
+                    }
+                  }
+                }
+
           sinks:
             vlogs:
               type: elasticsearch
-              inputs: [nomad_meta]
+              inputs: [traefik_access]
               # VictoriaLogs reached over the Consul service mesh via the sidecar
               # upstream below — Envoy provides mTLS, so this is plain local http.
               endpoints:

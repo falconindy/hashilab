@@ -1,0 +1,662 @@
+{
+  "uid": "hashilab-traefik",
+  "title": "Traefik — Ingress",
+  "tags": ["traefik", "ingress", "nomad"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-3h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "prometheus",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+        "query": "label_values(traefik_entrypoint_requests_total, job)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "entrypoint",
+        "label": "Entrypoint",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+        "query": "label_values(traefik_entrypoint_requests_total{job=~\"$job\"}, entrypoint)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+        "query": "label_values(traefik_service_requests_total{job=~\"$job\"}, service)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "logfilter",
+        "label": "Access-log filter (LogsQL)",
+        "description": "Extra LogsQL appended to the by-IP panels, e.g. ClientHost:1.2.3.4 or DownstreamStatus:>=400",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Requests / sec",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum(rate(traefik_entrypoint_requests_total{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval]))"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "5xx error rate",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum(rate(traefik_entrypoint_requests_total{job=~\"$job\", entrypoint=~\"$entrypoint\", code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(traefik_entrypoint_requests_total{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval])), 1e-9)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "p99 latency (entrypoint)",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval])))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Open connections",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum(traefik_entrypoint_open_connections{job=~\"$job\", entrypoint=~\"$entrypoint\"})"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Traffic",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Request rate by status code",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "stacking": { "mode": "normal", "group": "A" }
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (code) (rate(traefik_entrypoint_requests_total{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval]))",
+          "legendFormat": "{{code}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Request rate by entrypoint",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (job, entrypoint) (rate(traefik_entrypoint_requests_total{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval]))",
+          "legendFormat": "{{job}} / {{entrypoint}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Request rate by service",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (service) (rate(traefik_service_requests_total{job=~\"$job\", service=~\"$service\"}[$__rate_interval]))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Request rate by router",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (router) (rate(traefik_router_requests_total{job=~\"$job\"}[$__rate_interval]))",
+          "legendFormat": "{{router}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Latency",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Entrypoint latency (p50 / p90 / p99)",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "histogram_quantile(0.90, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval])))",
+          "legendFormat": "p90"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=~\"$job\", entrypoint=~\"$entrypoint\"}[$__rate_interval])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Service latency p99 by service",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "histogram_quantile(0.99, sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket{job=~\"$job\", service=~\"$service\"}[$__rate_interval])))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Errors",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 }
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "4xx / 5xx rate by service",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (service) (rate(traefik_service_requests_total{job=~\"$job\", service=~\"$service\", code=~\"4..\"}[$__rate_interval]))",
+          "legendFormat": "4xx {{service}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "sum by (service) (rate(traefik_service_requests_total{job=~\"$job\", service=~\"$service\", code=~\"5..\"}[$__rate_interval]))",
+          "legendFormat": "5xx {{service}}"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Top services by 5xx (selected range)",
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Value", "desc": true }]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+          "expr": "topk(15, sum by (service) (increase(traefik_service_requests_total{job=~\"$job\", service=~\"$service\", code=~\"5..\"}[$__range])))",
+          "instant": true,
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "By client IP (access logs)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 }
+    },
+    {
+      "id": 40,
+      "type": "table",
+      "title": "Top client IPs by requests",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 41 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "requests", "desc": true }]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (ClientHost) count() as requests | sort by (requests desc) limit 25",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "type": "table",
+      "title": "Top client IPs returning 4xx / 5xx",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 41 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "errors", "desc": true }]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") DownstreamStatus:>=400 $logfilter | stats by (ClientHost) count() as errors | sort by (errors desc) limit 25",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "type": "timeseries",
+      "title": "Access requests by status",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 41 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineWidth": 0,
+            "stacking": { "mode": "normal", "group": "A" }
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter",
+          "queryType": "hits",
+          "fields": ["DownstreamStatus"]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "type": "table",
+      "title": "Top host + path by requests",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 50 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "requests", "desc": true }]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (RequestHost, RequestPath) count() as requests | sort by (requests desc) limit 25",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "type": "piechart",
+      "title": "Status distribution",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 50 },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        },
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "pieType": "donut"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (DownstreamStatus) count() as requests | sort by (requests desc) limit 15",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "type": "logs",
+      "title": "Access log",
+      "description": "Synthesized one-line access events (ClientHost, method, host/path, status, latency). Click a line to expand the parsed fields, or use the Access-log filter variable above (e.g. ClientHost:1.2.3.4).",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 59 },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter",
+          "queryType": "instant",
+          "maxLines": 500
+        }
+      ]
+    }
+  ]
+}

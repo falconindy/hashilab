@@ -169,6 +169,7 @@ job "traefik-ingress" {
             level: INFO
 
           accessLog:
+            format: json
             fields:
               names:
                 StartUTC: drop
