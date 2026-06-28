@@ -33,7 +33,7 @@ job "docker-registry" {
       driver = "docker"
 
       config {
-        image = "registry:3"
+        image = "registry:3.1.1"
         volumes = [
           "local/config.yml:/etc/distribution/config.yml:ro",
           "/clusterdata/docker-registry:/var/lib/registry:rw",
