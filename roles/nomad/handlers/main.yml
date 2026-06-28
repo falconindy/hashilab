@@ -2,3 +2,8 @@
   systemd_service:
     name: systemd-sysctl.service
     state: restarted
+
+- name: Reload docker
+  systemd_service:
+    name: docker.service
+    state: reloaded

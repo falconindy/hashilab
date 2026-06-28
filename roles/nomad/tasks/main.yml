@@ -6,6 +6,17 @@
     dpkg_options: "force-confdef,force-confold"
     state: present
 
+# Point the Docker daemon at our registry running in pull-through-cache mode so
+# docker.io image pulls are cached locally. registry-mirrors is a reload-safe
+# daemon option, so the handler reloads (SIGHUP) rather than restarting Docker —
+# no running containers are disrupted.
+- name: Configure Docker registry mirror (Docker Hub pull-through cache)
+  copy:
+    src: os/etc/docker/daemon.json
+    dest: /etc/docker/daemon.json
+  notify:
+    - Reload docker
+
 - name: Perform hardware discovery
   include_tasks: discovery.yml
 
