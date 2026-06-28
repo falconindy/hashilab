@@ -26,9 +26,7 @@ job "docker-registry" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {
-        to = 5000
-      }
+      port "http" {}
     }
 
     task "server" {
@@ -37,7 +35,7 @@ job "docker-registry" {
       config {
         image = "registry:3"
         volumes = [
-          "local/config.yml:/etc/docker/registry/config.yml:ro",
+          "local/config.yml:/etc/distribution/config.yml:ro",
           "/clusterdata/docker-registry:/var/lib/registry:rw",
         ]
       }
@@ -48,7 +46,8 @@ job "docker-registry" {
       }
 
       env {
-        REGISTRY_STORAGE_DELETE_ENABLED = "true"
+        # No OTLP collector here.
+        OTEL_TRACES_EXPORTER = "none"
       }
 
       template {
@@ -60,6 +59,7 @@ job "docker-registry" {
             headers:
               X-Content-Type-Option: [nosniff]
           log:
+            level: info
             fields:
               service: registry
           storage:
