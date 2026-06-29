@@ -76,7 +76,7 @@ Vault runs three PKI secret engines:
 
 All nodes run **vault-agent** (AppRole auth, role ID in `/etc/vault-agent.d/agent.roleid`) which renders TLS certs for Nomad, Consul, and Vault itself from templates in `/etc/vault-agent.d/*.tpl`. The CA bundle is at `/etc/ssl/certs/home.pem` on every node.
 
-Vault also runs an **SSH client CA** on the `ssh-client-signer` mount (stood up by `bin/vault-build-ssh`). The `base` role trusts its public key on every host (`/etc/ssh/trusted-user-ca-keys.pem` via a `sshd_config.d` drop-in), so `vault login -method=oidc` followed by `bin/vault-ssh <host>` logs in with a short-lived, pocket-id-gated certificate — no static keys in `authorized_keys`.
+Vault also runs an **SSH client CA** on the `ssh-client-signer` mount (stood up by `bin/vault-build-ssh`). The `base` role trusts its public key on every host (`/etc/ssh/trusted-user-ca-keys.pem` via a `sshd_config.d` drop-in), so `vault login -method=oidc` followed by `bin/vault-ssh-agent` to load a short-lived, pocket-id-gated certificate — no static keys in `authorized_keys`.
 
 ### Nomad jobs
 
