@@ -1,3 +1,3 @@
 {
-  "registry-mirrors": ["https://docker-registry.service.home"]
+  "registry-mirrors": ["https://docker-registry-cache.service.home"]
 }
