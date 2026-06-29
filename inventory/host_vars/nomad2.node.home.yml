@@ -3,4 +3,3 @@ ansible_python_interpreter: /usr/bin/python3
 
 consul_role: server
 nomad_role: server
-cpu_total_compute: 13600
