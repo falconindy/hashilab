@@ -23,12 +23,12 @@
         "label": "Job",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "${prometheus}" },
-        "query": "label_values(traefik_entrypoint_requests_total, job)",
+        "query": "label_values(traefik_entrypoint_requests_total{job=\"traefik-ingress\"}, job)",
         "refresh": 2,
-        "includeAll": true,
-        "allValue": ".*",
-        "multi": true,
-        "current": { "text": "All", "value": "$__all" }
+        "includeAll": false,
+        "multi": false,
+        "hide": 2,
+        "current": { "text": "traefik-ingress", "value": "traefik-ingress" }
       },
       {
         "name": "entrypoint",
@@ -491,9 +491,13 @@
         "uid": "victorialogs"
       },
       "gridPos": { "h": 9, "w": 8, "x": 0, "y": 41 },
+      "fieldConfig": {
+        "defaults": { "custom": { "filterable": false, "align": "auto" } },
+        "overrides": []
+      },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "requests", "desc": true }]
+        "sortBy": [{ "displayName": "count", "desc": true }]
       },
       "targets": [
         {
@@ -502,8 +506,20 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (ClientHost) count() as requests | sort by (requests desc) limit 25",
+          "expr": "nomad_job:=\"traefik-ingress\" ClientHost:* $logfilter | stats by (ClientHost) count() as count | sort by (count desc) limit 50",
           "queryType": "stats"
+        }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "__name__": true, "Time": true },
+            "renameByName": { "ClientHost": "ip", "Value": "count" },
+            "indexByName": { "ClientHost": 0, "Value": 1 }
+          }
         }
       ]
     },
@@ -516,9 +532,13 @@
         "uid": "victorialogs"
       },
       "gridPos": { "h": 9, "w": 8, "x": 8, "y": 41 },
+      "fieldConfig": {
+        "defaults": { "custom": { "filterable": false, "align": "auto" } },
+        "overrides": []
+      },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "errors", "desc": true }]
+        "sortBy": [{ "displayName": "count", "desc": true }]
       },
       "targets": [
         {
@@ -527,8 +547,20 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") DownstreamStatus:>=400 $logfilter | stats by (ClientHost) count() as errors | sort by (errors desc) limit 25",
+          "expr": "nomad_job:=\"traefik-ingress\" DownstreamStatus:>=400 $logfilter | stats by (ClientHost) count() as count | sort by (count desc) limit 50",
           "queryType": "stats"
+        }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "__name__": true, "Time": true },
+            "renameByName": { "ClientHost": "ip", "Value": "count" },
+            "indexByName": { "ClientHost": 0, "Value": 1 }
+          }
         }
       ]
     },
@@ -564,7 +596,7 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter",
+          "expr": "nomad_job:=\"traefik-ingress\" ClientHost:* $logfilter",
           "queryType": "hits",
           "fields": ["DownstreamStatus"]
         }
@@ -590,7 +622,7 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (RequestHost, RequestPath) count() as requests | sort by (requests desc) limit 25",
+          "expr": "nomad_job:=\"traefik-ingress\" ClientHost:* $logfilter | stats by (RequestHost, RequestPath) count() as requests | sort by (requests desc) limit 25",
           "queryType": "stats"
         }
       ]
@@ -620,7 +652,7 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter | stats by (DownstreamStatus) count() as requests | sort by (requests desc) limit 15",
+          "expr": "nomad_job:=\"traefik-ingress\" ClientHost:* $logfilter | stats by (DownstreamStatus) count() as requests | sort by (requests desc) limit 15",
           "queryType": "stats"
         }
       ]
@@ -652,7 +684,7 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "(nomad_job:=\"traefik\" OR nomad_job:=\"traefik-ingress\") ClientHost:* $logfilter",
+          "expr": "nomad_job:=\"traefik-ingress\" ClientHost:* $logfilter",
           "queryType": "instant",
           "maxLines": 500
         }
