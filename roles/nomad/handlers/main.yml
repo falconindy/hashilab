@@ -7,3 +7,11 @@
   systemd_service:
     name: docker.service
     state: reloaded
+
+# Config/package changes here do NOT restart nomad — bouncing a server in place
+# would risk leadership. Flag the host instead; the "Report pending control-plane
+# restarts" play at the end of site.yml surfaces the exact `nom rollingrestart`
+# command to run by hand (nom restarts health-aware).
+- name: Flag nomad restart
+  ansible.builtin.set_fact:
+    nomad_restart_needed: true

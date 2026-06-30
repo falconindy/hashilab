@@ -5,6 +5,8 @@
       - docker.io
     dpkg_options: "force-confdef,force-confold"
     state: present
+  notify:
+    - Flag nomad restart
 
 # Point the Docker daemon at our registry running in pull-through-cache mode so
 # docker.io image pulls are cached locally. registry-mirrors is a reload-safe
@@ -30,12 +32,16 @@
     - src: os/etc/nomad.d/client.hcl.j2
       dest: /etc/nomad.d/client.hcl
   when: "'nomad_clients' in group_names"
+  notify:
+    - Flag nomad restart
 
 - name: Update nomad server config
   copy:
     src: os/etc/nomad.d/server.hcl
     dest: /etc/nomad.d/server.hcl
   when: "'nomad_servers' in group_names"
+  notify:
+    - Flag nomad restart
 
 - name: Enable systemd services
   systemd_service:

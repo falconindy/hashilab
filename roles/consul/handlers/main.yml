@@ -1,0 +1,7 @@
+# Config/package changes here do NOT restart consul — restarting a quorum member
+# in place would risk leadership. Instead flag the host; the "Report pending
+# control-plane restarts" play at the end of site.yml surfaces the exact
+# `nom rollingrestart` command to run by hand (nom restarts health-aware).
+- name: Flag consul restart
+  ansible.builtin.set_fact:
+    consul_restart_needed: true

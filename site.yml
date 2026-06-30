@@ -25,3 +25,51 @@
 
     - role: vault-agent
       tags: ["vault-agent"]
+
+# Config/package changes to consul, nomad, and vault deliberately do NOT restart
+# the daemon in place — that would risk quorum on a three-node control plane.
+# Each role instead flags its host (the *_restart_needed facts, set by handlers).
+# This play collects those flags and prints the health-aware `nom rollingrestart`
+# commands to run by hand. Tagged `always` so the report shows even on a tag-
+# scoped run (e.g. --tags consul).
+- name: Report pending control-plane restarts
+  hosts: all
+  gather_facts: false
+  tags:
+    - always
+  tasks:
+    - name: Collect hosts needing a restart, per service
+      run_once: true
+      delegate_to: localhost
+      set_fact:
+        pending_restarts: >-
+          {{
+            pending_restarts | default({}) | combine({
+              item: (
+                groups['all'] | map('extract', hostvars)
+                | selectattr(item ~ '_restart_needed', 'defined')
+                | map(attribute='inventory_hostname') | list
+              )
+            })
+          }}
+      loop:
+        - consul
+        - nomad
+        - vault
+
+    - name: Report rolling restarts to run
+      run_once: true
+      delegate_to: localhost
+      vars:
+        pending: "{{ pending_restarts | dict2items | selectattr('value') | list }}"
+      ansible.builtin.debug:
+        msg: |-
+          {% if pending %}
+          Control-plane config/packages changed. These were NOT restarted —
+          run the health-aware rolling restart by hand:
+          {% for p in pending %}
+            nom rollingrestart {{ p.key }}   # changed on: {{ p.value | join(', ') }}
+          {% endfor %}
+          {% else %}
+          All control-plane config converged; no rolling restart needed.
+          {% endif %}

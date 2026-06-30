@@ -4,6 +4,8 @@
       - vault
     dpkg_options: "force-confdef,force-confold"
     state: present
+  notify:
+    - Flag vault restart
 
 - name: Enable vault service
   systemd_service:
@@ -14,8 +16,5 @@
   template:
     src: os/etc/vault.d/vault.hcl.j2
     dest: /etc/vault.d/vault.hcl
-
-- name: Enable systemd service
-  systemd_service:
-    name: vault.service
-    enabled: true
+  notify:
+    - Flag vault restart

@@ -1,0 +1,7 @@
+# Config/package changes here do NOT restart vault — an in-place restart would
+# seal the node and risk Raft quorum. Flag the host instead; the "Report pending
+# control-plane restarts" play at the end of site.yml surfaces the exact
+# `nom rollingrestart` command to run by hand (nom restarts health-aware).
+- name: Flag vault restart
+  ansible.builtin.set_fact:
+    vault_restart_needed: true

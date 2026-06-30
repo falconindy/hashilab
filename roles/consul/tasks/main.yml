@@ -3,6 +3,8 @@
     name:
       - consul
       - consul-cni
+  notify:
+    - Flag consul restart
 
 - name: Deploy consul base config
   template:
@@ -13,18 +15,24 @@
       dest: /etc/consul.d/consul.hcl
     - src: os/etc/consul.d/consul.env
       dest: /etc/consul.d/consul.env
+  notify:
+    - Flag consul restart
 
 - name: Deploy consul server config
   template:
     src: os/etc/consul.d/server.hcl.j2
     dest: /etc/consul.d/server.hcl
   when: "'consul_servers' in group_names"
+  notify:
+    - Flag consul restart
 
 - name: Deploy consul client config
   copy:
     src: os/etc/consul.d/client.hcl
     dest: /etc/consul.d/client.hcl
   when: "'consul_clients' in group_names"
+  notify:
+    - Flag consul restart
 
 - name: Enable systemd service
   systemd_service:
