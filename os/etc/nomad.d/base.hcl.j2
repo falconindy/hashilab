@@ -44,7 +44,7 @@ acl {
 
 vault {
   enabled = true
-  address = "https://vault.service.home:8200"
+  address = "{{ vault_addr }}"
 
   default_identity {
     aud  = ["vault.io"]

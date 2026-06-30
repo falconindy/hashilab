@@ -1,0 +1,6 @@
+---
+# Cluster-wide constants shared across roles and templates. Keep this for values
+# that are genuinely the same everywhere; per-DC/per-host values belong in the
+# inventory group/host vars instead.
+vault_domain: vault.service.home
+vault_addr: "https://{{ vault_domain }}:8200"

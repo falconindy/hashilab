@@ -33,7 +33,7 @@
   block:
     - name: Fetch Root CA Public Certificate from Vault
       community.hashi_vault.vault_read:
-        url: https://vault.service.home:8200
+        url: "{{ vault_addr }}"
         path: pki/cert/ca
         auth_method: none
       register: root_ca_info
@@ -62,7 +62,7 @@
   block:
     - name: Fetch SSH user CA public key from Vault
       ansible.builtin.get_url:
-        url: https://vault.service.home:8200/v1/ssh-client-signer/public_key
+        url: "{{ vault_addr }}/v1/ssh-client-signer/public_key"
         dest: /etc/ssh/trusted-user-ca-keys.pem
         mode: "0644"
         owner: root
