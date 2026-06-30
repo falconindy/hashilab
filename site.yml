@@ -3,8 +3,14 @@
   become: true
   become_method: ansible.builtin.sudo
   roles:
+    # OS-agnostic trust bootstrap — runs everywhere, including non-Debian hosts.
+    - role: trust
+      tags: ["trust"]
+
+    # Debian-only base: apt packages, editor alternative, clusterdata NFS client.
     - role: base
       tags: ["base"]
+      when: ansible_facts['os_family'] == 'Debian'
 
     - role: systemd
       tags: ["systemd"]
