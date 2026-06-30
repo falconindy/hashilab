@@ -33,9 +33,22 @@
 # Root CA installed above. Stood up by bin/vault-build-ssh.
 - name: SSH user CA trust
   block:
+    # Fetch on the control node, not per-host: get_url does a HEAD under --check
+    # and Vault's public_key endpoint only allows GET (405 on HEAD). uri always
+    # GETs; check_mode:false keeps this read-only fetch running under --check so
+    # the copy below still has content to compare. Mirrors the Root CA fetch.
     - name: Fetch SSH user CA public key from Vault
-      ansible.builtin.get_url:
+      ansible.builtin.uri:
         url: "{{ vault_addr }}/v1/ssh-client-signer/public_key"
+        return_content: true
+      register: trust_ssh_ca
+      delegate_to: localhost
+      run_once: true
+      check_mode: false
+
+    - name: Install the SSH user CA public key
+      ansible.builtin.copy:
+        content: "{{ trust_ssh_ca.content }}"
         dest: /etc/ssh/trusted-user-ca-keys.pem
         mode: "0644"
         owner: root
