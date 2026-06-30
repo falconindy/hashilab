@@ -1,5 +1,2 @@
 ansible_host: 10.0.100.101
 ansible_python_interpreter: /usr/bin/python3
-
-consul_role: server
-nomad_role: server
