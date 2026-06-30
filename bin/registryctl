@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+
+"""Manage a Docker registry: list repositories and tags, delete tags and repos.
+
+The registry HTTP API has no "delete tag" or "delete repository" endpoint;
+deletion is always by manifest digest (DELETE /v2/<repo>/manifests/<digest>).
+This tool resolves tags to digests for you. Note that several tags can share a
+single digest, so deleting a tag removes every tag pointing at that manifest.
+
+Deletes only remove references. The underlying blobs stay on disk until
+`registry garbage-collect` runs inside the registry container.
+"""
+
+import argparse
+import sys
+
+import requests
+
+DEFAULT_BASE_URL = "https://docker-registry.service.home"
+PAGE_SIZE = 100
+
+# Manifest media types we ask for when resolving a tag to a digest. Covering
+# both Docker and OCI, single-image and index/list, so HEAD returns the digest
+# regardless of how the image was pushed.
+MANIFEST_ACCEPT = ", ".join(
+    (
+        "application/vnd.docker.distribution.manifest.v2+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.oci.image.index.v1+json",
+    )
+)
+
+
+class Registry:
+    def __init__(self, base_url: str) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.session = requests.Session()
+
+    def _url(self, path: str) -> str:
+        return f"{self.base_url}{path}"
+
+    def _paginate(self, path: str, key: str) -> list[str]:
+        """Follow the registry's Link-header pagination and collect `key`."""
+        items: list[str] = []
+        url = self._url(f"{path}?n={PAGE_SIZE}")
+        while url:
+            resp = self.session.get(url)
+            resp.raise_for_status()
+            items.extend(resp.json().get(key) or [])
+            # The "next" link is returned relative to the registry root.
+            link = resp.links.get("next")
+            url = self._url(link["url"]) if link else None
+        return items
+
+    def repositories(self) -> list[str]:
+        return self._paginate("/v2/_catalog", "repositories")
+
+    def tags(self, repo: str) -> list[str]:
+        return self._paginate(f"/v2/{repo}/tags/list", "tags")
+
+    def digest(self, repo: str, tag: str) -> str | None:
+        """Return the manifest digest for a tag, or None if it does not exist."""
+        resp = self.session.head(
+            self._url(f"/v2/{repo}/manifests/{tag}"),
+            headers={"Accept": MANIFEST_ACCEPT},
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.headers.get("Docker-Content-Digest")
+
+    def delete_manifest(self, repo: str, digest: str) -> None:
+        resp = self.session.delete(self._url(f"/v2/{repo}/manifests/{digest}"))
+        if resp.status_code == 405:
+            raise SystemExit(
+                "error: registry rejected the delete (405). Ensure "
+                "REGISTRY_STORAGE_DELETE_ENABLED=true on the registry."
+            )
+        resp.raise_for_status()
+
+
+def confirm(prompt: str, assume_yes: bool) -> bool:
+    if assume_yes:
+        return True
+    try:
+        return input(f"{prompt} [y/N] ").strip().lower() in ("y", "yes")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+
+
+def cmd_repos(reg: Registry, args: argparse.Namespace) -> int:
+    for repo in reg.repositories():
+        print(repo)
+    return 0
+
+
+def cmd_tags(reg: Registry, args: argparse.Namespace) -> int:
+    tags = reg.tags(args.repo)
+    if not tags:
+        print(f"no tags in {args.repo}", file=sys.stderr)
+        return 0
+    for tag in sorted(tags):
+        print(tag)
+    return 0
+
+
+def cmd_rm_tag(reg: Registry, args: argparse.Namespace) -> int:
+    # Resolve every requested tag first, then dedupe by digest: distinct tags
+    # may resolve to the same manifest, which only needs deleting once.
+    digests: dict[str, list[str]] = {}
+    rc = 0
+    for tag in args.tags:
+        digest = reg.digest(args.repo, tag)
+        if digest is None:
+            print(f"tag not found: {args.repo}:{tag}", file=sys.stderr)
+            rc = 1
+            continue
+        digests.setdefault(digest, []).append(tag)
+
+    for digest, tags in digests.items():
+        shared = (
+            f" (also removes tags: {', '.join(sorted(tags[1:]))})"
+            if len(tags) > 1
+            else ""
+        )
+        if not confirm(f"delete {args.repo}@{digest}{shared}?", args.yes):
+            print(f"skipped {args.repo}@{digest}", file=sys.stderr)
+            continue
+        reg.delete_manifest(args.repo, digest)
+        print(f"deleted {args.repo}@{digest} (tags: {', '.join(sorted(tags))})")
+
+    if digests:
+        print(
+            "note: run `registry garbage-collect` to reclaim disk space",
+            file=sys.stderr,
+        )
+    return rc
+
+
+def cmd_rm_repo(reg: Registry, args: argparse.Namespace) -> int:
+    tags = reg.tags(args.repo)
+    if not tags:
+        print(f"no tags in {args.repo}; nothing to delete", file=sys.stderr)
+        return 0
+
+    if not confirm(f"delete ALL {len(tags)} tag(s) in {args.repo}?", args.yes):
+        print("aborted", file=sys.stderr)
+        return 1
+
+    # Collect distinct digests so a manifest shared by multiple tags is
+    # deleted once rather than 404ing on the second attempt.
+    digests: set[str] = set()
+    for tag in tags:
+        digest = reg.digest(args.repo, tag)
+        if digest:
+            digests.add(digest)
+
+    for digest in digests:
+        reg.delete_manifest(args.repo, digest)
+        print(f"deleted {args.repo}@{digest}")
+
+    print(
+        f"removed {len(digests)} manifest(s) from {args.repo}.\n"
+        "note: the repo may linger in the catalog and blobs remain on disk "
+        "until `registry garbage-collect` runs inside the container.",
+        file=sys.stderr,
+    )
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--base-url",
+        default=DEFAULT_BASE_URL,
+        help=f"registry base URL (default: {DEFAULT_BASE_URL})",
+    )
+    parser.add_argument(
+        "-y", "--yes", action="store_true", help="do not prompt for confirmation"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("repos", help="list repositories")
+    p.set_defaults(func=cmd_repos)
+
+    p = sub.add_parser("tags", help="list tags in a repository")
+    p.add_argument("repo")
+    p.set_defaults(func=cmd_tags)
+
+    p = sub.add_parser("rm-tag", help="delete one or more tags in a repository")
+    p.add_argument("repo")
+    p.add_argument("tags", nargs="+", metavar="tag")
+    p.set_defaults(func=cmd_rm_tag)
+
+    p = sub.add_parser("rm-repo", help="delete every tag/manifest in a repository")
+    p.add_argument("repo")
+    p.set_defaults(func=cmd_rm_repo)
+
+    args = parser.parse_args()
+    reg = Registry(args.base_url)
+    try:
+        return args.func(reg, args)
+    except requests.HTTPError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
