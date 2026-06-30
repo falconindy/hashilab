@@ -2,6 +2,7 @@
   ansible.builtin.copy:
     src: os/etc/systemd/system/vault-agent.service
     dest: /etc/systemd/system/vault-agent.service
+    mode: "0644"
 
 - name: Create config directory
   ansible.builtin.file:
@@ -13,15 +14,18 @@
   ansible.builtin.template:
     src: "os/etc/vault-agent.d/{{ item.src }}"
     dest: "/etc/vault-agent.d/{{ item.dest | default(item.src) }}"
+    # 0640: this loop includes agent.roleid (the AppRole role_id credential).
+    mode: '{{ item.mode | default("0644") }}'
   loop:
     - { src: agent.hcl.j2, dest: agent.hcl }
     - { src: agent.env.j2, dest: agent.env }
-    - { src: agent.roleid }
+    - { src: agent.roleid, mode: "0640" }
 
 - name: Deploy consul vault-agent config
   ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
+    mode: "0644"
   loop:
     - consul-tls.hcl
     - consul-server.tpl
@@ -31,6 +35,7 @@
   ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
+    mode: "0644"
   loop:
     - nomad-tls.hcl
     - nomad-server.tpl
@@ -40,6 +45,7 @@
   ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
+    mode: "0644"
   loop:
     - vault-tls.hcl
     - vault-server.tpl

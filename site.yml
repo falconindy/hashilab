@@ -29,8 +29,8 @@
       tags: ["vault"]
       when: "'vault_servers' in group_names"
 
-    - role: vault-agent
-      tags: ["vault-agent"]
+    - role: vault_agent
+      tags: ["vault_agent"]
 
 # Config/package changes to consul, nomad, and vault deliberately do NOT restart
 # the daemon in place — that would risk quorum on a three-node control plane.

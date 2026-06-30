@@ -50,7 +50,7 @@ ansible-playbook site.yml -i inventory/hosts.yml --tags consul      # single rol
 ansible-playbook site.yml -i inventory/hosts.yml -l nomad0.node.home  # single host
 ```
 
-Available tags match role names: `trust`, `base`, `systemd`, `keepalived`, `consul`, `nomad`, `vault`, `vault-agent`. The `trust` role (home Root CA + Vault SSH client CA) is OS-agnostic and runs on every host; `base` (apt packages, editor, clusterdata NFS mount) is gated to Debian hosts so non-Debian nodes can take `trust` without it.
+Available tags match role names: `trust`, `base`, `systemd`, `keepalived`, `consul`, `nomad`, `vault`, `vault_agent`. The `trust` role (home Root CA + Vault SSH client CA) is OS-agnostic and runs on every host; `base` (apt packages, editor, clusterdata NFS mount) is gated to Debian hosts so non-Debian nodes can take `trust` without it.
 
 ## Architecture
 

@@ -9,23 +9,23 @@
         url: "{{ vault_addr }}"
         path: pki/cert/ca
         auth_method: none
-      register: root_ca_info
+      register: trust_root_ca_info
       delegate_to: localhost
       run_once: true
 
     - name: Copy CA cert to trusted anchors
       ansible.builtin.copy:
-        content: "{{ root_ca_info.data.data.certificate }}"
+        content: "{{ trust_root_ca_info.data.data.certificate }}"
         dest: /usr/local/share/ca-certificates/home.crt
         mode: "0644"
-      register: root_ca_file
+      register: trust_root_ca_file
 
     # Only refresh the trust store when the cert changed. Kept inline (not a
     # handler) because the SSH user CA block below makes an HTTPS call to Vault
     # that needs the CA trusted now, not at end-of-play handler flush.
     - name: Update CA store # noqa: no-handler
       ansible.builtin.command: update-ca-certificates
-      when: root_ca_file.changed
+      when: trust_root_ca_file.changed
       changed_when: true
 
 # Trust the Vault SSH client CA so OIDC-signed certs (bin/vault-ssh) can log in.

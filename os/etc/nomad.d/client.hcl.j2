@@ -28,7 +28,7 @@ client {
   gc_parallel_destroys     = 2
 
   meta {
-{% for hwcap in hardware_capabilities %}
+{% for hwcap in nomad_hardware_capabilities %}
     has_{{ hwcap }} = "true"
 {% endfor %}
 {% if 'vault_servers' in group_names %}

@@ -8,6 +8,7 @@
   ansible.builtin.template:
     src: os/etc/keepalived/keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
+    mode: "0644"
   notify:
     - Restart keepalived
 

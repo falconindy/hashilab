@@ -9,6 +9,7 @@
   ansible.builtin.copy:
     src: os/etc/systemd/network/80-dhcp.network
     dest: /etc/systemd/network/80-dhcp.network
+    mode: "0644"
   notify:
     - Reload systemd-networkd config
 
@@ -16,6 +17,7 @@
   ansible.builtin.copy:
     src: os/etc/systemd/resolved.conf.d
     dest: /etc/systemd
+    mode: "0644"
   notify:
     - Restart systemd-resolved
 
