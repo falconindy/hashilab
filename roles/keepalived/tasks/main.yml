@@ -1,17 +1,17 @@
 - name: Install keepalived package
-  apt:
+  ansible.builtin.apt:
     name: keepalived
     dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Update keepalived config
-  template:
+  ansible.builtin.template:
     src: os/etc/keepalived/keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
   notify:
     - Restart keepalived
 
 - name: Enable keepalived service
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: keepalived.service
     enabled: true

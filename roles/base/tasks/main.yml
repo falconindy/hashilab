@@ -1,5 +1,5 @@
 - name: Install Apt packages
-  apt:
+  ansible.builtin.apt:
     name:
       - linux-sysctl-defaults
       - vim
@@ -7,12 +7,12 @@
     state: present
 
 - name: Setup sane editor
-  alternatives:
+  community.general.alternatives:
     name: editor
     path: /usr/bin/vim.basic
 
 - name: Create clusterdata mount point
-  file:
+  ansible.builtin.file:
     state: directory
     path: /clusterdata
     owner: root
@@ -41,7 +41,7 @@
       run_once: true
 
     - name: Copy CA cert to trusted anchors
-      copy:
+      ansible.builtin.copy:
         content: "{{ root_ca_info.data.data.certificate }}"
         dest: /usr/local/share/ca-certificates/home.crt
         mode: "0644"
@@ -50,9 +50,10 @@
     # Only refresh the trust store when the cert changed. Kept inline (not a
     # handler) because the SSH user CA block below makes an HTTPS call to Vault
     # that needs the CA trusted now, not at end-of-play handler flush.
-    - name: Update CA store
-      command: update-ca-certificates
+    - name: Update CA store # noqa: no-handler
+      ansible.builtin.command: update-ca-certificates
       when: root_ca_file.changed
+      changed_when: true
 
 # Trust the Vault SSH client CA so OIDC-signed certs (bin/vault-ssh) can log in.
 # The /public_key endpoint is unauthenticated; fetched over TLS validated by the

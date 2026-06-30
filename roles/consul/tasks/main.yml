@@ -1,5 +1,5 @@
 - name: Install consul packages
-  apt:
+  ansible.builtin.apt:
     name:
       - consul
       - consul-cni
@@ -7,7 +7,7 @@
     - Flag consul restart
 
 - name: Deploy consul base config
-  template:
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
   loop:
@@ -19,7 +19,7 @@
     - Flag consul restart
 
 - name: Deploy consul server config
-  template:
+  ansible.builtin.template:
     src: os/etc/consul.d/server.hcl.j2
     dest: /etc/consul.d/server.hcl
   when: "'consul_servers' in group_names"
@@ -27,7 +27,7 @@
     - Flag consul restart
 
 - name: Deploy consul client config
-  copy:
+  ansible.builtin.copy:
     src: os/etc/consul.d/client.hcl
     dest: /etc/consul.d/client.hcl
   when: "'consul_clients' in group_names"
@@ -35,6 +35,6 @@
     - Flag consul restart
 
 - name: Enable systemd service
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: consul.service
     enabled: true

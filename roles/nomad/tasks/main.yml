@@ -1,5 +1,5 @@
 - name: Install Apt packages
-  apt:
+  ansible.builtin.apt:
     name:
       - nomad
       - docker.io
@@ -13,17 +13,17 @@
 # daemon option, so the handler reloads (SIGHUP) rather than restarting Docker —
 # no running containers are disrupted.
 - name: Configure Docker registry mirror (Docker Hub pull-through cache)
-  copy:
+  ansible.builtin.copy:
     src: os/etc/docker/daemon.json
     dest: /etc/docker/daemon.json
   notify:
     - Reload docker
 
 - name: Perform hardware discovery
-  include_tasks: discovery.yml
+  ansible.builtin.include_tasks: discovery.yml
 
 - name: Update nomad client config
-  template:
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
   loop:
@@ -36,7 +36,7 @@
     - Flag nomad restart
 
 - name: Update nomad server config
-  copy:
+  ansible.builtin.copy:
     src: os/etc/nomad.d/server.hcl
     dest: /etc/nomad.d/server.hcl
   when: "'nomad_servers' in group_names"
@@ -44,7 +44,7 @@
     - Flag nomad restart
 
 - name: Enable systemd services
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: "{{ item }}"
     enabled: true
   with_list:
@@ -52,7 +52,7 @@
     - nomad.service
 
 - name: Deploy sysctl settings
-  copy:
+  ansible.builtin.copy:
     src: os/etc/sysctl.d/bridge.conf
     dest: /etc/sysctl.d
   notify:

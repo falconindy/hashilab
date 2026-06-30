@@ -1,5 +1,5 @@
 - name: Install Apt packages
-  apt:
+  ansible.builtin.apt:
     name:
       - vault
     dpkg_options: "force-confdef,force-confold"
@@ -8,12 +8,12 @@
     - Flag vault restart
 
 - name: Enable vault service
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: vault.service
     enabled: true
 
 - name: Update vault configuration
-  template:
+  ansible.builtin.template:
     src: os/etc/vault.d/vault.hcl.j2
     dest: /etc/vault.d/vault.hcl
   notify:

@@ -1,26 +1,26 @@
 - name: Install Apt packages
-  apt:
+  ansible.builtin.apt:
     name:
       - systemd-resolved
     dpkg_options: "force-confdef,force-confold"
     state: present
 
 - name: Update systemd-networkd config
-  copy:
+  ansible.builtin.copy:
     src: os/etc/systemd/network/80-dhcp.network
     dest: /etc/systemd/network/80-dhcp.network
   notify:
     - Reload systemd-networkd config
 
 - name: Update systemd-resolved config
-  copy:
+  ansible.builtin.copy:
     src: os/etc/systemd/resolved.conf.d
     dest: /etc/systemd
   notify:
     - Restart systemd-resolved
 
 - name: Enable systemd services
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: "{{ item }}"
     enabled: true
   with_list:

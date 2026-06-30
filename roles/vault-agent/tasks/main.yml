@@ -1,16 +1,16 @@
 - name: Deploy systemd service
-  copy:
+  ansible.builtin.copy:
     src: os/etc/systemd/system/vault-agent.service
     dest: /etc/systemd/system/vault-agent.service
 
 - name: Create config directory
-  file:
+  ansible.builtin.file:
     path: /etc/vault-agent.d
     state: directory
     mode: "0755"
 
 - name: Deploy config
-  template:
+  ansible.builtin.template:
     src: "os/etc/vault-agent.d/{{ item.src }}"
     dest: "/etc/vault-agent.d/{{ item.dest | default(item.src) }}"
   loop:
@@ -19,7 +19,7 @@
     - { src: agent.roleid }
 
 - name: Deploy consul vault-agent config
-  copy:
+  ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
   loop:
@@ -28,7 +28,7 @@
   when: "'consul_clients' in group_names or 'consul_servers' in group_names"
 
 - name: Deploy nomad vault-agent config
-  copy:
+  ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
   loop:
@@ -37,7 +37,7 @@
   when: "'nomad_clients' in group_names or 'nomad_servers' in group_names"
 
 - name: Deploy vault vault-agent config
-  copy:
+  ansible.builtin.copy:
     src: "os/etc/vault-agent.d/{{ item }}"
     dest: "/etc/vault-agent.d/{{ item }}"
   loop:
@@ -47,7 +47,7 @@
   when: "'vault_servers' in group_names"
 
 - name: Create vault TLS cert/key directories
-  file:
+  ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
     owner: vault
@@ -59,6 +59,6 @@
   when: "'vault_servers' in group_names"
 
 - name: Enable systemd services
-  systemd_service:
+  ansible.builtin.systemd_service:
     name: vault-agent.service
     enabled: true

@@ -1,7 +1,7 @@
 - name: Deploy All
   hosts: all
-  become: True
-  become_method: sudo
+  become: true
+  become_method: ansible.builtin.sudo
   roles:
     - role: base
       tags: ["base"]
@@ -38,10 +38,10 @@
   tags:
     - always
   tasks:
-    - name: Collect hosts needing a restart, per service
+    - name: Collect hosts needing a restart, per service # noqa: run-once[task]
       run_once: true
       delegate_to: localhost
-      set_fact:
+      ansible.builtin.set_fact:
         pending_restarts: >-
           {{
             pending_restarts | default({}) | combine({
@@ -57,7 +57,7 @@
         - nomad
         - vault
 
-    - name: Report rolling restarts to run
+    - name: Report rolling restarts to run # noqa: run-once[task]
       run_once: true
       delegate_to: localhost
       vars:

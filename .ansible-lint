@@ -1,0 +1,13 @@
+---
+# Rules deliberately deferred from the initial lint onboarding. Each is its own
+# follow-up, not a blocker for this pass — drop from skip_list once addressed.
+skip_list:
+  # Add explicit `mode:` to the ~16 config-deploy tasks. Some targets under
+  # vault.d want tighter-than-0644 perms, so this needs per-file judgement.
+  - risky-file-permissions
+  # Prefix role-internal vars (hardware_capabilities, usb_facts, root_ca_file)
+  # with the role name. hardware_capabilities is also read by client.hcl.j2.
+  - var-naming[no-role-prefix]
+  # Rename the vault-agent role to vault_agent. User-facing: also changes the
+  # documented `--tags vault-agent` invocation.
+  - role-name

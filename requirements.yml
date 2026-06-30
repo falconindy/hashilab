@@ -1,0 +1,11 @@
+---
+# Galaxy collections this playbook depends on. Install with:
+#   ansible-galaxy collection install -r requirements.yml
+# Version floors track what's currently deployed; bump deliberately.
+collections:
+  - name: community.general # usb_facts, alternatives
+    version: ">=13.0.0"
+  - name: community.hashi_vault # vault_read (root CA fetch)
+    version: ">=7.0.0"
+  - name: ansible.posix # mount (clusterdata NFS)
+    version: ">=2.0.0"

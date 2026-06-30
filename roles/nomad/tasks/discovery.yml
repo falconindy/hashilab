@@ -1,5 +1,5 @@
 - name: Initialize capability list
-  set_fact:
+  ansible.builtin.set_fact:
     hardware_capabilities: []
 
 - name: Gather USB facts
@@ -7,26 +7,26 @@
   register: usb_facts
 
 - name: Detect Zooz Z-Wave Controller
-  set_fact:
+  ansible.builtin.set_fact:
     hardware_capabilities: "{{ hardware_capabilities + ['zwave'] }}"
   when:
     # 1a86:55d4: QinHeng Electronics 800 Z-Wave Stick
     "'1a86:55d4' in ansible_facts['usb_devices'] | map(attribute='id')"
 
 - name: Detect Intel Quicksync
-  set_fact:
+  ansible.builtin.set_fact:
     hardware_capabilities: "{{ hardware_capabilities + ['quicksync'] }}"
   when: "'Intel(R) N100' in ansible_facts['processor']"
 
 - name: Detect UPS
-  set_fact:
+  ansible.builtin.set_fact:
     hardware_capabilities: "{{ hardware_capabilities + ['ups'] }}"
   when:
     # 051d:0003: American Power Conversion UPS
     "'051d:0003' in ansible_facts['usb_devices'] | map(attribute='id')"
 
 - name: Detect rtl433 radio
-  set_fact:
+  ansible.builtin.set_fact:
     hardware_capabilities: "{{ hardware_capabilities + ['rtl433'] }}"
   when:
     # Realtek Semiconductor Corp. RTL2838 DVB-T
