@@ -36,6 +36,10 @@ job "victorialogs" {
 
       config {
         image = "victoriametrics/victoria-logs:v1.51.0"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = [
           "-storageDataPath=/victoria-logs-data",
           "-retentionPeriod=90d",
