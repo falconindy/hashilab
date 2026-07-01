@@ -5,8 +5,7 @@
 # with it for the cert's lifetime. The CA is backed by your pocket-id OIDC login.
 #
 # This is how you drive Ansible without static keys:
-#   vault login -method=oidc
-#   bin/vault-ssh-agent                                  # loads a root cert
+#   bin/vault-ssh-agent                                  # logs in if needed, loads a root cert
 #   ansible-playbook site.yml -i inventory/hosts.yml     # connects as root
 #
 # The ephemeral keypair is generated in a temp dir and shredded on exit; ssh-add
@@ -15,8 +14,9 @@
 #
 # Prereqs:
 #   - a running ssh-agent ($SSH_AUTH_SOCK set)
-#   - `vault login -method=oidc` first (token allowed to sign: admin/ssh policy)
-#   - target hosts trust the Vault user CA (base role)
+#   - a Vault token allowed to sign (admin/ssh policy); if missing or expired,
+#     an OIDC login is triggered automatically
+#   - target hosts trust the Vault user CA (trust role)
 #
 # Usage: bin/vault-ssh-agent [principal]   (default: root)
 # Env:   VAULT_ADDR, VAULT_SSH_MOUNT, VAULT_SSH_ROLE, SSH_CERT_TTL
@@ -32,6 +32,14 @@ ttl=${SSH_CERT_TTL:-30m}
 if [[ -z ${SSH_AUTH_SOCK:-} ]]; then
   echo 'vault-ssh-agent: no ssh-agent ($SSH_AUTH_SOCK unset); start one with: eval "$(ssh-agent)"' >&2
   exit 1
+fi
+
+# Make sure we hold a usable Vault token before trying to sign; if the current
+# one is missing or expired, run the OIDC (pocket-id) login for you. stdout is
+# suppressed so login doesn't print the token; interactive prompts go to stderr.
+if ! vault token lookup >/dev/null 2>&1; then
+  echo 'vault-ssh-agent: no valid Vault token, logging in via OIDC...' >&2
+  vault login -method=oidc >/dev/null
 fi
 
 dir=$(mktemp -d)
