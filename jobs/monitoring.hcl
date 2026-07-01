@@ -370,7 +370,7 @@ job "monitoring" {
       }
 
       config {
-        image = "prom/prometheus:v3.12.0"
+        image = "prom/prometheus:v3.13.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
