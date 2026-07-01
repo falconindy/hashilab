@@ -1,9 +1,11 @@
 - name: Deploy All
-  hosts: all
+  # The Synology NAS is not Debian and can't take the apt/systemd roles below;
+  # it gets its own play at the end of this file.
+  hosts: all:!synology
   become: true
   become_method: ansible.builtin.sudo
   roles:
-    # OS-agnostic trust bootstrap — runs everywhere, including non-Debian hosts.
+    # OS-agnostic trust bootstrap.
     - role: trust
       tags: ["trust"]
 
@@ -79,3 +81,14 @@
           {% else %}
           All control-plane config converged; no rolling restart needed.
           {% endif %}
+
+# The Synology NAS: not Debian, so it runs its own thin role (Consul client
+# config only). Connection identity comes from group_vars/synology.yml.
+- name: Deploy Synology
+  hosts: synology
+  gather_facts: false
+  become: true
+  become_method: ansible.builtin.sudo
+  roles:
+    - role: synology
+      tags: ["synology"]

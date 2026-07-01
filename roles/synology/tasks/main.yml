@@ -1,0 +1,11 @@
+# Manage the Consul client config on the Synology NAS. Consul itself and its
+# TLS material (/opt/consul/tls, via bin/certctl.py) are managed out of band;
+# this role only owns consul.hcl and restarts the package when it changes.
+- name: Deploy Consul client config
+  ansible.builtin.template:
+    src: consul.hcl.j2
+    dest: "{{ synology_consul_config_dir }}/consul.hcl"
+    owner: consul
+    group: consul
+    mode: "0600"
+  notify: Restart consul

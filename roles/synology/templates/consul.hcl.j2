@@ -1,0 +1,82 @@
+datacenter = "global"
+
+data_dir = "/volume1/consul/var/lib/consul"
+
+domain = "home."
+alt_domain = "consul."
+
+ui_config {
+  enabled = true
+}
+
+encrypt = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
+encrypt_verify_incoming = true
+encrypt_verify_outgoing = true
+
+tls {
+  defaults {
+    verify_incoming        = true
+    verify_outgoing        = true
+    verify_server_hostname = true
+
+    ca_file   = "/opt/consul/tls/home-ca.pem"
+    cert_file = "/opt/consul/tls/tls.crt"
+    key_file  = "/opt/consul/tls/tls.key"
+  }
+  https {
+    verify_incoming = false
+  }
+}
+
+ports {
+  http = 8500
+  https = 8501
+  grpc = 8502
+  grpc_tls = 8503
+}
+
+server = false
+enable_syslog = true
+
+client_addr = "0.0.0.0"
+{# GetInterfaceIP is consul's own go-sockaddr template, rendered at runtime;
+   {% raw %} stops Ansible's Jinja from touching it. #}
+bind_addr      = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
+advertise_addr = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
+
+retry_join = {{ groups["consul_servers"] | map('extract', hostvars, 'ansible_host') | list | to_json }}
+
+services {
+  id   = "consul-client"
+  name = "consul-client"
+  port = 8501
+
+  check {
+    id       = "consul-client"
+    name     = "Consul HTTPS"
+    http     = "https://localhost:8501/v1/status/leader"
+    interval = "10s"
+    timeout  = "1s"
+  }
+}
+
+services {
+  id   = "nas"
+  name = "nas"
+  port = 5000
+  tags = [
+    "traefik.enable=true",
+  ]
+
+  check {
+    id       = "synology"
+    name     = "synology-dsm"
+    tcp      = "localhost:5000"
+    interval = "10s"
+  }
+}
+
+telemetry {
+  disable_hostname          = true
+  prometheus_retention_time = "72h"
+}

@@ -1,0 +1,15 @@
+---
+# DSM is not Debian and does not permit direct root SSH: connect as the admin
+# user (overriding remote_user=root from ansible.cfg) and escalate with
+# passwordless sudo. Escalation itself is declared on the Deploy Synology play.
+ansible_user: nasty
+# DSM's built-in /usr/bin/python3 is 3.8, too old for ansible-core. Use the
+# SynoCommunity Python3 package instead.
+ansible_python_interpreter: /var/packages/python314/target/bin/python3
+
+# DSM's sftp/scp subsystems are flaky under Ansible; dd-over-SSH is reliable.
+ansible_ssh_transfer_method: piped
+
+# Consul on DSM: SynoCommunity `consul` package, config read from -config-dir.
+synology_consul_config_dir: /volume1/consul/etc/consul.d
+synology_consul_package: consul
