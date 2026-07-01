@@ -36,6 +36,9 @@ job "grafana" {
         image       = "grafana/grafana:13.1.0"
         userns_mode = "host"
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/grafana:/var/lib/grafana:rw",
