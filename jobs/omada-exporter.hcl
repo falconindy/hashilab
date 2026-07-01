@@ -27,10 +27,14 @@ job "omada-exporter" {
 
     task "server" {
       driver = "docker"
+      user   = "1000:1000"
 
       config {
         image = "rcooler/omada_exporter:2.2.1"
         ports = ["metrics"]
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
 
         volumes = [
           "/etc/ssl/certs:/etc/ssl/certs:ro",
