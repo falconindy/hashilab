@@ -33,6 +33,12 @@ job "x509-exporter" {
         image = "enix/x509-certificate-exporter:3.21.0-alpine"
         ports = ["metrics"]
 
+        # Kept as root: it reads root-owned host cert dirs (/etc/vault.d/certs).
+        # cap_drop + no-new-privileges still shrink the blast radius of the
+        # root process without risking those reads.
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = [
           "--watch-dir=/certs/vault",
           "--watch-dir=/certs/trust",
