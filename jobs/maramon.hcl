@@ -17,10 +17,14 @@ job "maramon" {
 
     task "server" {
       driver = "docker"
+      user   = "1000:1000"
 
       config {
         image      = "docker-registry.service.home/maramon:latest"
         force_pull = true
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
       }
 
       env {
