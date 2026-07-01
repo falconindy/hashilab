@@ -1,5 +1,11 @@
 - name: Add HashiCorp Repository
   block:
+    # ansible.builtin.deb822_repository dependency requires python3-debian
+    - name: Ensure python3-debian is present
+      ansible.builtin.apt:
+        name: python3-debian
+        state: present
+
     - name: Add HashiCorp APT repository key
       ansible.builtin.get_url:
         url: https://apt.releases.hashicorp.com/gpg
@@ -8,10 +14,20 @@
         mode: "0644"
 
     - name: Configure HashiCorp APT repository
-      ansible.builtin.apt_repository:
-        repo: >-
-          deb [signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.asc]
-          https://apt.releases.hashicorp.com
-          {{ ansible_facts['distribution_release'] }} main
-        filename: hashicorp
+      ansible.builtin.deb822_repository:
+        name: hashicorp
+        types: deb
+        uris: https://apt.releases.hashicorp.com
+        suites: "{{ ansible_facts['distribution_release'] }}"
+        components: main
+        signed_by: /etc/apt/keyrings/hashicorp-archive-keyring.asc
         state: present
+      register: hashicorp_common_repo
+
+    # Inline, not a handler: the consul/nomad/vault roles that depend on this one
+    # apt-install straight after, so on a fresh host the cache must be refreshed
+    # now, not at end-of-play handler flush.
+    - name: Refresh apt cache when the HashiCorp repo changed # noqa: no-handler
+      ansible.builtin.apt:
+        update_cache: true
+      when: hashicorp_common_repo.changed
