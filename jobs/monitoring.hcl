@@ -30,6 +30,10 @@ job "monitoring" {
 
       config {
         image = "prom/blackbox-exporter:v0.28.0"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = [
           "--config.file", "local/blackbox.yml",
         ]
@@ -367,6 +371,10 @@ job "monitoring" {
 
       config {
         image = "prom/prometheus:v3.12.0"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
           "--storage.tsdb.retention.time", "900d",
