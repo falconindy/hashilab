@@ -19,9 +19,9 @@ tls {
     verify_outgoing        = true
     verify_server_hostname = true
 
-    ca_file   = "/opt/consul/tls/home-ca.pem"
-    cert_file = "/opt/consul/tls/tls.crt"
-    key_file  = "/opt/consul/tls/tls.key"
+    ca_file   = "/volume1/consul/etc/consul.d/home-ca.pem"
+    cert_file = "/volume1/consul/etc/consul.d/tls.crt"
+    key_file  = "/volume1/consul/etc/consul.d/tls.key"
   }
   https {
     verify_incoming = false

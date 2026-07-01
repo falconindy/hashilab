@@ -15,27 +15,15 @@ import subprocess
 import sys
 
 
-class OSFlavor(Enum):
-    DEBIAN = auto()
-    SYNOLOGY = auto()
-
-
 @dataclass(frozen=True)
 class Server:
     hostname: str
     ip_address: str
-    os: OSFlavor = OSFlavor.DEBIAN
-    has_vault: bool = False
-    has_consul: bool = False
 
 
-CLUSTER_CLIENTS = (
-    Server(
-        hostname="nasty.node.home",
-        ip_address="10.0.100.50",
-        os=OSFlavor.SYNOLOGY,
-        has_consul=True,
-    ),
+NASTY = Server(
+    hostname="nasty.node.home",
+    ip_address="10.0.100.50",
 )
 
 logger = logging.getLogger("certctl")
@@ -147,16 +135,11 @@ class SshCertDeployer:
         self.write_file(f"{destdir}/tls.crt", formatter.certificate())
         self.write_file(f"{destdir}/tls.key", formatter.private_key())
 
-    def reload_service(self, service: str, os: OSFlavor) -> None:
-        if os == OSFlavor.SYNOLOGY:
-            # there's no reload verb, sadly.
-            stdin, stdout, stderr = self._client.exec_command(
-                f"sudo /usr/syno/bin/synopkg restart {service}"
-            )
-        else:  # assume debian (and sanity)
-            stdin, stdout, stderr = self._client.exec_command(
-                f"sudo systemctl reload {service}"
-            )
+    def reload_synology_service(self, service: str) -> None:
+        # there's no reload verb, sadly.
+        stdin, stdout, stderr = self._client.exec_command(
+            f"sudo /usr/syno/bin/synopkg restart {service}"
+        )
 
         error = stderr.read().decode()
         if error:
@@ -226,33 +209,27 @@ class CertGenerator:
 
 
 def renew_consul_certificates() -> None:
-    certs = dict()
-    generator = CertGenerator()
+    server = Server(hostname="nasty.node.home", ip_address="10.0.100.50")
 
-    for server in CLUSTER_CLIENTS:
-        if not server.has_consul:
-            continue
+    logger.info(f"generating certificate for {server.hostname}")
+    cert = CertGenerator().generate(
+        mount_point="pki_int_internal",
+        role="intermediate",
+        common_name="consul.service.home",
+        sans=[
+            server.ip_address,
+            "client.global.home",
+            "127.0.0.1",
+            "localhost",
+        ],
+    )
 
-        logger.info(f"generating certificate for {server.hostname}")
-        certs[server] = generator.generate(
-            mount_point="pki_int_internal",
-            role="intermediate",
-            common_name="consul.service.home",
-            sans=[
-                server.ip_address,
-                "client.global.home",
-                "127.0.0.1",
-                "localhost",
-            ],
-        )
+    with SshCertDeployer(server.hostname) as d:
+        logger.info(f"writing new certificates to {server.hostname}")
+        d.write_certs(f"/volume1/consul/etc/consul.d", cert)
 
-    for server, cert in certs.items():
-        with SshCertDeployer(server.hostname) as d:
-            logger.info(f"writing new certificates to {server.hostname}")
-            d.write_certs(f"/opt/consul/tls", cert)
-
-            logger.info(f"reloading consul on {server.hostname}")
-            d.reload_service(prog, os=server.os)
+        logger.info(f"reloading consul on {server.hostname}")
+        d.reload_synology_service("consul")
 
 
 def renew_omada_certificates() -> None:
