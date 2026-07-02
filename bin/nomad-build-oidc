@@ -37,7 +37,7 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 
 # Ensure the admin policy exists (upsert; safe to re-run).
-nomad acl policy apply -description "day-to-day admin" admin "$repo_root/nomad-admin.hcl"
+nomad acl policy apply -description "day-to-day admin" admin "$repo_root/nomad/policies/admin.hcl"
 
 # Auth method config goes in a temp file so the client secret stays out of the
 # process arguments. Clean it up on exit.

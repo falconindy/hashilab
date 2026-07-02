@@ -27,6 +27,14 @@
     - role: nomad
       tags: ["nomad"]
 
+    # Reconcile Nomad ACL policies from nomad/policies/*.hcl. Like vault_policies
+    # below, this is control-node, run-once, API work — kept in this real-host
+    # play (not a hosts: localhost play) so group_vars/all.yml's nomad_addr is in
+    # scope via delegate_to: localhost. Needs a *management* token in NOMAD_TOKEN
+    # (Nomad ACL admin can't be granted by any policy).
+    - role: nomad_policies
+      tags: ["nomad_policies"]
+
     - role: vault
       tags: ["vault"]
       when: "'vault_servers' in group_names"

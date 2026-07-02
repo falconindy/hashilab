@@ -4,3 +4,5 @@
 # inventory group/host vars instead.
 vault_domain: vault.service.home
 vault_addr: "https://{{ vault_domain }}:8200"
+nomad_domain: nomad.service.home
+nomad_addr: "https://{{ nomad_domain }}:4646"
