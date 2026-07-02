@@ -64,13 +64,21 @@ JSON
 # `create` takes -name as a flag; `update` takes the name as a positional arg.
 if nomad acl auth-method list -json | grep -q '"Name": *"pocket-id"'; then
   nomad acl auth-method update \
-    -type=OIDC -default=true \
-    -max-token-ttl=8h -token-locality=global \
-    -config=@"$cfg" pocket-id
+    -type=OIDC \
+    -default=true \
+    -token-name-format="\${auth_method_type}-\${auth_method_name}" \
+    -max-token-ttl=8h \
+    -token-locality=global \
+    -config=@"$cfg" \
+    pocket-id
 else
   nomad acl auth-method create \
-    -name=pocket-id -type=OIDC -default=true \
-    -max-token-ttl=8h -token-locality=global \
+    -name=pocket-id \
+    -type=OIDC \
+    -default=true \
+    -token-name-format="\${auth_method_type}-\${auth_method_name}" \
+    -max-token-ttl=8h \
+    -token-locality=global \
     -config=@"$cfg"
 fi
 
