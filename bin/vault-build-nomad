@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# vault-build-nomad — stand up Vault's Nomad secrets engine so you can mint
+# short-lived, lease-bound Nomad management tokens on demand
+# (`vault read nomad/creds/mgmt`) instead of carrying the static Nomad bootstrap
+# token. When the Vault lease ends, Vault deletes the Nomad token.
+#
+# This is the Vault->Nomad direction (Vault issues Nomad tokens). It is NOT the
+# Nomad->Vault workload-identity flow — that is the `nomad-workloads` policy
+# plus Nomad's `default_identity` block, and is unrelated to this engine.
+#
+# One role is created:
+#   mgmt  -> Nomad *management* token, global. This is the break-glass path for
+#            ACL administration (creating tokens/policies/auth-methods/binding-
+#            rules requires a management token, and no Nomad ACL *policy* can
+#            grant that). Day-to-day access is a separate concern: pocket-id
+#            OIDC login yields a client token with the `admin` policy, which
+#            already covers everything short of ACL management — so this engine
+#            deliberately mints ONLY management tokens, filling the one gap OIDC
+#            login can't. (A scoped, lesser role belongs here only once a
+#            non-admin consumer — CI, a second operator — actually exists.)
+#
+# ── IMPORTANT: the engine is configured with a DEDICATED management token, not
+# the bootstrap token. ───────────────────────────────────────────────────────
+# The engine needs a Nomad management token to create/revoke child tokens, and
+# that token is stored in `nomad/config/access`. If you seed it with the
+# *bootstrap* token and later revoke the bootstrap token (the whole point of
+# this setup), the engine dies — and because OIDC logins are client-type
+# `admin` (a policy bind, not management), you'd have NO path left to a
+# management token. Total lockout. So this script MINTS a dedicated management
+# token ("vault-nomad-secrets-engine") and configures the engine with that.
+# Retiring the bootstrap token afterwards is then safe. Re-running rotates the
+# dedicated token (its Secret ID is only shown at creation, so it can't be
+# recovered — a fresh one is minted and prior same-named tokens are deleted).
+#
+# Prereqs:
+#   - A Nomad *management* token in your env, used ONCE to mint the dedicated
+#     engine token (never stored by this script):
+#       export NOMAD_TOKEN=<a management token>   # bootstrap, or vault-minted
+#   - jq
+#
+# Run with a Vault token that can enable secret engines (your OIDC admin login):
+#   vault login -method=oidc
+#   NOMAD_TOKEN=<mgmt> bin/vault-build-nomad
+#
+# Once it succeeds, prove minting works and retire the bootstrap token:
+#   vault read nomad/creds/mgmt
+#   nomad acl token delete <bootstrap-accessor-id>
+
+set -euo pipefail
+
+export VAULT_ADDR=${VAULT_ADDR:-https://vault.service.home:8200}
+export NOMAD_ADDR=${NOMAD_ADDR:-https://nomad.service.home:4646}
+
+: "${NOMAD_TOKEN:?set NOMAD_TOKEN to a Nomad management token (used only to mint the dedicated engine token; never stored)}"
+
+mount=${VAULT_NOMAD_MOUNT:-nomad}
+engine_token_name=${NOMAD_ENGINE_TOKEN_NAME:-vault-nomad-secrets-engine}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+
+mount_exists() {
+  vault read "sys/mounts/$1" &>/dev/null
+}
+
+# 1. Enable the Nomad secrets engine (idempotent).
+if mount_exists "$mount"; then
+  echo "INFO: $mount already enabled, skipping enable"
+else
+  vault secrets enable -path="$mount" nomad
+fi
+
+# 2. Mint a DEDICATED management token for the engine and point the engine at
+#    it, THEN retire any prior same-named tokens. Configuring the engine before
+#    deleting the old tokens means the engine is never left without a working
+#    credential.
+echo "INFO: minting dedicated management token '$engine_token_name'"
+new_token_json=$(nomad acl token create \
+  -type=management -global -name="$engine_token_name" -json)
+new_secret=$(jq -r '.SecretID' <<<"$new_token_json")
+new_accessor=$(jq -r '.AccessorID' <<<"$new_token_json")
+
+vault write "$mount/config/access" \
+  address="$NOMAD_ADDR" \
+  token="$new_secret"
+
+old_accessors=$(nomad acl token list -json \
+  | jq -r --arg name "$engine_token_name" --arg keep "$new_accessor" \
+      '.[] | select(.Name == $name and .AccessorID != $keep) | .AccessorID')
+for acc in $old_accessors; do
+  echo "INFO: deleting superseded engine token $acc"
+  nomad acl token delete "$acc"
+done
+
+# 3. The mgmt role: full management token, global across regions. `vault write`
+#    upserts, so this is idempotent.
+vault write "$mount/role/mgmt" type=management global=true
+
+# 4. Vault policy granting read on the mgmt creds path, so a non-admin identity
+#    can be delegated Nomad-token-minting without full Vault admin. The `admin`
+#    policy already covers this via path "*"; this exists for least-privilege
+#    delegation, mirroring how ssh.hcl complements admin.
+vault policy write nomad-user-policy "$repo_root/vault/policies/nomad-user-policy.hcl"
+
+echo
+echo "Vault Nomad secrets engine configured on mount '$mount'."
+echo "  role: mgmt (management/global)"
+echo
+echo "Mint a break-glass management token:"
+echo "    vault read $mount/creds/mgmt"
+echo
+echo "The engine now uses its own dedicated management token ($new_accessor),"
+echo "so you can safely retire the bootstrap token:"
+echo "    nomad acl token delete <bootstrap-accessor-id>"
