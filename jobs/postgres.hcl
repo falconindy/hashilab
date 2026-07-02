@@ -27,9 +27,13 @@ job "postgres" {
 
     task "server" {
       driver = "docker"
+      user   = "999:999"
 
       config {
         image = "postgres:17.10"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
 
         volumes = [
           "/clusterdata/postgres:/appdata/postgres",
