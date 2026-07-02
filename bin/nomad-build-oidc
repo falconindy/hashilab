@@ -52,6 +52,7 @@ cat >"$cfg" <<JSON
   "OIDCScopes": ["openid", "profile"],
   "OIDCEnablePKCE": true,
   "BoundAudiences": ["${OIDC_CLIENT_ID}"],
+  "ClaimMappings": { "preferred_username": "user" },
   "AllowedRedirectURIs": [
     "https://nomad.service.home:4646/ui/settings/tokens",
     "http://localhost:4649/oidc/callback"
@@ -66,7 +67,7 @@ if nomad acl auth-method list -json | grep -q '"Name": *"pocket-id"'; then
   nomad acl auth-method update \
     -type=OIDC \
     -default=true \
-    -token-name-format="\${auth_method_type}-\${auth_method_name}" \
+    -token-name-format="\${auth_method_name}-\${value.user}" \
     -max-token-ttl=8h \
     -token-locality=global \
     -config=@"$cfg" \
@@ -76,7 +77,7 @@ else
     -name=pocket-id \
     -type=OIDC \
     -default=true \
-    -token-name-format="\${auth_method_type}-\${auth_method_name}" \
+    -token-name-format="\${auth_method_name}-\${value.user}" \
     -max-token-ttl=8h \
     -token-locality=global \
     -config=@"$cfg"
