@@ -27,9 +27,14 @@ job "mqtt-explorer" {
 
     task "server" {
       driver = "docker"
+      user   = "1000:1000"
 
       config {
         image = "smeagolworms4/mqtt-explorer:browser-1.0.3"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/clusterdata/mqtt-explorer:/mqtt-explorer/config:rw"
         ]
