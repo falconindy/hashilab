@@ -59,7 +59,7 @@ vault write auth/oidc/role/admin \
   oidc_scopes="profile email" \
   allowed_redirect_uris="$redirect_uris" \
   token_policies="admin" \
-  token_ttl="1h" \
+  token_ttl="2h" \
   token_max_ttl="8h"
 
 echo
