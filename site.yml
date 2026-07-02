@@ -31,6 +31,13 @@
       tags: ["vault"]
       when: "'vault_servers' in group_names"
 
+    # Reconcile Vault ACL policies from vault/policies/*.hcl. Control-node,
+    # run-once, operator-token work (see the role) — kept in this real-host play
+    # (not a hosts: localhost play) so group_vars/all.yml's vault_addr is in
+    # scope via delegate_to: localhost.
+    - role: vault_policies
+      tags: ["vault_policies"]
+
     - role: vault_agent
       tags: ["vault_agent"]
 

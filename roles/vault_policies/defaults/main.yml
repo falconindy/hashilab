@@ -1,0 +1,10 @@
+# Policies that exist in Vault but are never managed from this repo, so the
+# prune step must never delete them. `default` and `root` are Vault built-ins.
+# Extend this list if you keep any hand-managed policies outside vault/policies/.
+vault_policies_protected:
+  - default
+  - default-ceiling
+  - root
+
+# Where the repo's policy files live, relative to the playbook (repo root).
+vault_policies_dir: "{{ playbook_dir }}/vault/policies"

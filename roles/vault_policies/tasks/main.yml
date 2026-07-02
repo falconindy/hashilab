@@ -1,0 +1,54 @@
+# Manage Vault ACL policies from vault/policies/*.hcl as the source of truth.
+#
+# Unlike the rest of the vault role (per-host daemon install/config), policy
+# management is a single set of API calls against the cluster, so it runs once
+# from the control node against the Vault API. Auth is the operator's token
+# (VAULT_TOKEN in the environment, from `vault login -method=oidc`); the `admin`
+# policy grants sys/policies/acl/*. Mirrors the trust role's control-node reads.
+#
+# NOTE: vault_write can't diff normalized HCL, so writes always report `changed`.
+- name: Manage Vault ACL policies
+  run_once: true
+  delegate_to: localhost
+  block:
+    - name: Discover policy files in the repo
+      ansible.builtin.set_fact:
+        vault_policies_files: "{{ query('fileglob', vault_policies_dir ~ '/*.hcl') }}"
+
+    - name: Compute desired policy names
+      ansible.builtin.set_fact:
+        # basename minus .hcl — nomad-server.hcl -> policy "nomad-server".
+        vault_policies_desired: "{{ vault_policies_files | map('basename') | map('splitext') | map('first') | list }}"
+
+    - name: Write policies from the repo
+      community.hashi_vault.vault_write:
+        url: "{{ vault_addr }}"
+        path: "sys/policies/acl/{{ item | basename | splitext | first }}"
+        data:
+          policy: "{{ lookup('file', item) }}"
+      loop: "{{ vault_policies_files }}"
+      loop_control:
+        label: "{{ item | basename }}"
+
+    - name: List policies currently in Vault
+      community.hashi_vault.vault_list:
+        url: "{{ vault_addr }}"
+        path: sys/policies/acl
+      register: vault_policies_existing
+      check_mode: false
+
+    # community.hashi_vault 7.1.0 ships no vault_delete module, so prune via the
+    # raw API. Token comes from VAULT_TOKEN in the environment, same operator
+    # login the writes above authenticate with.
+    - name: Prune policies not tracked in the repo
+      ansible.builtin.uri:
+        url: "{{ vault_addr }}/v1/sys/policies/acl/{{ item }}"
+        method: DELETE
+        headers:
+          X-Vault-Token: "{{ lookup('ansible.builtin.env', 'VAULT_TOKEN') }}"
+        status_code: [204]
+      # `.data['keys']` (subscript, not .keys — that's the dict method) is the
+      # list-endpoint payload. Anything in Vault but not in the repo, minus the
+      # protected built-ins, is a stray and gets deleted.
+      loop: "{{ vault_policies_existing.data['keys'] | difference(vault_policies_desired) | difference(vault_policies_protected) }}"
+      changed_when: true
