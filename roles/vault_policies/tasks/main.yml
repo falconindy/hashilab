@@ -56,8 +56,12 @@
         headers:
           X-Vault-Token: "{{ vault_operator_token }}"
         status_code: [204]
-      # `.data['keys']` (subscript, not .keys — that's the dict method) is the
-      # list-endpoint payload. Anything in Vault but not in the repo, minus the
-      # protected built-ins, is a stray and gets deleted.
-      loop: "{{ vault_policies_existing.data['keys'] | difference(vault_policies_desired) | difference(vault_policies_protected) }}"
+      # Double `.data`: the module returns hvac's full response under `data`, and
+      # the Vault list payload is nested one level down again — so the key list
+      # is at `.data.data['keys']`. Use `['keys']` subscript, not `.keys` (that's
+      # the dict method, and Ansible's attr-fallback resolves to it and blows up
+      # the filter — the "'builtin_function_or_method' object is not iterable"
+      # error). Anything in Vault but not in the repo, minus the protected
+      # built-ins, is a stray and gets deleted.
+      loop: "{{ vault_policies_existing.data.data['keys'] | difference(vault_policies_desired) | difference(vault_policies_protected) }}"
       changed_when: true
