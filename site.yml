@@ -32,8 +32,11 @@
     # play (not a hosts: localhost play) so group_vars/all.yml's nomad_addr is in
     # scope via delegate_to: localhost. Needs a *management* token in NOMAD_TOKEN
     # (Nomad ACL admin can't be granted by any policy).
+    #
+    # `never` keeps it out of full/`--tags all` runs — policy reconciliation
+    # (which can prune) must be opt-in. Run it explicitly: `--tags nomad_policies`.
     - role: nomad_policies
-      tags: ["nomad_policies"]
+      tags: ["nomad_policies", "never"]
 
     - role: vault
       tags: ["vault"]
@@ -43,8 +46,11 @@
     # run-once, operator-token work (see the role) — kept in this real-host play
     # (not a hosts: localhost play) so group_vars/all.yml's vault_addr is in
     # scope via delegate_to: localhost.
+    #
+    # `never` keeps it out of full/`--tags all` runs — policy reconciliation
+    # (which can prune) must be opt-in. Run it explicitly: `--tags vault_policies`.
     - role: vault_policies
-      tags: ["vault_policies"]
+      tags: ["vault_policies", "never"]
 
     - role: vault_agent
       tags: ["vault_agent"]
