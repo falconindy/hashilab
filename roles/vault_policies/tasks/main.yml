@@ -6,10 +6,18 @@
 # (VAULT_TOKEN in the environment, from `vault login -method=oidc`); the `admin`
 # policy grants sys/policies/acl/*. Mirrors the trust role's control-node reads.
 #
+# The token is passed explicitly (not left to the module's own env discovery):
+# this play runs with become: true, and even delegated to localhost the module
+# executes under sudo, which scrubs VAULT_TOKEN from the environment. The
+# lookup below evaluates on the controller in-process, before sudo, so it sees
+# the real token — same reason the prune step reads it this way.
+#
 # NOTE: vault_write can't diff normalized HCL, so writes always report `changed`.
 - name: Manage Vault ACL policies
   run_once: true
   delegate_to: localhost
+  vars:
+    vault_operator_token: "{{ lookup('ansible.builtin.env', 'VAULT_TOKEN') }}"
   block:
     - name: Discover policy files in the repo
       ansible.builtin.set_fact:
@@ -23,6 +31,7 @@
     - name: Write policies from the repo
       community.hashi_vault.vault_write:
         url: "{{ vault_addr }}"
+        token: "{{ vault_operator_token }}"
         path: "sys/policies/acl/{{ item | basename | splitext | first }}"
         data:
           policy: "{{ lookup('file', item) }}"
@@ -33,19 +42,19 @@
     - name: List policies currently in Vault
       community.hashi_vault.vault_list:
         url: "{{ vault_addr }}"
+        token: "{{ vault_operator_token }}"
         path: sys/policies/acl
       register: vault_policies_existing
       check_mode: false
 
     # community.hashi_vault 7.1.0 ships no vault_delete module, so prune via the
-    # raw API. Token comes from VAULT_TOKEN in the environment, same operator
-    # login the writes above authenticate with.
+    # raw API. Same operator token the writes above authenticate with.
     - name: Prune policies not tracked in the repo
       ansible.builtin.uri:
         url: "{{ vault_addr }}/v1/sys/policies/acl/{{ item }}"
         method: DELETE
         headers:
-          X-Vault-Token: "{{ lookup('ansible.builtin.env', 'VAULT_TOKEN') }}"
+          X-Vault-Token: "{{ vault_operator_token }}"
         status_code: [204]
       # `.data['keys']` (subscript, not .keys — that's the dict method) is the
       # list-endpoint payload. Anything in Vault but not in the repo, minus the
