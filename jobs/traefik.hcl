@@ -82,9 +82,19 @@ job "traefik" {
       config {
         image = "traefik:v3.7.6"
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
         ]
+      }
+
+      vault {}
+
+      template {
+        data        = <<-EOF
+          {{- with secret "pki_int/cert/ca_chain" }}
+            {{- .Data.ca_chain }}
+          {{ end }}
+        EOF
+        destination = "local/home.pem"
       }
 
       template {
@@ -169,8 +179,10 @@ job "traefik" {
               defaultRule: Host(`{{ .Name }}.service.home`)
 
               endpoint:
-                address: 172.17.0.1:8500
-                scheme: http
+                address: consul.service.home:8501
+                scheme: https
+                tls:
+                  ca: [[ env "NOMAD_TASK_DIR" ]]/home.pem
 
             file:
               filename: local/static_providers.yml
@@ -180,6 +192,8 @@ job "traefik" {
               acme:
                 email: d@falconindy.com
                 storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.vault.json
+                caCertificates:
+                  - [[ env "NOMAD_TASK_DIR" ]]/home.pem
                 caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
                 httpChallenge:
                   entryPoint: http

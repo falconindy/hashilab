@@ -56,5 +56,7 @@ seal "gcpckms" {
 }
 
 service_registration "consul" {
-  address = "http://127.0.0.1:8500"
+  address     = "127.0.0.1:8501"
+  scheme      = "https"
+  tls_ca_file = "/etc/ssl/certs/home.pem"
 }

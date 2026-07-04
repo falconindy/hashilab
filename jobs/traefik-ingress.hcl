@@ -88,13 +88,21 @@ job "traefik-ingress" {
       config {
         image = "traefik:v3.7.6"
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
           "/clusterdata/traefik/plugins/geoblock-0.3.7:/plugins-local/src/github.com/PascalMinder/geoblock:ro",
         ]
       }
 
       vault {}
+
+      template {
+        data        = <<-EOF
+          {{- with secret "pki_int/cert/ca_chain" }}
+            {{- .Data.ca_chain }}
+          {{ end }}
+        EOF
+        destination = "local/home.pem"
+      }
 
       template {
         left_delimiter  = "[["
@@ -190,8 +198,10 @@ job "traefik-ingress" {
               defaultRule: Host(`{{ .Name }}.falconindy.com`)
 
               endpoint:
-                address: 172.17.0.1:8500
-                scheme: http
+                address: consul.service.home:8501
+                scheme: https
+                tls:
+                  ca: [[ env "NOMAD_TASK_DIR" ]]/home.pem
 
             file:
               filename: local/static_providers.yml
