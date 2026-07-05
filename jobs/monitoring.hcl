@@ -38,7 +38,7 @@ job "monitoring" {
           "--config.file", "local/blackbox.yml",
         ]
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
         ]
       }
 
@@ -214,8 +214,8 @@ job "monitoring" {
                 module: [tls_connect]
               consul_sd_configs:
                 - server: consul.service.home:8501
-                  services: [nomad-client, consul-client, vault, omada-controller]
                   scheme: https
+                  services: [nomad-client, consul-client, vault, omada-controller]
               # A relabeling config that lets us scrape target through the Blackbox Exporter,
               # while labeling the resulting metrics with the probed target's URL.
               relabel_configs:
@@ -385,7 +385,7 @@ job "monitoring" {
         ]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
           "/clusterdata/prometheus:/opt/prometheus:rw",
         ]
       }

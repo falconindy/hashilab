@@ -36,7 +36,7 @@ job "homeassistant" {
         image = "homeassistant/home-assistant:2026.7.1"
         volumes = [
           "/run/dbus:/run/dbus",
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
           "/clusterdata/homeassistant:/config:rw",
         ]
       }

@@ -37,7 +37,7 @@ job "omada-exporter" {
         security_opt = ["no-new-privileges=true"]
 
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
+          "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
         ]
       }
 

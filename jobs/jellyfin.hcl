@@ -47,7 +47,6 @@ job "jellyfin" {
         ports = ["discovery"]
 
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/jellyfin:/config:rw",
           "/clusterdata/media:/media:rw",
         ]

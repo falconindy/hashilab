@@ -40,7 +40,6 @@ job "grafana" {
         security_opt = ["no-new-privileges=true"]
 
         volumes = [
-          "/etc/ssl/certs:/etc/ssl/certs:ro",
           "/clusterdata/grafana:/var/lib/grafana:rw",
           "local/victorialogs.yml:/etc/grafana/provisioning/datasources/victorialogs.yml:ro",
           "local/dashboards.yml:/etc/grafana/provisioning/dashboards/hashilab.yml:ro",
