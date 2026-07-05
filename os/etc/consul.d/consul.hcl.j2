@@ -47,6 +47,16 @@ tls {
   }
 }
 
+acl {
+  # Stage 1: permissive while tokens are provisioned. Flip to "deny" (Stage 4)
+  # only after agent tokens, anonymous read, Nomad workload identity, and Vault
+  # registration are all in place — otherwise the cluster fails closed.
+  enabled                  = true
+  default_policy           = "allow"
+  down_policy              = "extend-cache"
+  enable_token_persistence = true
+}
+
 http_config {
   response_headers {
     "Access-Control-Expose-Headers" = "X-Consul-Index, X-Consul-Knownleader, X-Consul-Lastcontact"

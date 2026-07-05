@@ -28,6 +28,14 @@ tls {
   }
 }
 
+acl {
+  # Stage 1: permissive. Flip to "deny" only once the NAS agent has a token set.
+  enabled                  = true
+  default_policy           = "allow"
+  down_policy              = "extend-cache"
+  enable_token_persistence = true
+}
+
 ports {
   http     = -1
   https    = 8501
