@@ -30,7 +30,7 @@ job "omada-exporter" {
       user   = "1000:1000"
 
       config {
-        image = "rcooler/omada_exporter:2.2.1"
+        image = "rcooler/omada_exporter:2.3.0"
         ports = ["metrics"]
 
         cap_drop     = ["all"]
