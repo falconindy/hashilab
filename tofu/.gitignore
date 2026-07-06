@@ -1,0 +1,31 @@
+# OpenTofu / Terraform
+
+# Provider plugins and module cache
+.terraform/
+
+# State — CONTAINS SECRETS (e.g. the Nomad management token in
+# module.vault_nomad, OIDC client secrets). Never commit these; use an
+# encrypted/remote backend for the real thing.
+*.tfstate
+*.tfstate.*
+
+# Saved plan files can embed secret values from the diff.
+*.tfplan
+tfplan
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Variable files — secrets are passed via TF_VAR_ env, not committed tfvars.
+*.tfvars
+*.tfvars.json
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# NOTE: .terraform.lock.hcl is intentionally committed (dependency lock) — do
+# not add it here.

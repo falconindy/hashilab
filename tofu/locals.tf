@@ -1,0 +1,22 @@
+# Single source of truth for values shared across modules. Terraform locals and
+# variables do NOT cross module boundaries, so each module still declares its own
+# input (that's module encapsulation) — but the *value* lives here once and is
+# passed in explicitly below, instead of repeating the literal in every block.
+#
+# Note these are cluster *data* (baked into issued-cert URLs and OIDC redirect
+# URIs), not provider connection config — the vault/nomad providers still read
+# VAULT_ADDR / NOMAD_ADDR from the environment (see providers.tf).
+locals {
+  vault_address      = "https://vault.service.home:8200"
+  nomad_address      = "https://nomad.service.home:4646"
+  oidc_discovery_url = "https://id.falconindy.com"
+
+  # Vault's only plaintext (http) listener — node-local, on the docker bridge,
+  # intentionally not exposed more broadly. Used as the base for AIA/CRL/OCSP
+  # URLs baked into issued certs, which want an http endpoint (fetching a CRL
+  # over https would itself need TLS validation — a loop). The tradeoff: these
+  # URLs are unreachable off the Vault node, so off-node AIA-chasing and
+  # revocation checks don't work — acceptable while certs are served full-chain
+  # against a trusted root and we don't rely on CRL/OCSP.
+  vault_plaintext_base = "http://172.17.0.1:8200"
+}

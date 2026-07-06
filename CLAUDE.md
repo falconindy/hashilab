@@ -10,17 +10,20 @@ Cluster topology: three servers (`nomad0-2.node.home`) running in `dc1` act as C
 
 ## Formatting and pre-commit
 
-Three pre-commit hooks run on every commit:
+Pre-commit hooks run on every commit (see `.pre-commit-config.yaml`):
 
 - `nomad fmt` — formats all `jobs/*.hcl` files
+- `tofu fmt` — formats the OpenTofu config under `tofu/`
 - `ruff format` — formats Python scripts in `bin/`
-- `prettier` — formats everything else (JS, HTML, JSON, YAML)
+- `prettier` — formats everything else (JS, HTML, JSON, YAML, Markdown)
+- `ansible-lint` — lints Ansible playbooks and roles
 
 Run them manually:
 
 ```bash
 pre-commit run --all-files        # run all hooks
 nomad fmt jobs/<file>.hcl         # format a single job
+tofu fmt -recursive tofu          # format the tofu config
 ruff format bin/<script>.py       # format a single script
 ```
 
@@ -80,7 +83,11 @@ Vault runs three PKI secret engines:
 
 All nodes run **vault-agent** (AppRole auth, role ID in `/etc/vault-agent.d/agent.roleid`) which renders TLS certs for Nomad, Consul, and Vault itself from templates in `/etc/vault-agent.d/*.tpl`. The CA bundle is at `/etc/ssl/certs/home.pem` on every node.
 
-Vault also runs an **SSH client CA** on the `ssh-client-signer` mount (stood up by `bin/vault-build-ssh`). The `trust` role trusts its public key on every host (`/etc/ssh/trusted-user-ca-keys.pem` via a `sshd_config.d` drop-in), so `vault login -method=oidc` followed by `bin/vault-ssh-agent` to load a short-lived, pocket-id-gated certificate — no static keys in `authorized_keys`.
+Vault also runs an **SSH client CA** on the `ssh-client-signer` mount. The `trust` role trusts its public key on every host (`/etc/ssh/trusted-user-ca-keys.pem` via a `sshd_config.d` drop-in), so `vault login -method=oidc` followed by `bin/vault-ssh-agent` to load a short-lived, pocket-id-gated certificate — no static keys in `authorized_keys`.
+
+### Control-plane provisioning (OpenTofu)
+
+The Vault and Nomad control plane — the three PKI engines above, the SSH client CA, OIDC login for both Vault and Nomad, and the Vault→Nomad secrets engine — is provisioned declaratively by the OpenTofu config in `tofu/` (one module per engine under `modules/<provider>/`). Key-generating steps (root/intermediate CAs, the SSH CA) sit behind a `bootstrap` variable, default false, so routine plans can't regenerate a live CA; an already-running cluster is adopted with `tofu import` rather than a fresh apply. State can contain secrets (notably the Vault-Nomad engine's management token), so it must be kept off the repo (encrypted/remote backend). ACL **policies** stay owned by the ansible `vault_policies` / `nomad_policies` roles, not tofu. See `tofu/README.md` for per-module import commands and the auth/env setup.
 
 ### Nomad jobs
 
@@ -102,17 +109,14 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 
 ### Utility scripts
 
-| Script                                          | Purpose                                                                                                                         |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `bin/cfctl`                                     | Manage Cloudflare CNAME records tagged `#managed`; fetches API key + zone ID from Vault KV (`kv/cli/cfctl`)                     |
-| `bin/certctl.py`                                | Certificate lifecycle tooling                                                                                                   |
-| `bin/vault-build-pki`                           | One-time PKI bootstrap script for Vault                                                                                         |
-| `bin/vault-build-oidc` / `bin/nomad-build-oidc` | Configure OIDC auth (pocket-id) for Vault / Nomad                                                                               |
-| `bin/vault-build-ssh`                           | One-time bootstrap of Vault's SSH client CA (`ssh-client-signer` mount, `admin` role, `ssh` policy)                             |
-| `bin/vault-ssh`                                 | Mint an ephemeral keypair, sign it off the Vault SSH CA (after `vault login -method=oidc`), and connect with a short-lived cert |
-| `bin/vault-ssh-agent`                           | Mint a Vault-signed cert and load it into ssh-agent so `ssh`/`ansible-playbook` authenticate with it (drives Ansible keylessly) |
-| `bin/deploy-www`                                | Rsync `www/` to `/clusterdata/www/`                                                                                             |
-| `bin/deploy-grafana-dashboards`                 | Rsync `grafana/dashboards/*.json` to `/clusterdata/grafana/dashboards/`; Grafana file-provisions and hot-reloads them           |
+| Script                          | Purpose                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `bin/cfctl`                     | Manage Cloudflare CNAME records tagged `#managed`; fetches API key + zone ID from Vault KV (`kv/cli/cfctl`)                     |
+| `bin/certctl.py`                | Certificate lifecycle tooling                                                                                                   |
+| `bin/vault-ssh`                 | Mint an ephemeral keypair, sign it off the Vault SSH CA (after `vault login -method=oidc`), and connect with a short-lived cert |
+| `bin/vault-ssh-agent`           | Mint a Vault-signed cert and load it into ssh-agent so `ssh`/`ansible-playbook` authenticate with it (drives Ansible keylessly) |
+| `bin/deploy-www`                | Rsync `www/` to `/clusterdata/www/`                                                                                             |
+| `bin/deploy-grafana-dashboards` | Rsync `grafana/dashboards/*.json` to `/clusterdata/grafana/dashboards/`; Grafana file-provisions and hot-reloads them           |
 
 ### Renovate
 

@@ -10,6 +10,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: tofu-fmt
+        name: OpenTofu Formatting
+        entry: tofu fmt -recursive tofu
+        language: system
+        files: ^tofu/.*\.tf$
+        # `tofu fmt` takes a directory, not file paths, so format the whole tree.
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       - id: ruff
         name: ruff
         entry: ruff

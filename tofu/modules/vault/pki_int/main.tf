@@ -1,0 +1,99 @@
+locals {
+  # AIA templating strings, encoded verbatim into config/urls with
+  # enable_templating=true so Vault substitutes per-issuer at issue time.
+  issuing_certificates    = "{{cluster_aia_path}}/issuer/{{issuer_id}}/der"
+  crl_distribution_points = "{{cluster_aia_path}}/issuer/{{issuer_id}}/crl/der"
+  ocsp_servers            = "{{cluster_path}}/ocsp"
+  cluster_path            = "${var.cluster_base}/v1/${var.backend}"
+  aia_path                = "${coalesce(var.aia_base, var.cluster_base)}/v1/${var.backend}"
+}
+
+# ── The mount ────────────────────────────────────────────────────────────────
+# Replaces: `vault secrets enable -path=pki_int pki` + the ACME header `tune`.
+resource "vault_mount" "pki_int" {
+  path                      = var.backend
+  type                      = "pki"
+  description               = "Intermediate CA with ACME enabled; issues *.service.home certs for Traefik."
+  max_lease_ttl_seconds     = var.max_lease_ttl_seconds
+  default_lease_ttl_seconds = 0
+
+  # ACME needs these headers to pass through the mount barrier.
+  passthrough_request_headers = ["If-Modified-Since"]
+  allowed_response_headers = [
+    "Last-Modified",
+    "Location",
+    "Replay-Nonce",
+    "Link",
+  ]
+}
+
+# ── Intermediate CSR → root signs it → import the signed cert ────────────────
+# These three model a one-shot cold-start ACTION, not readable state, and they
+# generate CA key material inside Vault. Gated behind `var.bootstrap` (default
+# false) so a normal plan/apply NEVER proposes re-signing an existing
+# intermediate. Enable only on a green-field mount; for an existing cluster
+# leave false and `tofu import` the mount/role/config (see README).
+resource "vault_pki_secret_backend_intermediate_cert_request" "csr" {
+  count       = var.bootstrap ? 1 : 0
+  backend     = vault_mount.pki_int.path
+  type        = "internal" # private key stays in Vault, never exported
+  common_name = var.common_name
+}
+
+resource "vault_pki_secret_backend_root_sign_intermediate" "signed" {
+  count       = var.bootstrap ? 1 : 0
+  backend     = var.root_backend
+  csr         = vault_pki_secret_backend_intermediate_cert_request.csr[0].csr
+  common_name = var.common_name
+  issuer_ref  = var.root_issuer_ref
+  format      = "pem_bundle"
+  ttl         = var.intermediate_sign_ttl
+}
+
+resource "vault_pki_secret_backend_intermediate_set_signed" "import" {
+  count       = var.bootstrap ? 1 : 0
+  backend     = vault_mount.pki_int.path
+  certificate = vault_pki_secret_backend_root_sign_intermediate.signed[0].certificate
+}
+
+# ── Cluster + AIA config ─────────────────────────────────────────────────────
+resource "vault_pki_secret_backend_config_cluster" "this" {
+  backend  = vault_mount.pki_int.path
+  path     = local.cluster_path
+  aia_path = local.aia_path
+}
+
+resource "vault_pki_secret_backend_config_urls" "this" {
+  backend                 = vault_mount.pki_int.path
+  issuing_certificates    = [local.issuing_certificates]
+  crl_distribution_points = [local.crl_distribution_points]
+  ocsp_servers            = [local.ocsp_servers]
+  enable_templating       = true
+
+  # config/urls is only meaningful once the signed intermediate is in place.
+  depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
+}
+
+# ── Issuing role ─────────────────────────────────────────────────────────────
+# issuer_ref is left at the backend default, which is the intermediate we just
+# imported (equivalent to `vault read -field=default .../config/issuers`).
+resource "vault_pki_secret_backend_role" "intermediate" {
+  backend        = vault_mount.pki_int.path
+  name           = var.role_name
+  allow_any_name = true
+  max_ttl        = var.role_max_ttl_seconds
+  no_store       = false
+
+  depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
+}
+
+# ── ACME ─────────────────────────────────────────────────────────────────────
+resource "vault_pki_secret_backend_config_acme" "this" {
+  backend = vault_mount.pki_int.path
+  enabled = var.acme_enabled
+
+  depends_on = [
+    vault_pki_secret_backend_config_cluster.this,
+    vault_pki_secret_backend_config_urls.this,
+  ]
+}
