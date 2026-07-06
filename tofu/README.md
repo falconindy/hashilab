@@ -1,17 +1,21 @@
-# tofu/ — declarative Vault + Nomad control plane
+# tofu/ — declarative Vault + Nomad + Consul control plane
 
-OpenTofu configuration that manages the Vault and Nomad control plane
+OpenTofu configuration that manages the Vault, Nomad and Consul control plane
 declaratively: the PKI engines, the SSH client CA, OIDC login for both Vault and
-Nomad, and the Vault→Nomad secrets-engine integration. State tracking gives
-idempotence and drift detection; the key-generating steps are fenced behind a
-`bootstrap` flag so day-to-day runs can't regenerate a live CA.
+Nomad, the Vault→Nomad and Vault→Consul secrets-engine integrations, and the
+Consul ACL layer (policies, the anonymous/daemon tokens, and the Nomad
+workload-identity auth method). State tracking gives idempotence and drift
+detection; the key-generating steps are fenced behind a `bootstrap` flag so
+day-to-day runs can't regenerate a live CA.
 
 Modules are grouped by provider under `modules/<provider>/` and the block labels
 carry the same namespace (`module.vault_pki`, `module.vault_ssh`, …) so
-Nomad-side modules don't collide with Vault ones. It's a real collision, not
-hypothetical: the Vault Nomad _secrets engine_ is `modules/vault/nomad`, while
-Nomad's own OIDC login is `modules/nomad/oidc` — without the namespace both would
-just be "nomad".
+Nomad- and Consul-side modules don't collide with Vault ones. It's a real
+collision, not hypothetical: the Vault Nomad _secrets engine_ is
+`modules/vault/nomad`, while Nomad's own OIDC login is `modules/nomad/oidc` —
+without the namespace both would just be "nomad". Likewise the Vault Consul
+_secrets engine_ (`modules/vault/consul`) vs. the Consul-provider ACL modules
+(`modules/consul/*`).
 
 ## Modules
 
@@ -62,6 +66,17 @@ The Vault Nomad secrets engine:
   below), and its `secret_id` lands in **tofu state** — so this module is the
   reason to protect state (encryption / secure backend; see `versions.tf`).
 
+The Vault Consul secrets engine:
+
+- `modules/vault/consul` — the `consul` secrets engine + `mgmt` creds role, for
+  minting break-glass Consul management tokens (`vault read consul/creds/mgmt`,
+  consumed by `bin/consul-mgmt`). A near-exact mirror of `modules/vault/nomad`:
+  it owns a dedicated **Consul** management token (a `consul_acl_token` carrying
+  the built-in `global-management` policy) and points `consul/config/access` at
+  it, so the bootstrap token can be retired. That token's `secret_id` lands in
+  **tofu state** — another reason to protect state. Needs a Consul management
+  token in `CONSUL_HTTP_TOKEN` (see below).
+
 Nomad OIDC login:
 
 - `modules/nomad/oidc` — the `pocket-id` OIDC auth method + the binding rule that
@@ -72,13 +87,34 @@ Nomad OIDC login:
   **Policies**). Applying it needs a Nomad **management** token (auth-method +
   binding-rule creation is ACL administration).
 
+The Consul ACL layer (Consul provider — needs a Consul **management** token):
+
+- `modules/consul/acl` — the baseline ACL identities. Attaches the `anonymous`
+  policy to Consul's built-in anonymous token (what an unauthenticated request
+  gets under `default_policy = "deny"` — keeps DNS, the dashboard, and Prometheus
+  SD working with no token), and mints the three **non-expiring daemon tokens**
+  (`consul-agent`, `nomad-agent`, `vault-registration`), stashing each in **Vault
+  KV** (`kv/consul/tokens/<name>`) for the Ansible roles to template into config.
+  Those are always-on daemon identities read once and never renewed, so they must
+  not be leased — the dynamic/leased path is `modules/vault/consul`. Their
+  `secret_id`s land in **tofu state** and KV.
+- `modules/consul/nomad-wi` — the Nomad workload-identity flow into Consul: the
+  `nomad-workloads` JWT auth method (trusts Nomad's JWKS, home CA embedded), the
+  per-service + serviceless binding rules, and the `nomad-tasks` role. Must exist
+  **before** Nomad's `consul{}` gets its `service_identity`/`task_identity`
+  blocks (allocations start their JWT login the moment those deploy).
+
 Policies:
 
-- `policies.tf` (root) — reconciles Vault ACL policies from `vault/policies/*.hcl`
-  and Nomad ACL policies from `nomad/policies/*.hcl`, one resource per file via
-  `for_each`. The policy name is the filename minus `.hcl`; add or remove a file
-  to add or remove the policy. tofu only deletes policies backed by a file here
-  and never touches built-ins (`default`/`root`, Nomad `anonymous`).
+- `policies.tf` (root) — reconciles Vault ACL policies from `vault/policies/*.hcl`,
+  Nomad ACL policies from `nomad/policies/*.hcl`, and Consul ACL policies from
+  `consul/policies/*.hcl`, one resource per file via `for_each`. The policy name
+  is the filename minus `.hcl`; add or remove a file to add or remove the policy.
+  tofu only deletes policies backed by a file here and never touches built-ins
+  (`default`/`root`, Nomad `anonymous`, Consul `global-management`). The
+  `nomad-tasks` role (`modules/consul/nomad-wi`) and the daemon/anonymous tokens
+  (`modules/consul/acl`) reference these Consul policy names by resource
+  attribute, so policy-create always orders before token/role-create.
 
 ## Auth
 
@@ -113,6 +149,25 @@ can't be done with the day-to-day OIDC admin token:
 export NOMAD_ADDR=https://nomad.service.home:4646
 export NOMAD_TOKEN=<a Nomad management token>   # break-glass / bootstrap token
 ```
+
+The Consul-provider modules (`vault_consul`, `consul_acl`, `consul_nomad_wi`)
+likewise need the Consul provider pointed at a **management** token — minting
+tokens, policies, auth methods and binding rules is ACL administration. Use
+`bin/consul-mgmt` (once the engine exists) or the bootstrap token during initial
+bring-up. The provider parses the scheme from `CONSUL_HTTP_ADDR`; if yours lacks
+it, also set `CONSUL_HTTP_SSL=true`:
+
+```bash
+export CONSUL_HTTP_ADDR=https://consul.service.home:8501
+export CONSUL_CACERT=/etc/ssl/certs/home.pem
+export CONSUL_HTTP_TOKEN=<a Consul management token>   # break-glass / bootstrap token
+```
+
+Chicken-and-egg on a cold start: Consul ACLs must be **enabled + bootstrapped**
+first (out of band), and the bootstrap token seeds `CONSUL_HTTP_TOKEN` for the
+initial apply. That apply builds the Consul secrets engine (which mints its own
+dedicated management token) plus the daemon tokens, after which the bootstrap
+token can be retired.
 
 ## OIDC credentials (seed once, rotate in Pocket-ID)
 
@@ -232,12 +287,50 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
 
 # ── ACL policies ── keyed on filename; import ID is the policy name
-for p in admin internal-server-certs nomad-user-policy nomad-workloads \
-         prometheus-metrics raft-snapshots ssh; do
+for p in admin consul-user-policy internal-server-certs nomad-user-policy \
+         nomad-workloads prometheus-metrics raft-snapshots ssh; do
   tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
 done
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
+# Consul ACL policies — import ID is the policy *ID* (a UUID), not the name:
+for p in anonymous consul-agent nomad-agent nomad-tasks vault-registration; do
+  tofu import "consul_acl_policy.this[\"$p.hcl\"]" \
+    "$(consul acl policy read -name "$p" -format json | jq -r .ID)"
+done
+
+# ── Vault Consul secrets engine (consul) ── needs CONSUL_HTTP_TOKEN = mgmt token
+tofu import 'module.vault_consul.vault_consul_secret_backend.consul'      consul
+tofu import 'module.vault_consul.vault_consul_secret_backend_role.mgmt'   consul/roles/mgmt
+# The dedicated engine token — import the existing one by accessor (from
+# `consul acl token list`), which reads its secret_id back via the data source:
+#   tofu import 'module.vault_consul.consul_acl_token.engine' <accessor-id>
+# Or skip the import and apply: tofu mints a fresh dedicated token (safe rotation)
+# and repoints consul/config/access at it; delete the orphaned old token by hand.
+
+# ── Consul ACL base (consul_acl) ──
+# The anonymous attachment imports as "<token-id>:<policy-id>":
+tofu import 'module.consul_acl.consul_acl_token_policy_attachment.anonymous' \
+  "00000000-0000-0000-0000-000000000002:$(consul acl policy read -name anonymous -format json | jq -r .ID)"
+# Daemon tokens by accessor (from `consul acl token list`); their secret_id data
+# sources and KV writes reconcile on the next apply:
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["consul-agent"]'       <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["nomad-agent"]'        <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["vault-registration"]' <accessor-id>
+
+# ── Consul Nomad workload identity (consul_nomad_wi) ──
+tofu import 'module.consul_nomad_wi.consul_acl_auth_method.nomad_workloads' nomad-workloads
+tofu import 'module.consul_nomad_wi.consul_acl_role.nomad_tasks' \
+  "$(consul acl role read -name nomad-tasks -format json | jq -r .ID)"
+# Binding rules import by their UUID (from `consul acl binding-rule list -method nomad-workloads`):
+#   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.service' <rule-id>
+#   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.tasks'   <rule-id>
 ```
+
+If nothing was created out of band (ACLs freshly bootstrapped), skip the Consul
+imports and just `tofu apply` — tofu mints the engine + daemon tokens and writes
+KV. Vault never returns a KV value on the first read after import, so a
+`vault_kv_secret_v2` may show a re-write on the plan right after import; that's
+expected and just re-asserts the token.
 
 The key-generating resources (root `root_cert`; intermediate
 `intermediate_cert_request` / `root_sign_intermediate` / `intermediate_set_signed`)
@@ -300,7 +393,29 @@ What each module manages. Resources marked _bootstrap_ only exist when
 - `nomad_acl_auth_method` — the `pocket-id` OIDC method
 - `nomad_acl_binding_rule` — pocket-id → `admin` policy
 
+### modules/vault/consul
+
+- `consul_acl_token` — the dedicated Consul management token the engine uses (a
+  client token carrying `global-management`; lifecycle-owned, like the Nomad one)
+- `consul_acl_token_secret_id` (data) — reads that token's SecretID for `config/access`
+- `vault_consul_secret_backend` — the `consul` mount + `config/access`
+- `vault_consul_secret_backend_role` — the `mgmt` role (`global-management`)
+
+### modules/consul/acl
+
+- `consul_acl_token_policy_attachment` — the `anonymous` policy on the built-in anonymous token
+- `consul_acl_token.daemon` — the three non-expiring daemon tokens (`for_each`)
+- `consul_acl_token_secret_id.daemon` (data) — reads each daemon token's SecretID
+- `vault_kv_secret_v2.daemon` — each token stashed at `kv/consul/tokens/<name>` (`for_each`)
+
+### modules/consul/nomad-wi
+
+- `consul_acl_auth_method` — the `nomad-workloads` JWT method
+- `consul_acl_role` — the `nomad-tasks` role
+- `consul_acl_binding_rule.service` / `.tasks` — per-service identity / serviceless → role
+
 ### policies.tf (root)
 
 - `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`)
 - `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`)
+- `consul_acl_policy.this` — one per `consul/policies/*.hcl` (`for_each`)

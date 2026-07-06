@@ -11,6 +11,14 @@ locals {
   nomad_address      = "https://nomad.service.home:4646"
   oidc_discovery_url = "https://id.falconindy.com"
 
+  # Consul HTTP API as host:port (no scheme) — the Vault Consul secrets engine
+  # wants address + scheme split (see module.vault_consul).
+  consul_address = "consul.service.home:8501"
+
+  # Nomad's JWKS endpoint Consul reads to validate workload JWTs (nomad-workloads
+  # auth method). Only its unauthenticated JWKS is fetched.
+  nomad_jwks_url = "${local.nomad_address}/.well-known/jwks.json"
+
   # Vault's only plaintext (http) listener — node-local, on the docker bridge,
   # intentionally not exposed more broadly. Used as the base for AIA/CRL/OCSP
   # URLs baked into issued certs, which want an http endpoint (fetching a CRL

@@ -15,6 +15,12 @@ variable "bootstrap" {
   default     = false
 }
 
+variable "home_ca_file" {
+  description = "Path to the home CA PEM the nomad-workloads auth method embeds so Consul can validate Nomad's HTTPS JWKS endpoint. Read at plan time on the machine running tofu; present at this path on every node."
+  type        = string
+  default     = "/etc/ssl/certs/home.pem"
+}
+
 variable "vault_oidc_client_id" {
   description = "Pocket-ID \"Vault\" client ID. Supply in secrets.auto.tfvars (or TF_VAR_vault_oidc_client_id)."
   type        = string
@@ -135,6 +141,44 @@ module "nomad_oidc" {
   bind_policy_name   = "admin"
 }
 
+# The Vault Consul secrets engine — mints break-glass Consul management tokens
+# (bin/consul-mgmt). Mirrors module.vault_nomad; needs a Consul management token
+# in CONSUL_HTTP_TOKEN (see providers.tf).
+module "vault_consul" {
+  source = "./modules/vault/consul"
+
+  backend           = "consul"
+  consul_address    = local.consul_address
+  engine_token_name = "vault-consul-secrets-engine"
+  role_name         = "mgmt"
+}
+
+# The baseline Consul ACL layer: the anonymous-token attachment and the three
+# non-expiring daemon tokens (also stashed in Vault KV for the Ansible roles).
+# Policy names are passed by reference from policies.tf so tokens order after the
+# policies exist.
+module "consul_acl" {
+  source = "./modules/consul/acl"
+
+  anonymous_policy_name = consul_acl_policy.this["anonymous.hcl"].name
+  daemon_policy_names = {
+    "consul-agent"       = consul_acl_policy.this["consul-agent.hcl"].name
+    "nomad-agent"        = consul_acl_policy.this["nomad-agent.hcl"].name
+    "vault-registration" = consul_acl_policy.this["vault-registration.hcl"].name
+  }
+}
+
+# The Nomad workload-identity flow into Consul: the nomad-workloads JWT auth
+# method, the per-service + serviceless binding rules, and the nomad-tasks role.
+# Apply this BEFORE Nomad's consul{} gets its identity blocks (see the module).
+module "consul_nomad_wi" {
+  source = "./modules/consul/nomad-wi"
+
+  nomad_jwks_url          = local.nomad_jwks_url
+  home_ca_file            = var.home_ca_file
+  nomad_tasks_policy_name = consul_acl_policy.this["nomad-tasks.hcl"].name
+}
+
 output "vault_pki_backend" {
   value = module.vault_pki.backend
 }
@@ -190,4 +234,21 @@ output "vault_nomad_role" {
 
 output "nomad_oidc_auth_method" {
   value = module.nomad_oidc.auth_method_name
+}
+
+output "vault_consul_backend" {
+  value = module.vault_consul.backend
+}
+
+output "vault_consul_role" {
+  value = module.vault_consul.role_name
+}
+
+output "consul_daemon_token_accessors" {
+  description = "Map of daemon token name -> accessor (safe to expose; the secrets are in Vault KV / state)."
+  value       = module.consul_acl.daemon_token_accessors
+}
+
+output "consul_nomad_wi_auth_method" {
+  value = module.consul_nomad_wi.auth_method_name
 }
