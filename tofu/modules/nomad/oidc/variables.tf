@@ -78,20 +78,3 @@ variable "extra_redirect_uris" {
   type        = list(string)
   default     = []
 }
-
-variable "manage_policy" {
-  description = <<-EOT
-    Whether this module writes the `admin` Nomad ACL policy. Default false: the
-    ansible `nomad_policies` role owns nomad/policies/*.hcl (write-from-repo +
-    prune), so letting tofu also own it means two writers. Flip true only if
-    you're migrating policy ownership to tofu.
-  EOT
-  type        = bool
-  default     = false
-}
-
-variable "policy_document" {
-  description = "HCL body of the admin policy, used only when manage_policy = true. Feed file(\"nomad/policies/admin.hcl\") from the root."
-  type        = string
-  default     = ""
-}

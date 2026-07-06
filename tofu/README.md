@@ -33,9 +33,8 @@ explicit.
 The SSH client-cert CA:
 
 - `modules/vault/ssh` — the `ssh-client-signer` mount, the CA signing keypair, and
-  the `admin` signing role. The `ssh` Vault _policy_ is left to the ansible
-  `vault_policies` role by default (see `manage_policy` below), to avoid two
-  owners of the same policy.
+  the `admin` signing role. (The `ssh` Vault policy is managed centrally — see
+  **Policies** below.)
 
 Vault OIDC login:
 
@@ -62,9 +61,17 @@ Nomad OIDC login:
   maps everyone authenticating through it to the `admin` policy. Nomad-provider
   only; like the Vault OIDC module it's pure config with **no bootstrap gate**.
   Uses a **separate** Pocket-ID client from Vault (the "Nomad" client — different
-  id/secret). The `admin` policy itself is left to the ansible `nomad_policies`
-  role by default (`manage_policy`). Applying it needs a Nomad **management**
-  token (auth-method + binding-rule creation is ACL administration).
+  id/secret). The `admin` policy the rule binds to is managed centrally (see
+  **Policies**). Applying it needs a Nomad **management** token (auth-method +
+  binding-rule creation is ACL administration).
+
+Policies:
+
+- `policies.tf` (root) — reconciles Vault ACL policies from `vault/policies/*.hcl`
+  and Nomad ACL policies from `nomad/policies/*.hcl`, one resource per file via
+  `for_each`. The policy name is the filename minus `.hcl`; add or remove a file
+  to add or remove the policy. tofu only deletes policies backed by a file here
+  and never touches built-ins (`default`/`root`, Nomad `anonymous`).
 
 ## Auth
 
@@ -179,8 +186,7 @@ tofu import 'module.vault_ssh.vault_mount.ssh' ssh-client-signer
 tofu import 'module.vault_ssh.vault_ssh_secret_backend_role.admin' ssh-client-signer/roles/admin
 # The CA keypair (vault_ssh_secret_backend_ca) is bootstrap-gated and not
 # imported — its private half isn't readable, so it's treated as cold-start-only
-# like the PKI key material. If you flip manage_policy=true, also:
-#   tofu import 'module.vault_ssh.vault_policy.ssh[0]' ssh
+# like the PKI key material. (The `ssh` policy is imported below with the rest.)
 
 # ── OIDC auth method (oidc) ──
 tofu import 'module.vault_oidc.vault_jwt_auth_backend.oidc'      oidc
@@ -207,6 +213,13 @@ tofu import 'module.vault_nomad.vault_nomad_secret_role.mgmt'     nomad/role/mgm
 tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # Binding rule imports by its UUID (from `nomad acl binding-rule list`):
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
+
+# ── ACL policies ── keyed on filename; import ID is the policy name
+for p in admin internal-server-certs nomad-user-policy nomad-workloads \
+         prometheus-metrics raft-snapshots ssh; do
+  tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
+done
+tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
 ```
 
 The key-generating resources (root `root_cert`; intermediate
@@ -220,7 +233,7 @@ win.
 ## Resources by module
 
 What each module manages. Resources marked _bootstrap_ only exist when
-`bootstrap = true`; _opt-in_ only when `manage_policy = true`.
+`bootstrap = true`.
 
 ### modules/vault/pki
 
@@ -248,7 +261,6 @@ What each module manages. Resources marked _bootstrap_ only exist when
 - `vault_mount.ssh` — the `ssh-client-signer` mount
 - `vault_ssh_secret_backend_ca` — the CA signing keypair (_bootstrap_)
 - `vault_ssh_secret_backend_role` — the `admin` `key_type=ca` role
-- `vault_policy` — the `ssh` policy (_opt-in_; ansible owns it by default)
 
 ### modules/vault/oidc
 
@@ -260,10 +272,13 @@ What each module manages. Resources marked _bootstrap_ only exist when
 - `nomad_acl_token` — the dedicated management token the engine uses (lifecycle-owned)
 - `vault_nomad_secret_backend` — the `nomad` mount + `config/access`
 - `vault_nomad_secret_role` — the `mgmt` management/global role
-- `vault_policy` — `nomad-user-policy` (_opt-in_; ansible owns it by default)
 
 ### modules/nomad/oidc
 
 - `nomad_acl_auth_method` — the `pocket-id` OIDC method
 - `nomad_acl_binding_rule` — pocket-id → `admin` policy
-- `nomad_acl_policy` — the `admin` policy (_opt-in_; ansible owns it by default)
+
+### policies.tf (root)
+
+- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`)
+- `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`)

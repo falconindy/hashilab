@@ -87,11 +87,6 @@ module "vault_ssh" {
   allowed_users = "root"
   default_user  = "root"
   bootstrap     = var.bootstrap
-
-  # The ansible vault_policies role owns vault/policies/ssh.hcl by default; flip
-  # manage_policy to migrate that ownership here.
-  manage_policy   = false
-  policy_document = file("${path.module}/../vault/policies/ssh.hcl")
 }
 
 module "vault_oidc" {
@@ -113,11 +108,6 @@ module "vault_nomad" {
   nomad_address     = local.nomad_address
   engine_token_name = "vault-nomad-secrets-engine"
   role_name         = "mgmt"
-
-  # The ansible vault_policies role owns vault/policies/nomad-user-policy.hcl by
-  # default; flip manage_policy to migrate that ownership here.
-  manage_policy   = false
-  policy_document = file("${path.module}/../vault/policies/nomad-user-policy.hcl")
 }
 
 module "nomad_oidc" {
@@ -129,11 +119,6 @@ module "nomad_oidc" {
   oidc_client_id     = var.nomad_oidc_client_id
   oidc_client_secret = var.nomad_oidc_client_secret
   bind_policy_name   = "admin"
-
-  # The ansible nomad_policies role owns nomad/policies/admin.hcl by default;
-  # flip manage_policy to migrate that ownership here.
-  manage_policy   = false
-  policy_document = file("${path.module}/../nomad/policies/admin.hcl")
 }
 
 output "vault_pki_backend" {

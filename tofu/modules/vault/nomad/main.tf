@@ -39,13 +39,3 @@ resource "vault_nomad_secret_role" "mgmt" {
   type    = "management"
   global  = true
 }
-
-# ── The nomad-user-policy (opt-in) ───────────────────────────────────────────
-# Off by default: the ansible `vault_policies` role owns vault/policies/*.hcl.
-# See var.manage_policy. Grants read on <backend>/creds/<role> for least-priv
-# delegation of token-minting without full Vault admin.
-resource "vault_policy" "nomad_user" {
-  count  = var.manage_policy ? 1 : 0
-  name   = var.policy_name
-  policy = var.policy_document
-}

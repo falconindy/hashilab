@@ -1,7 +1,0 @@
-# Nomad has no built-in ACL policies (a freshly bootstrapped cluster starts with
-# none), so nothing needs protecting from the prune step by default. Extend this
-# list if you ever keep a hand-managed policy outside nomad/policies/.
-nomad_policies_protected: []
-
-# Where the repo's policy files live, relative to the playbook (repo root).
-nomad_policies_dir: "{{ playbook_dir }}/nomad/policies"

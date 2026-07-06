@@ -5,16 +5,6 @@ locals {
   ], var.extra_redirect_uris)
 }
 
-# ── The admin policy (opt-in) ────────────────────────────────────────────────
-# Off by default: the ansible `nomad_policies` role owns nomad/policies/*.hcl.
-# See var.manage_policy. Replaces `nomad acl policy apply admin admin.hcl`.
-resource "nomad_acl_policy" "admin" {
-  count       = var.manage_policy ? 1 : 0
-  name        = var.bind_policy_name
-  description = "day-to-day admin"
-  rules_hcl   = var.policy_document
-}
-
 # ── The OIDC auth method ─────────────────────────────────────────────────────
 # Replaces `nomad acl auth-method create/update -type=OIDC ... pocket-id`.
 # No key material — pure config, so no bootstrap gate (like the Vault OIDC
@@ -48,8 +38,4 @@ resource "nomad_acl_binding_rule" "admin" {
   description = "pocket-id -> admin policy"
   bind_type   = "policy"
   bind_name   = var.bind_policy_name
-
-  # If tofu also owns the policy (manage_policy=true), ensure it exists first.
-  # With manage_policy=false this is an empty list — a no-op.
-  depends_on = [nomad_acl_policy.admin]
 }

@@ -12,8 +12,8 @@ resource "vault_mount" "ssh" {
 # One-shot cold-start ACTION that generates CA key material. Gated behind
 # var.bootstrap (default false) so a normal plan/apply can NEVER re-generate the
 # CA — which would invalidate the public key every host trusts as
-# TrustedUserCAKeys. The private half never leaves Vault; the public half is what
-# the `base` ansible role distributes. Enable only on a green-field mount.
+# TrustedUserCAKeys. The private half never leaves Vault; the public half is
+# distributed to hosts out of band. Enable only on a green-field mount.
 resource "vault_ssh_secret_backend_ca" "this" {
   count                = var.bootstrap ? 1 : 0
   backend              = vault_mount.ssh.path
@@ -41,13 +41,4 @@ resource "vault_ssh_secret_backend_role" "admin" {
   # The role can only be created once its CA exists. On an existing cluster the
   # CA is already there (bootstrap=false → this depends_on is a no-op).
   depends_on = [vault_ssh_secret_backend_ca.this]
-}
-
-# ── The ssh policy (opt-in) ──────────────────────────────────────────────────
-# Off by default: the ansible `vault_policies` role owns vault/policies/*.hcl.
-# See var.manage_policy.
-resource "vault_policy" "ssh" {
-  count  = var.manage_policy ? 1 : 0
-  name   = var.policy_name
-  policy = var.policy_document
 }

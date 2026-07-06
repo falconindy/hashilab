@@ -38,26 +38,3 @@ variable "creds_max_ttl_seconds" {
   type        = number
   default     = 28800 # 8h
 }
-
-variable "manage_policy" {
-  description = <<-EOT
-    Whether this module writes the `nomad-user-policy` Vault policy. Default
-    false: the ansible `vault_policies` role owns vault/policies/*.hcl (write-
-    from-repo + prune), so letting tofu also own it means two writers. Flip true
-    only if you're migrating policy ownership to tofu.
-  EOT
-  type        = bool
-  default     = false
-}
-
-variable "policy_name" {
-  description = "Name of the Vault policy to write when manage_policy = true."
-  type        = string
-  default     = "nomad-user-policy"
-}
-
-variable "policy_document" {
-  description = "HCL body of the policy, used only when manage_policy = true. Feed file(\"vault/policies/nomad-user-policy.hcl\") from the root."
-  type        = string
-  default     = ""
-}
