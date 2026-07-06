@@ -44,6 +44,13 @@ Vault OIDC login:
   idempotent config and always managed. The Pocket-ID client id/secret are the
   only inputs, passed in as sensitive variables (below).
 
+Vault-agent AppRole:
+
+- `modules/vault/approle` — the `approle` auth method + the `vault-agent` role
+  every node's vault-agent logs in with (role_id only, `bind_secret_id=false`) to
+  render its TLS certs. Pinned to the live role; import to adopt the existing
+  `role_id` (shipped to hosts as a static file out of band).
+
 The Vault Nomad secrets engine:
 
 - `modules/vault/nomad` — the `nomad` secrets engine + `mgmt` (management) creds
@@ -195,6 +202,16 @@ tofu import 'module.vault_oidc.vault_jwt_auth_backend_role.role' auth/oidc/role/
 # plan shows the backend wanting to (re)write the secret from your TF_VAR — that's
 # expected and harmless, it just re-asserts the value you already supplied.
 
+# ── AppRole auth (vault-agent) ──
+tofu import 'module.vault_approle.vault_auth_backend.approle' approle
+tofu import 'module.vault_approle.vault_approle_auth_backend_role.this' auth/approle/role/vault-agent
+# Verify tofu adopted the existing role rather than a new one:
+#   tofu output vault_approle_role_id   # must equal os/etc/vault-agent.d/agent.roleid
+# The module is pinned to the live role (token_type=batch, token_ttl=20m,
+# secret_id_bound_cidrs, token_policies=[internal-server-certs]), so plan should
+# be a no-op. If it shows a token_policies change, add the extra policies to the
+# module call before applying — dropping one breaks cert rendering.
+
 # ── Nomad secrets engine (nomad) ── needs NOMAD_TOKEN = a management token
 # The vault provider keys this backend's existence on nomad/config/lease. If your
 # engine was set up without it, import reports "non-existent" — create it first:
@@ -266,6 +283,11 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 - `vault_jwt_auth_backend` — the `oidc` method (`type = "oidc"`, discovery + client creds + `default_role`)
 - `vault_jwt_auth_backend_role` — the `admin` role (`role_type = "oidc"`)
+
+### modules/vault/approle
+
+- `vault_auth_backend` — the `approle` auth method
+- `vault_approle_auth_backend_role` — the `vault-agent` role (role_id-only, batch tokens)
 
 ### modules/vault/nomad
 

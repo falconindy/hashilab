@@ -101,6 +101,20 @@ module "vault_oidc" {
   token_policies     = ["admin"]
 }
 
+module "vault_approle" {
+  source = "./modules/vault/approle"
+
+  backend               = "approle"
+  role_name             = "vault-agent"
+  token_policies        = ["internal-server-certs"]
+  bind_secret_id        = false
+  token_type            = "batch"
+  token_ttl_seconds     = 1200 # 20m
+  secret_id_bound_cidrs = ["10.0.100.0/24", "10.0.1.99/32"]
+  # token_max_ttl (0) and token_bound_cidrs ([]) match provider defaults, so
+  # they're left null/unset.
+}
+
 module "vault_nomad" {
   source = "./modules/vault/nomad"
 
@@ -151,6 +165,11 @@ output "vault_ssh_backend" {
 
 output "vault_ssh_role" {
   value = module.vault_ssh.role_name
+}
+
+output "vault_approle_role_id" {
+  description = "Confirm this equals os/etc/vault-agent.d/agent.roleid after import."
+  value       = module.vault_approle.role_id
 }
 
 output "vault_oidc_path" {
