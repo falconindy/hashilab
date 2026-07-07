@@ -35,9 +35,20 @@ terraform {
   #     plan   { method = method.aes_gcm.m }
   #   }
   #
-  # backend "consul" {
-  #   address = "consul.service.home:8501"
-  #   scheme  = "https"
-  #   path    = "tofu/hashilab"
-  # }
+  # State lives in Consul KV at kv path `tofu/hashilab`. It is NOT encrypted (see
+  # the encryption block above if you change your mind) — the state holds the
+  # Nomad/Consul management tokens and daemon secret_ids in plaintext, so the
+  # `tofu/hashilab` KV prefix MUST be locked down to management tokens only.
+  #
+  # The backend reads CONSUL_HTTP_TOKEN from the environment for both the KV
+  # writes and the Consul session it takes for state locking — a *management*
+  # token (bin/consul-mgmt) covers both key:write and session:write. ca_file is
+  # pinned here because CONSUL_CACERT isn't always exported; the backend also
+  # honours CONSUL_CACERT / CONSUL_HTTP_TOKEN from the environment.
+  backend "consul" {
+    address = "consul.service.home:8501"
+    scheme  = "https"
+    path    = "tofu/hashilab"
+    ca_file = "/etc/ssl/certs/home.pem"
+  }
 }
