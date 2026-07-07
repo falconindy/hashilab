@@ -12,6 +12,19 @@
     name: vault.service
     enabled: true
 
+# Vault's Consul service_registration token (vault-registration policy) rendered
+# into vault.hcl. Minted by tofu (module.consul_acl) and stashed in Vault KV.
+# Read via a controller-side lookup, NOT a delegate_to:localhost vault_read: the
+# "Deploy All" play is become:true, which sudo-scrubs VAULT_TOKEN from delegated
+# tasks; lookups evaluate in the ansible-playbook process, where the OIDC login
+# token (~/.vault-token) is still available.
+- name: Read Vault's Consul registration token from Vault
+  ansible.builtin.set_fact:
+    vault_registration_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/vault-registration',
+                engine_mount_point='kv', url=vault_addr).secret.token }}
+  no_log: true
+
 - name: Update vault configuration
   ansible.builtin.template:
     src: os/etc/vault.d/vault.hcl.j2

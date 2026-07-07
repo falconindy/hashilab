@@ -48,13 +48,22 @@ tls {
 }
 
 acl {
-  # Stage 1: permissive while tokens are provisioned. Flip to "deny" (Stage 4)
-  # only after agent tokens, anonymous read, Nomad workload identity, and Vault
-  # registration are all in place — otherwise the cluster fails closed.
+  # Stage 2: agent tokens are now provisioned (the `tokens.agent` below), but
+  # default_policy stays "allow" until Nomad workload identity and Vault
+  # registration are verified across the fleet. Flip to "deny" (Stage 4) only
+  # then — otherwise the cluster fails closed.
   enabled                  = true
   default_policy           = "allow"
   down_policy              = "extend-cache"
   enable_token_persistence = true
+
+  # The agent's own identity for anti-entropy (node registration + catalog
+  # sync). Minted by tofu (module.consul_acl), stashed in Vault KV, and read on
+  # the controller side above — see the "Read the Consul agent token" task in
+  # the consul role. Carries the consul-agent policy (node write, service read).
+  tokens {
+    agent = "{{ consul_agent_token }}"
+  }
 }
 
 http_config {

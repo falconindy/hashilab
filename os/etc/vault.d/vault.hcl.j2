@@ -59,4 +59,10 @@ service_registration "consul" {
   address     = "127.0.0.1:8501"
   scheme      = "https"
   tls_ca_file = "/etc/ssl/certs/home.pem"
+
+  # Token for Vault to self-register the "vault" service (sealed/standby/active
+  # health). Minted by tofu (module.consul_acl), stashed in Vault KV, read
+  # controller-side in the vault role. Carries the vault-registration policy:
+  # write on service "vault", read on node/agent — nothing else.
+  token = "{{ vault_registration_token }}"
 }

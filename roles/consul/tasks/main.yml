@@ -6,6 +6,19 @@
   notify:
     - Flag consul restart
 
+# The agent token (consul-agent policy) rendered into consul.hcl's acl.tokens
+# block. Minted by tofu (module.consul_acl) and stashed in Vault KV. Read via a
+# controller-side lookup, NOT a delegate_to:localhost vault_read: the "Deploy
+# All" play is become:true, which sudo-scrubs VAULT_TOKEN from delegated tasks;
+# lookups evaluate in the ansible-playbook process, where the OIDC login token
+# (~/.vault-token) is still available.
+- name: Read the Consul agent token from Vault
+  ansible.builtin.set_fact:
+    consul_agent_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-agent',
+                engine_mount_point='kv', url=vault_addr).secret.token }}
+  no_log: true
+
 - name: Deploy consul base config
   ansible.builtin.template:
     src: "{{ item.src }}"
