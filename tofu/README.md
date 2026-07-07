@@ -70,7 +70,7 @@ The Vault Consul secrets engine:
 
 - `modules/vault/consul` — the `consul` secrets engine + `mgmt` creds role, for
   minting break-glass Consul management tokens (`vault read consul/creds/mgmt`,
-  consumed by `bin/consul-mgmt`). A near-exact mirror of `modules/vault/nomad`:
+  consumed by `bin/supercow`). A near-exact mirror of `modules/vault/nomad`:
   it owns a dedicated **Consul** management token (a `consul_acl_token` carrying
   the built-in `global-management` policy) and points `consul/config/access` at
   it, so the bootstrap token can be retired. That token's `secret_id` lands in
@@ -153,7 +153,7 @@ export NOMAD_TOKEN=<a Nomad management token>   # break-glass / bootstrap token
 The Consul-provider modules (`vault_consul`, `consul_acl`, `consul_nomad_wi`)
 likewise need the Consul provider pointed at a **management** token — minting
 tokens, policies, auth methods and binding rules is ACL administration. Use
-`bin/consul-mgmt` (once the engine exists) or the bootstrap token during initial
+`bin/supercow` (once the engine exists) or the bootstrap token during initial
 bring-up. The provider parses the scheme from `CONSUL_HTTP_ADDR`; if yours lacks
 it, also set `CONSUL_HTTP_SSL=true`:
 

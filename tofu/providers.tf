@@ -26,7 +26,7 @@ provider "nomad" {}
 # token attachment, the daemon tokens, the nomad-workloads auth method + binding
 # rules) and mints the dedicated management token the Vault Consul secrets engine
 # uses. Creating tokens / auth-methods / binding-rules is ACL administration, so
-# CONSUL_HTTP_TOKEN must be a *management* token (bin/consul-mgmt, or the
+# CONSUL_HTTP_TOKEN must be a *management* token (bin/supercow, or the
 # bootstrap token during initial bring-up):
 #
 #   export CONSUL_HTTP_ADDR=https://consul.service.home:8501

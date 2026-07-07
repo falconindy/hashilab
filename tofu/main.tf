@@ -142,7 +142,7 @@ module "nomad_oidc" {
 }
 
 # The Vault Consul secrets engine — mints break-glass Consul management tokens
-# (bin/consul-mgmt). Mirrors module.vault_nomad; needs a Consul management token
+# (bin/supercow). Mirrors module.vault_nomad; needs a Consul management token
 # in CONSUL_HTTP_TOKEN (see providers.tf).
 module "vault_consul" {
   source = "./modules/vault/consul"

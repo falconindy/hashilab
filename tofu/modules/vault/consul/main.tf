@@ -37,7 +37,7 @@ resource "vault_consul_secret_backend" "consul" {
 # `vault read consul/creds/mgmt` mints a client token carrying the built-in
 # `global-management` policy — the break-glass path for Consul ACL administration
 # (creating tokens/policies/auth-methods/binding-rules), which no lesser policy
-# can grant. Consumed by bin/consul-mgmt. (This is the modern equivalent of the
+# can grant. Consumed by bin/supercow. (This is the modern equivalent of the
 # script's `token_type=management`; legacy management tokens are deprecated in
 # Consul 1.11+, so we attach global-management instead.)
 resource "vault_consul_secret_backend_role" "mgmt" {

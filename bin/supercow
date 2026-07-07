@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+#
+# supercow — break-glass into *both* Consul and Nomad management tokens.
+#
+# "This APT has Super Cow Powers." Mints a short-lived, lease-bound management
+# token from each of Vault's Consul (`consul/creds/mgmt`) and Nomad
+# (`nomad/creds/mgmt`) secrets engines, drops you into a single subshell wired to
+# use both, and revokes both leases the moment that subshell exits. Vault's lease
+# TTLs are the backstop if this process dies without cleaning up.
+#
+# The two engines don't agree on a lease TTL out of the box (the Nomad engine
+# pins config/lease at 1h; the Consul role sets none and inherits the mount
+# default, which is much longer). So after minting, we renew each lease to a
+# common --ttl increment — Vault caps the grant at each engine's max_ttl — so the
+# two tokens share one expiry, which also reins in the over-long Consul token.
+# The single prompt chip counts down that shared expiry.
+#
+# Day-to-day access is a scoped pocket-id login for each (Consul client token /
+# Nomad `admin` policy). ACL administration (tokens/policies/auth-methods/
+# binding-rules) requires management tokens no ACL policy can grant — this fills
+# exactly that gap for both at once. It's also how you seed CONSUL_HTTP_TOKEN for
+# the tofu Consul modules. See the modules/vault/{consul,nomad} engines that
+# issue these.
+#
+# Auth: uses your Vault operator token from $VAULT_TOKEN, falling back to the
+# CLI token helper file ~/.vault-token. Run `vault login -method=oidc` first.
+
+import argparse
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+import hvac
+
+VAULT_ADDR = "https://vault.service.home:8200"
+VAULT_CACERT = "/etc/ssl/certs/home.pem"
+
+# Rendered into the subshell's rcfile. It stashes both tokens, sources ~/.bashrc
+# (which would otherwise clobber CONSUL_HTTP_TOKEN and NOMAD_TOKEN), restores
+# them, then installs a prompt chip that recomputes remaining lease time each
+# render: green H:MM:SS while valid, blinking red EXPIRED once the TTL lapses.
+RCFILE = r"""
+__consul_tok=$CONSUL_HTTP_TOKEN
+__nomad_tok=$NOMAD_TOKEN
+source ~/.bashrc
+export CONSUL_HTTP_TOKEN=$__consul_tok; unset __consul_tok
+export NOMAD_TOKEN=$__nomad_tok; unset __nomad_tok
+__supercow_chip() {
+  local left=$(( SUPERCOW_EXPIRY - $(date +%s) ))
+  if (( left > 0 )); then
+    printf '\001\e[42;30m\002 SUPERCOW %d:%02d:%02d \001\e[0m\002' \
+      $(( left / 3600 )) $(( left % 3600 / 60 )) $(( left % 60 ))
+  else
+    printf '\001\e[5;41;97m\002 SUPERCOW EXPIRED \001\e[0m\002'
+  fi
+}
+PS1='$(__supercow_chip) '"$PS1"
+"""
+
+
+def vault_token():
+    token = os.environ.get("VAULT_TOKEN")
+    if token:
+        return token.strip()
+    try:
+        with open(os.path.expanduser("~/.vault-token")) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def mint(client, mount, role, token_field):
+    """Read a creds role and return (secret, lease_id, ttl)."""
+    resp = client.read(f"{mount}/creds/{role}")
+    if not resp:
+        sys.exit(f"supercow: empty response from {mount}/creds/{role}")
+    return resp["data"][token_field], resp["lease_id"], resp["lease_duration"]
+
+
+def renew_to(client, lease_id, ttl):
+    """Renew a lease toward a common TTL; return the granted duration.
+
+    Vault caps the increment at the lease's max_ttl, so a lease that can't reach
+    `ttl` simply keeps whatever it's granted; we report the real number.
+    """
+    try:
+        resp = client.sys.renew_lease(lease_id=lease_id, increment=ttl)
+        return resp["lease_duration"]
+    except Exception as e:
+        print(f"supercow: WARNING renew of {lease_id} failed ({e}); keeping minted TTL")
+        return None
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Break-glass into a joint Consul+Nomad management token subshell."
+    )
+    parser.add_argument(
+        "--consul-mount", default="consul", help="Vault Consul engine mount"
+    )
+    parser.add_argument(
+        "--consul-role", default="mgmt", help="Consul secrets engine role"
+    )
+    parser.add_argument(
+        "--nomad-mount", default="nomad", help="Vault Nomad engine mount"
+    )
+    parser.add_argument(
+        "--nomad-role", default="mgmt", help="Nomad secrets engine role"
+    )
+    parser.add_argument(
+        "--ttl",
+        type=int,
+        default=3600,
+        help="Shared lease TTL in seconds to renew both tokens to (default 3600)",
+    )
+    args = parser.parse_args()
+
+    if os.environ.get("SUPERCOW_LEASE"):
+        sys.exit("supercow: already in a management subshell")
+
+    token = vault_token()
+    if not token:
+        sys.exit("supercow: no Vault token — run `vault login -method=oidc` first")
+
+    client = hvac.Client(url=VAULT_ADDR, verify=VAULT_CACERT, token=token)
+
+    consul_tok, consul_lease, consul_ttl = mint(
+        client, args.consul_mount, args.consul_role, "token"
+    )
+    nomad_tok, nomad_lease, nomad_ttl = mint(
+        client, args.nomad_mount, args.nomad_role, "secret_id"
+    )
+    print(f"supercow: minted Consul management token (lease {consul_lease})")
+    print(f"supercow: minted Nomad management token (lease {nomad_lease})")
+
+    # Align both leases onto a common TTL so the pair shares one expiry.
+    consul_ttl = renew_to(client, consul_lease, args.ttl) or consul_ttl
+    nomad_ttl = renew_to(client, nomad_lease, args.ttl) or nomad_ttl
+    if consul_ttl != nomad_ttl:
+        print(
+            f"supercow: WARNING TTLs differ after renew "
+            f"(consul {consul_ttl}s, nomad {nomad_ttl}s); using the shorter"
+        )
+    ttl = min(consul_ttl, nomad_ttl)
+    expiry = int(time.time()) + ttl
+    print(f"supercow: both tokens valid for {ttl}s")
+
+    # A temp rcfile drives the interactive subshell. The tokens themselves are
+    # passed via the environment, never written to the rcfile.
+    with tempfile.NamedTemporaryFile(
+        mode="w", prefix="supercow-rc.", delete=False
+    ) as rc:
+        rc.write(RCFILE)
+        rcpath = rc.name
+
+    env = os.environ.copy()
+    env["CONSUL_HTTP_TOKEN"] = consul_tok
+    env["NOMAD_TOKEN"] = nomad_tok
+    env["SUPERCOW_LEASE"] = f"{consul_lease},{nomad_lease}"
+    env["SUPERCOW_EXPIRY"] = str(expiry)
+
+    try:
+        subprocess.run(["bash", "--rcfile", rcpath, "-i"], env=env)
+    finally:
+        os.unlink(rcpath)
+
+    # Back from the subshell, however it exited: revoke both leases, which tells
+    # Vault to delete the two management tokens immediately.
+    for name, lease_id in (("Consul", consul_lease), ("Nomad", nomad_lease)):
+        print(f"supercow: revoking {name} lease {lease_id}")
+        try:
+            client.sys.revoke_lease(lease_id=lease_id)
+        except Exception as e:
+            print(f"supercow: WARNING revoke failed ({e}); token expires with its TTL")
+
+
+if __name__ == "__main__":
+    main()

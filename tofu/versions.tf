@@ -42,7 +42,7 @@ terraform {
   #
   # The backend reads CONSUL_HTTP_TOKEN from the environment for both the KV
   # writes and the Consul session it takes for state locking — a *management*
-  # token (bin/consul-mgmt) covers both key:write and session:write. ca_file is
+  # token (bin/supercow) covers both key:write and session:write. ca_file is
   # pinned here because CONSUL_CACERT isn't always exported; the backend also
   # honours CONSUL_CACERT / CONSUL_HTTP_TOKEN from the environment.
   backend "consul" {
