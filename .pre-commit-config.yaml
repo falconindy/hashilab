@@ -36,6 +36,11 @@ repos:
     rev: v26.6.0
     hooks:
       - id: ansible-lint
+        # Upstream ships this hook with `always_run: true`, so it fires on every
+        # commit regardless of `files`. Turn that off and gate it on the Ansible
+        # config paths so it only runs when Ansible content actually changes.
+        always_run: false
+        files: ^(site\.yml|ansible\.cfg|requirements\.yml|roles/|inventory/)
         # Collections (community.general etc.) are resolved from requirements.yml.
         additional_dependencies:
           - ansible-core
