@@ -1,6 +1,31 @@
 # Manage the Consul client config on the Synology NAS. Consul itself and its
 # TLS material (/opt/consul/tls, via bin/certctl.py) are managed out of band;
 # this role only owns consul.hcl and restarts the package when it changes.
+
+# The agent token (consul-agent policy) rendered into consul.hcl's acl.tokens
+# block — the NAS's own identity for anti-entropy (node registration + catalog
+# sync). The same shared token the Debian consul role uses (node_prefix "" write),
+# minted by tofu (module.consul_acl) and stashed in Vault KV. Read via a
+# controller-side lookup: it evaluates in the ansible-playbook process (where the
+# OIDC login token ~/.vault-token lives), unaffected by this play's become:true.
+- name: Read the Consul agent token from Vault
+  ansible.builtin.set_fact:
+    synology_consul_agent_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-agent',
+                engine_mount_point='kv', url=vault_addr).secret.token }}
+  no_log: true
+
+# The config-file service-registration token (consul-config-services policy),
+# rendered into consul.hcl's acl.tokens block. Authorizes registration of the
+# NAS's config-file services (consul-client + nas). Same shared token and
+# controller-side lookup rationale as the agent token above.
+- name: Read the Consul config-file service-registration token from Vault
+  ansible.builtin.set_fact:
+    synology_consul_config_services_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-config-services',
+                engine_mount_point='kv', url=vault_addr).secret.token }}
+  no_log: true
+
 - name: Deploy Consul client config
   ansible.builtin.template:
     src: consul.hcl.j2

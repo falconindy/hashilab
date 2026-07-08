@@ -19,6 +19,17 @@
                 engine_mount_point='kv', url=vault_addr).secret.token }}
   no_log: true
 
+# The config-file service-registration token (consul-config-services policy),
+# rendered into consul.hcl's acl.tokens block. Authorizes registration of the
+# services defined in config files (client.hcl's consul-client here). Same Vault
+# KV + controller-side lookup rationale as the agent token above.
+- name: Read the Consul config-file service-registration token from Vault
+  ansible.builtin.set_fact:
+    consul_config_services_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-config-services',
+                engine_mount_point='kv', url=vault_addr).secret.token }}
+  no_log: true
+
 - name: Deploy consul base config
   ansible.builtin.template:
     src: "{{ item.src }}"

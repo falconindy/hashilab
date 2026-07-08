@@ -92,9 +92,10 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
 - `modules/consul/acl` — the baseline ACL identities. Attaches the `anonymous`
   policy to Consul's built-in anonymous token (what an unauthenticated request
   gets under `default_policy = "deny"` — keeps DNS, the dashboard, and Prometheus
-  SD working with no token), and mints the three **non-expiring daemon tokens**
-  (`consul-agent`, `nomad-agent`, `vault-registration`), stashing each in **Vault
-  KV** (`kv/consul/tokens/<name>`) for the Ansible roles to template into config.
+  SD working with no token), and mints the four **non-expiring daemon tokens**
+  (`consul-agent`, `consul-config-services`, `nomad-agent`, `vault-registration`),
+  stashing each in **Vault KV** (`kv/consul/tokens/<name>`) for the Ansible roles
+  to template into config.
   Those are always-on daemon identities read once and never renewed, so they must
   not be leased — the dynamic/leased path is `modules/vault/consul`. Their
   `secret_id`s land in **tofu state** and KV.
@@ -293,7 +294,7 @@ for p in admin consul-user-policy internal-server-certs nomad-user-policy \
 done
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
 # Consul ACL policies — import ID is the policy *ID* (a UUID), not the name:
-for p in anonymous consul-agent nomad-agent nomad-tasks vault-registration; do
+for p in anonymous consul-agent consul-config-services nomad-agent nomad-tasks vault-registration; do
   tofu import "consul_acl_policy.this[\"$p.hcl\"]" \
     "$(consul acl policy read -name "$p" -format json | jq -r .ID)"
 done
@@ -313,9 +314,10 @@ tofu import 'module.consul_acl.consul_acl_token_policy_attachment.anonymous' \
   "00000000-0000-0000-0000-000000000002:$(consul acl policy read -name anonymous -format json | jq -r .ID)"
 # Daemon tokens by accessor (from `consul acl token list`); their secret_id data
 # sources and KV writes reconcile on the next apply:
-#   tofu import 'module.consul_acl.consul_acl_token.daemon["consul-agent"]'       <accessor-id>
-#   tofu import 'module.consul_acl.consul_acl_token.daemon["nomad-agent"]'        <accessor-id>
-#   tofu import 'module.consul_acl.consul_acl_token.daemon["vault-registration"]' <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["consul-agent"]'           <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["consul-config-services"]' <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["nomad-agent"]'            <accessor-id>
+#   tofu import 'module.consul_acl.consul_acl_token.daemon["vault-registration"]'     <accessor-id>
 
 # ── Consul Nomad workload identity (consul_nomad_wi) ──
 tofu import 'module.consul_nomad_wi.consul_acl_auth_method.nomad_workloads' nomad-workloads
@@ -404,7 +406,7 @@ What each module manages. Resources marked _bootstrap_ only exist when
 ### modules/consul/acl
 
 - `consul_acl_token_policy_attachment` — the `anonymous` policy on the built-in anonymous token
-- `consul_acl_token.daemon` — the three non-expiring daemon tokens (`for_each`)
+- `consul_acl_token.daemon` — the four non-expiring daemon tokens (`for_each`)
 - `consul_acl_token_secret_id.daemon` (data) — reads each daemon token's SecretID
 - `vault_kv_secret_v2.daemon` — each token stashed at `kv/consul/tokens/<name>` (`for_each`)
 

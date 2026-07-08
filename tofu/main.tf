@@ -162,9 +162,10 @@ module "consul_acl" {
 
   anonymous_policy_name = consul_acl_policy.this["anonymous.hcl"].name
   daemon_policy_names = {
-    "consul-agent"       = consul_acl_policy.this["consul-agent.hcl"].name
-    "nomad-agent"        = consul_acl_policy.this["nomad-agent.hcl"].name
-    "vault-registration" = consul_acl_policy.this["vault-registration.hcl"].name
+    "consul-agent"           = consul_acl_policy.this["consul-agent.hcl"].name
+    "consul-config-services" = consul_acl_policy.this["consul-config-services.hcl"].name
+    "nomad-agent"            = consul_acl_policy.this["nomad-agent.hcl"].name
+    "vault-registration"     = consul_acl_policy.this["vault-registration.hcl"].name
   }
 }
 

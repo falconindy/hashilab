@@ -57,12 +57,16 @@ acl {
   down_policy              = "extend-cache"
   enable_token_persistence = true
 
-  # The agent's own identity for anti-entropy (node registration + catalog
-  # sync). Minted by tofu (module.consul_acl), stashed in Vault KV, and read on
-  # the controller side above — see the "Read the Consul agent token" task in
-  # the consul role. Carries the consul-agent policy (node write, service read).
+  # agent: the node's own identity for anti-entropy (node registration + catalog
+  # sync); carries the consul-agent policy (node write, service read).
+  # config_file_service_registration: authorizes registration of config-file
+  # services (client.hcl's consul-client); carries the consul-config-services
+  # policy (service:write on the named config services). Both are minted by tofu
+  # (module.consul_acl), stashed in Vault KV, and read on the controller side
+  # above — see the "Read the Consul ... token" tasks in the consul role.
   tokens {
-    agent = "{{ consul_agent_token }}"
+    agent                            = "{{ consul_agent_token }}"
+    config_file_service_registration = "{{ consul_config_services_token }}"
   }
 }
 
