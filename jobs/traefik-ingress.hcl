@@ -25,7 +25,7 @@ job "traefik-ingress" {
   }
 
   group "traefik-ingress" {
-    count = 2
+    count = 1
 
     network {
       mode = "bridge"
@@ -40,11 +40,6 @@ job "traefik-ingress" {
 
       port "envoy_metrics" { to = 9102 }
       port "metrics" { to = 8082 }
-    }
-
-    ephemeral_disk {
-      size    = 300 # MB
-      migrate = true
     }
 
     service {
@@ -89,6 +84,7 @@ job "traefik-ingress" {
         image = "traefik:v3.7.6"
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
+          "/clusterdata/traefik/acme:/certs:rw",
           "/clusterdata/traefik/plugins/geoblock-0.3.7:/plugins-local/src/github.com/PascalMinder/geoblock:ro",
         ]
       }
@@ -127,6 +123,10 @@ job "traefik-ingress" {
                   - geoblock-us@file
                 tls:
                   certresolver: letsencrypt
+                  domains:
+                    - main: "falconindy.com"
+                      sans:
+                        - "*.falconindy.com"
 
             deluge:
               address: :[[ env "NOMAD_HOST_PORT_deluge" ]]
@@ -209,7 +209,7 @@ job "traefik-ingress" {
           certificatesResolvers:
             letsencrypt:
               acme:
-                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.letsencrypt.json
+                storage: /certs/letsencrypt.json
                 dnsChallenge:
                   provider: cloudflare
                   propagation:
