@@ -6,7 +6,6 @@ global_defs {
 vrrp_script traefik_ingress_healthy {
   script "/usr/bin/curl -fsk https://localhost:8443/ping"
   interval 2
-  weight -50
   fall 2
   rise 2
 }
