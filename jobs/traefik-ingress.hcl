@@ -91,6 +91,14 @@ job "traefik-ingress" {
 
       vault {}
 
+      # Provisions a Consul token from this task's workload identity (injected as
+      # CONSUL_TOKEN, used for the endpoint.token below). Under default_policy =
+      # "deny" the connectaware provider can't ride the read-only anonymous token
+      # to fetch its /v1/agent/connect/ca/leaf/traefik-ingress cert; this token
+      # carries service:write "traefik-ingress" via the `traefik-ingress` role
+      # (tofu module.consul_nomad_wi).
+      consul {}
+
       template {
         data        = <<-EOF
           {{- with secret "pki_int/cert/ca_chain" }}
@@ -200,6 +208,7 @@ job "traefik-ingress" {
               endpoint:
                 address: consul.service.home:8501
                 scheme: https
+                token: [[ env "CONSUL_TOKEN" ]]
                 tls:
                   ca: [[ env "NOMAD_TASK_DIR" ]]/home.pem
 

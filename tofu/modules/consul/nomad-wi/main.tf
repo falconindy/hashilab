@@ -68,3 +68,32 @@ resource "consul_acl_binding_rule" "tasks" {
   bind_name   = consul_acl_role.nomad_tasks.name
   selector    = "\"nomad_service\" not in value"
 }
+
+# ── Extra roles for specific task identities (var.task_identity_roles) ────────
+# A handful of workloads need more from Consul than the read-only nomad-tasks
+# role their task token carries by default, but they authenticate as *task*
+# identities (no nomad_service claim), so they can't get a service identity:
+#   - the connectaware Traefik ingresses fetch a Connect leaf cert for their own
+#     service (/v1/agent/connect/ca/leaf/<svc>, needs service:write on it);
+#   - Prometheus scrapes Consul's /v1/agent/metrics (needs agent:read).
+# Each entry gets a role (carrying the caller-supplied policy) plus an additive
+# binding rule keyed on the caller's selector. Binding rules union, so the token
+# ends up with nomad-tasks ∪ this role; the caller's selector carries the
+# "nomad_service" not in value guard so this never touches a service identity.
+resource "consul_acl_role" "task_identity" {
+  for_each = var.task_identity_roles
+
+  name        = each.key
+  description = "Extra grants for the ${each.key} task identity"
+  policies    = [each.value.policy_name]
+}
+
+resource "consul_acl_binding_rule" "task_identity" {
+  for_each = var.task_identity_roles
+
+  auth_method = consul_acl_auth_method.nomad_workloads.name
+  description = "nomad-workloads -> ${each.key} role (task identity)"
+  bind_type   = "role"
+  bind_name   = consul_acl_role.task_identity[each.key].name
+  selector    = each.value.selector
+}

@@ -104,6 +104,14 @@ job "monitoring" {
 
       vault {}
 
+      # Provisions a Consul token from this task's workload identity (injected as
+      # CONSUL_TOKEN, used as the bearer_token on the `consul` scrape job below).
+      # Under default_policy = "deny" the anonymous token is read-only and can't
+      # hit /v1/agent/metrics (agent:read); this token carries agent:read via the
+      # `prometheus` role (tofu module.consul_nomad_wi). Service discovery
+      # (consul_sd_configs) still rides the anonymous catalog read.
+      consul {}
+
       # main configuration file
       template {
         data = <<-EOF
@@ -135,6 +143,10 @@ job "monitoring" {
                 format: [prometheus]
               honor_labels: true
               scheme: https
+              # /v1/agent/metrics requires agent:read; the anonymous token is
+              # read-only on catalog/nodes under default_policy=deny. This is the
+              # task's workload-identity Consul token (prometheus role, agent:read).
+              bearer_token: {{ env "CONSUL_TOKEN" }}
               tls_config:
                 server_name: consul.service.home
               consul_sd_configs:

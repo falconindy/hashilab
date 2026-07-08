@@ -178,6 +178,27 @@ module "consul_nomad_wi" {
   nomad_jwks_url          = local.nomad_jwks_url
   home_ca_file            = var.home_ca_file
   nomad_tasks_policy_name = consul_acl_policy.this["nomad-tasks.hcl"].name
+
+  # Task identities that need more than the read-only nomad-tasks role. The two
+  # Traefik ingresses run connectaware and fetch their own Connect leaf cert
+  # (service:write on their service); Prometheus scrapes Consul's agent metrics
+  # (agent:read). Prometheus's task shares job "monitoring" and task name
+  # "server" with blackbox-exporter, but only the prometheus task carries a
+  # consul{} block, so it's the only one that ever mints this token.
+  task_identity_roles = {
+    traefik = {
+      policy_name = consul_acl_policy.this["traefik.hcl"].name
+      selector    = "value.nomad_job_id == \"traefik\" and \"nomad_service\" not in value"
+    }
+    traefik-ingress = {
+      policy_name = consul_acl_policy.this["traefik-ingress.hcl"].name
+      selector    = "value.nomad_job_id == \"traefik-ingress\" and \"nomad_service\" not in value"
+    }
+    prometheus = {
+      policy_name = consul_acl_policy.this["prometheus.hcl"].name
+      selector    = "value.nomad_job_id == \"monitoring\" and value.nomad_task == \"server\" and \"nomad_service\" not in value"
+    }
+  }
 }
 
 output "vault_pki_backend" {
