@@ -130,6 +130,35 @@ module "vault_nomad" {
   role_name         = "mgmt"
 }
 
+# The Nomad workload-identity flow INTO Vault: the jwt-nomad auth method + its
+# roles. The Vault-side twin of module.consul_nomad_wi. NB module.vault_nomad
+# above is the OPPOSITE direction (Vault minting Nomad mgmt tokens); this is Nomad
+# allocs logging in to Vault. The roles' policies live in vault/policies/*.hcl
+# (policies.tf) — the nomad-workloads one is templated on the mount accessor — and
+# are passed by reference so roles order after the policies exist. Must exist
+# before Nomad's vault{} default_identity goes live (see the module).
+module "vault_nomad_wi" {
+  source = "./modules/vault/nomad-wi"
+
+  auth_method_path = "jwt-nomad"
+  default_role     = "nomad-workloads"
+  # Vault reads its co-located Nomad agent's JWKS, not the cluster DNS name.
+  nomad_jwks_url = "https://localhost:4646/.well-known/jwks.json"
+  bound_audience = "vault.io"
+
+  roles = {
+    "nomad-workloads" = {
+      token_policies = [
+        vault_policy.this["nomad-workloads.hcl"].name,
+        vault_policy.this["prometheus-metrics.hcl"].name,
+      ]
+    }
+    "raft-snapshotter" = {
+      token_policies = [vault_policy.this["raft-snapshots.hcl"].name]
+    }
+  }
+}
+
 module "nomad_oidc" {
   source = "./modules/nomad/oidc"
 
@@ -252,6 +281,14 @@ output "vault_nomad_backend" {
 
 output "vault_nomad_role" {
   value = module.vault_nomad.role_name
+}
+
+output "vault_nomad_wi_auth_method_path" {
+  value = module.vault_nomad_wi.auth_method_path
+}
+
+output "vault_nomad_wi_roles" {
+  value = module.vault_nomad_wi.role_names
 }
 
 output "nomad_oidc_auth_method" {

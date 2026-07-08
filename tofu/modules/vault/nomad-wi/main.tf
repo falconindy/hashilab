@@ -1,0 +1,71 @@
+# ── The JWT auth method ──────────────────────────────────────────────────────
+# The Vault-side twin of modules/consul/nomad-wi. Nomad allocations that carry a
+# vault{} block mint a workload-identity JWT (aud=vault.io, see base.hcl.j2's
+# default_identity) and log in here to get a short-lived, per-job Vault token —
+# instead of Nomad holding one shared Vault token and handing derived tokens out.
+# Replaces the hand-run `vault auth enable -path=jwt-nomad jwt` +
+# `vault write auth/jwt-nomad/config ...`.
+#
+# ── jwks_url is Vault's *node-local* Nomad agent (localhost:4646), NOT the
+# cluster DNS name the Consul method uses. Vault runs on nomad0-2, which are also
+# Nomad clients, so each Vault reads its co-located agent's JWKS. Consequently
+# jwks_ca_pem is intentionally EMPTY: validation rides the node's system trust
+# store (the home CA is in /etc/ssl/certs on every node), not an embedded PEM.
+# This is the one real divergence from the Consul method, which embeds JWKSCACert.
+#
+# ── Ordering: this must exist BEFORE Nomad's vault{} default_identity is live and
+# BEFORE any job with a vault{} block deploys — an allocation begins its JWT login
+# the moment it starts, and a missing method fails the alloc. Same "auth method
+# first, workloads second" rule as the Consul side.
+resource "vault_jwt_auth_backend" "nomad_workloads" {
+  path = var.auth_method_path
+  type = "jwt"
+  # description left unset to match the live mount (empty) — a no-diff import.
+
+  jwks_url     = var.nomad_jwks_url
+  default_role = var.default_role
+
+  # Match live: the method accepts Nomad's RS256 workload JWTs plus EdDSA. Unset,
+  # the provider would clear the list (the plan's ~ jwt_supported_algs diff).
+  jwt_supported_algs = ["RS256", "EdDSA"]
+}
+
+# ── The roles ────────────────────────────────────────────────────────────────
+# One role per distinct policy set. Nomad's bare vault{} blocks resolve to
+# default_role (nomad-workloads); a job that names a different role (e.g. the
+# raft snapshotter) selects it explicitly. Per-workload isolation for the default
+# role comes from its TEMPLATED policy, not from many roles — that policy embeds
+# the mount accessor and is managed centrally in vault/policies/*.hcl (passed in
+# by reference via token_policies, so roles order after the policies exist).
+#
+# Tokens are PERIODIC (token_period set, token_ttl/token_max_ttl left 0): Nomad
+# renews them on the period for the alloc's life and derives a fresh one on
+# restart. No hard cap — a periodic token renews indefinitely, which is what a
+# long-running alloc needs. (Vault tokens are renewable, so unlike the Consul WI
+# method a cap wouldn't silently kill an alloc — we simply don't need one.)
+resource "vault_jwt_auth_backend_role" "this" {
+  for_each = var.roles
+
+  backend   = vault_jwt_auth_backend.nomad_workloads.path
+  role_name = each.key
+  role_type = "jwt"
+
+  bound_audiences = [var.bound_audience]
+
+  # Identify the workload by job id. json_pointer because the claim is top-level
+  # `nomad_job_id`; the leading "/" is the pointer, not a nested path.
+  user_claim              = "/nomad_job_id"
+  user_claim_json_pointer = true
+
+  # Copied onto entity-alias metadata so the templated nomad-workloads policy can
+  # interpolate them (namespace + job scope each token to its own KV subtree).
+  claim_mappings = {
+    nomad_namespace = "nomad_namespace"
+    nomad_job_id    = "nomad_job_id"
+    nomad_task      = "nomad_task"
+  }
+
+  token_type     = "service"
+  token_policies = each.value.token_policies
+  token_period   = var.token_period_seconds
+}

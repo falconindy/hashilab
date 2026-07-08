@@ -77,6 +77,24 @@ The Vault Consul secrets engine:
   **tofu state** — another reason to protect state. Needs a Consul management
   token in `CONSUL_HTTP_TOKEN` (see below).
 
+The Nomad workload-identity flow into Vault:
+
+- `modules/vault/nomad-wi` — the Vault-side twin of `modules/consul/nomad-wi`.
+  The `jwt-nomad` JWT auth method and its roles (`nomad-workloads`, the default
+  every bare `vault{}` block resolves to, plus `raft-snapshotter`). This is an
+  auth method — **no key material, no `bootstrap` gate**. Must exist **before**
+  Nomad's `vault{}` `default_identity` goes live (allocations begin their JWT
+  login the moment a `vault{}` block deploys). Do not confuse with
+  `modules/vault/nomad` above, which is the opposite direction (Vault minting
+  Nomad tokens). Two things differ from the Consul method: Vault reads its
+  **node-local** Nomad agent's JWKS (`https://localhost:4646/...`) and embeds **no
+  CA** (validation rides the node's system trust store), where Consul uses the
+  cluster DNS name with the home CA embedded. The roles' policies are **not**
+  created here — they live in `vault/policies/*.hcl` (`policies.tf`) and are
+  passed in by reference via `roles[*].token_policies`. The `nomad-workloads`
+  policy is **templated on the mount accessor** (`auth_jwt_…`), so the mount must
+  keep its accessor across changes — adopt by `import`, never a fresh apply.
+
 Nomad OIDC login:
 
 - `modules/nomad/oidc` — the `pocket-id` OIDC auth method + the binding rule that
@@ -282,6 +300,21 @@ tofu import 'module.vault_nomad.vault_nomad_secret_role.mgmt'     nomad/role/mgm
 # token (safe rotation — re-applying is idempotent) and updates nomad/config/access
 # to it; delete the now-orphaned old token by hand.
 
+# ── Nomad workload identity into Vault (vault_nomad_wi) ──
+# Adopt the live method + roles — do NOT apply blind: the nomad-workloads POLICY
+# (managed by policies.tf, not here) embeds the mount accessor, and import
+# preserves the existing accessor, so a fresh apply would enable a new mount with
+# a new accessor and orphan the policy's templating. The three policies
+# (nomad-workloads, prometheus-metrics, raft-snapshots) are vault/policies/*.hcl,
+# imported with the rest by the policy loop above — nothing to import here for
+# them. Confirm the live config first:
+#   vault read auth/jwt-nomad/config
+#   vault read auth/jwt-nomad/role/nomad-workloads
+#   vault read auth/jwt-nomad/role/raft-snapshotter
+tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend.nomad_workloads'               jwt-nomad
+tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["nomad-workloads"]'  auth/jwt-nomad/role/nomad-workloads
+tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["raft-snapshotter"]' auth/jwt-nomad/role/raft-snapshotter
+
 # ── Nomad OIDC login (pocket-id) ── also needs a management token
 tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # Binding rule imports by its UUID (from `nomad acl binding-rule list`):
@@ -389,6 +422,12 @@ What each module manages. Resources marked _bootstrap_ only exist when
 - `nomad_acl_token` — the dedicated management token the engine uses (lifecycle-owned)
 - `vault_nomad_secret_backend` — the `nomad` mount + `config/access`
 - `vault_nomad_secret_role` — the `mgmt` management/global role
+
+### modules/vault/nomad-wi
+
+- `vault_jwt_auth_backend` — the `jwt-nomad` JWT auth method (node-local Nomad JWKS, no embedded CA, `default_role`)
+- `vault_jwt_auth_backend_role` (`for_each`) — the `nomad-workloads` and `raft-snapshotter` roles (periodic `service` tokens)
+- (policies are in `vault/policies/*.hcl` via `policies.tf`, referenced by name — not created here)
 
 ### modules/nomad/oidc
 
