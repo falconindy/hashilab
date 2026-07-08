@@ -33,10 +33,6 @@ telemetry {
 listener "tcp" {
   address     = "172.17.0.1:8200"
   tls_disable = true
-
-  telemetry {
-    unauthenticated_metrics_access = "true"
-  }
 }
 
 # HTTPS listener
@@ -45,6 +41,13 @@ listener "tcp" {
   tls_disable_client_certs = "true"
   tls_cert_file            = "/etc/vault.d/certs/server.crt"
   tls_key_file             = "/etc/vault.d/private/server.key"
+
+  # Serve sys/metrics locally on every node. Without this, standby nodes
+  # 307-redirect authenticated metrics scrapes to the active node, so only
+  # the leader is ever scraped (Vault OSS forwards all authed requests).
+  telemetry {
+    unauthenticated_metrics_access = "true"
+  }
 }
 
 seal "gcpckms" {

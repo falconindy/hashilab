@@ -102,8 +102,6 @@ job "monitoring" {
       driver = "docker"
       user   = "1000:2000"
 
-      vault {}
-
       # Provisions a Consul token from this task's workload identity (injected as
       # CONSUL_TOKEN, used as the bearer_token on the `consul` scrape job below).
       # Under default_policy = "deny" the anonymous token is read-only and can't
@@ -169,7 +167,6 @@ job "monitoring" {
             - job_name: vault
               metrics_path: /v1/sys/metrics
               scheme: https
-              bearer_token: {{ env "VAULT_TOKEN" }}
               params:
                 format: [prometheus]
               consul_sd_configs:
