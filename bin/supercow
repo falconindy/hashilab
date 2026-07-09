@@ -27,6 +27,8 @@
 # present, or expired/revoked), it runs `vault login -method=oidc` for you — the
 # passkey flow — and picks up the freshly minted token.
 
+from __future__ import annotations
+
 import argparse
 import os
 import subprocess
@@ -62,7 +64,7 @@ PS1='$(__supercow_chip) '"$PS1"
 """
 
 
-def vault_token(allow_env):
+def vault_token(allow_env: bool) -> str | None:
     if allow_env:
         token = os.environ.get("VAULT_TOKEN")
         if token:
@@ -75,7 +77,7 @@ def vault_token(allow_env):
         return None
 
 
-def oidc_login():
+def oidc_login() -> None:
     """Run `vault login -method=oidc` (passkey flow) to mint a fresh token.
 
     Delegates to the Vault CLI rather than reimplementing the browser round-trip;
@@ -94,7 +96,7 @@ def oidc_login():
         sys.exit(f"supercow: `vault login -method=oidc` failed ({e})")
 
 
-def authenticated_client():
+def authenticated_client() -> hvac.Client:
     """Return an hvac client backed by a valid token, logging in via OIDC if not.
 
     A token merely *existing* in the env/helper doesn't mean it's still good, so
@@ -120,7 +122,9 @@ def authenticated_client():
     return client
 
 
-def mint(client, mount, role, token_field):
+def mint(
+    client: hvac.Client, mount: str, role: str, token_field: str
+) -> tuple[str, str, int]:
     """Read a creds role and return (secret, lease_id, ttl)."""
     resp = client.read(f"{mount}/creds/{role}")
     if not resp:
@@ -128,7 +132,7 @@ def mint(client, mount, role, token_field):
     return resp["data"][token_field], resp["lease_id"], resp["lease_duration"]
 
 
-def renew_to(client, lease_id, ttl):
+def renew_to(client: hvac.Client, lease_id: str, ttl: int) -> int | None:
     """Renew a lease toward a common TTL; return the granted duration.
 
     Vault caps the increment at the lease's max_ttl, so a lease that can't reach
@@ -142,7 +146,7 @@ def renew_to(client, lease_id, ttl):
         return None
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Break-glass into a joint Consul+Nomad management token subshell."
     )
