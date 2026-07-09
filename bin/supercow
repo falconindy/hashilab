@@ -23,7 +23,9 @@
 # issue these.
 #
 # Auth: uses your Vault operator token from $VAULT_TOKEN, falling back to the
-# CLI token helper file ~/.vault-token. Run `vault login -method=oidc` first.
+# CLI token helper file ~/.vault-token. If neither yields a *valid* token (none
+# present, or expired/revoked), it runs `vault login -method=oidc` for you — the
+# passkey flow — and picks up the freshly minted token.
 
 import argparse
 import os
@@ -60,15 +62,62 @@ PS1='$(__supercow_chip) '"$PS1"
 """
 
 
-def vault_token():
-    token = os.environ.get("VAULT_TOKEN")
-    if token:
-        return token.strip()
+def vault_token(allow_env):
+    if allow_env:
+        token = os.environ.get("VAULT_TOKEN")
+        if token:
+            return token.strip()
+
     try:
         with open(os.path.expanduser("~/.vault-token")) as f:
             return f.read().strip()
     except OSError:
         return None
+
+
+def oidc_login():
+    """Run `vault login -method=oidc` (passkey flow) to mint a fresh token.
+
+    Delegates to the Vault CLI rather than reimplementing the browser round-trip;
+    the CLI writes the token to the helper (~/.vault-token) on success, which
+    vault_token() then picks up. VAULT_ADDR/VAULT_CACERT are pinned so the CLI
+    targets the same Vault this script talks to.
+    """
+    env = os.environ.copy()
+    env.setdefault("VAULT_ADDR", VAULT_ADDR)
+    env.setdefault("VAULT_CACERT", VAULT_CACERT)
+    try:
+        subprocess.run(["vault", "login", "-method=oidc"], env=env, check=True)
+    except FileNotFoundError:
+        sys.exit("supercow: `vault` CLI not found; cannot log in via OIDC")
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"supercow: `vault login -method=oidc` failed ({e})")
+
+
+def authenticated_client():
+    """Return an hvac client backed by a valid token, logging in via OIDC if not.
+
+    A token merely *existing* in the env/helper doesn't mean it's still good, so
+    we probe it (lookup-self) and fall back to an OIDC login on any miss.
+    """
+    token = vault_token(allow_env=True)
+    if token:
+        client = hvac.Client(url=VAULT_ADDR, verify=VAULT_CACERT, token=token)
+        if client.is_authenticated():
+            return client
+        print("supercow: Vault token present but invalid/expired")
+
+    print("supercow: logging in via OIDC")
+    oidc_login()
+    # Read the helper file directly: a stale $VAULT_TOKEN would otherwise shadow
+    # the fresh token the CLI just wrote there.
+    token = vault_token(allow_env=False)
+    if not token:
+        sys.exit("supercow: no Vault token after OIDC login")
+    client = hvac.Client(url=VAULT_ADDR, verify=VAULT_CACERT, token=token)
+    if not client.is_authenticated():
+        sys.exit("supercow: Vault token still invalid after OIDC login")
+    return client
 
 
 def mint(client, mount, role, token_field):
@@ -120,11 +169,7 @@ def main():
     if os.environ.get("SUPERCOW_LEASE"):
         sys.exit("supercow: already in a management subshell")
 
-    token = vault_token()
-    if not token:
-        sys.exit("supercow: no Vault token — run `vault login -method=oidc` first")
-
-    client = hvac.Client(url=VAULT_ADDR, verify=VAULT_CACERT, token=token)
+    client = authenticated_client()
 
     consul_tok, consul_lease, consul_ttl = mint(
         client, args.consul_mount, args.consul_role, "token"
