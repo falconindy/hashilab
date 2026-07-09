@@ -8,6 +8,11 @@ job "cluster-config-snapshotter" {
     time_zone        = "America/New_York"
   }
 
+  vault {
+    env  = true
+    role = "raft-snapshotter"
+  }
+
   group "vault" {
     task "snapshotter" {
       driver = "raw_exec"
@@ -26,11 +31,6 @@ job "cluster-config-snapshotter" {
             find /clusterdata/vault-snapshots -name '*.snap' -type f -mtime +30 -exec rm -v {} +
           EOF
         ]
-      }
-
-      vault {
-        env  = true
-        role = "raft-snapshotter"
       }
 
       env {
@@ -64,6 +64,20 @@ job "cluster-config-snapshotter" {
         ]
       }
 
+      template {
+        data        = <<-EOF
+          {{ with secret "consul/creds/mgmt" }}
+            CONSUL_HTTP_TOKEN="{{ .Data.token }}"
+          {{ end }}
+        EOF
+        destination = "secrets/consul.env"
+        env         = true
+      }
+
+      env {
+        CONSUL_HTTP_ADDR = "https://consul.service.home:8501"
+      }
+
       resources {
         cpu    = 100
         memory = 128
@@ -91,12 +105,10 @@ job "cluster-config-snapshotter" {
         ]
       }
 
-      vault {}
-
       template {
         data        = <<-EOF
-          {{ with secret "kv/data/default/cluster-config-snapshotter" }}
-            NOMAD_TOKEN="{{ .Data.data.nomad_token }}"
+          {{ with secret "nomad/creds/mgmt" }}
+            NOMAD_TOKEN="{{ .Data.secret_id }}"
           {{ end }}
         EOF
         destination = "secrets/nomad.env"
