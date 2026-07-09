@@ -304,8 +304,8 @@ tofu import 'module.vault_nomad.vault_nomad_secret_role.mgmt'     nomad/role/mgm
 # Adopt the live method + roles — do NOT apply blind: the nomad-workloads POLICY
 # (managed by policies.tf, not here) embeds the mount accessor, and import
 # preserves the existing accessor, so a fresh apply would enable a new mount with
-# a new accessor and orphan the policy's templating. The three policies
-# (nomad-workloads, prometheus-metrics, raft-snapshots) are vault/policies/*.hcl,
+# a new accessor and orphan the policy's templating. The two policies
+# (nomad-workloads, raft-snapshots) are vault/policies/*.hcl,
 # imported with the rest by the policy loop above — nothing to import here for
 # them. Confirm the live config first:
 #   vault read auth/jwt-nomad/config
@@ -322,7 +322,7 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 
 # ── ACL policies ── keyed on filename; import ID is the policy name
 for p in admin consul-user-policy internal-server-certs nomad-user-policy \
-         nomad-workloads prometheus-metrics raft-snapshots ssh; do
+         nomad-workloads raft-snapshots ssh; do
   tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
 done
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin

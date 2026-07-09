@@ -150,7 +150,6 @@ module "vault_nomad_wi" {
     "nomad-workloads" = {
       token_policies = [
         vault_policy.this["nomad-workloads.hcl"].name,
-        vault_policy.this["prometheus-metrics.hcl"].name,
       ]
     }
     "raft-snapshotter" = {

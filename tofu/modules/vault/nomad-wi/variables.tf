@@ -31,8 +31,8 @@ variable "bound_audience" {
 variable "roles" {
   description = <<-EOT
     JWT roles keyed by role name; each carries a list of token_policies. Nomad's
-    default workloads use `nomad-workloads` (the templated per-job policy +
-    prometheus-metrics); jobs that name a different role select it explicitly
+    default workloads use `nomad-workloads` (the templated per-job policy);
+    jobs that name a different role select it explicitly
     (e.g. `raft-snapshotter`). Pass the policies.tf resource attributes so each
     role orders after its policies are created.
   EOT
