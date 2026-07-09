@@ -10,6 +10,12 @@ variable "default_role" {
   default     = "nomad-workloads"
 }
 
+variable "templated_policy_name" {
+  description = "Name of the accessor-templated per-workload policy this module renders and owns (from templates/nomad-workloads.hcl.tftpl). Roles opt in via roles[*].include_templated_policy."
+  type        = string
+  default     = "nomad-workloads"
+}
+
 variable "nomad_jwks_url" {
   description = <<-EOT
     Nomad's JWKS endpoint Vault reads to validate workload JWTs. This is the
@@ -30,14 +36,16 @@ variable "bound_audience" {
 
 variable "roles" {
   description = <<-EOT
-    JWT roles keyed by role name; each carries a list of token_policies. Nomad's
-    default workloads use `nomad-workloads` (the templated per-job policy);
-    jobs that name a different role select it explicitly
-    (e.g. `raft-snapshotter`). Pass the policies.tf resource attributes so each
-    role orders after its policies are created.
+    JWT roles keyed by role name. Each carries token_policies (pass policies.tf
+    resource attributes so the role orders after those policies exist) and an
+    optional include_templated_policy: set it true to prepend the module's
+    accessor-templated per-workload policy (the default role, nomad-workloads,
+    wants this; a role like raft-snapshotter does not). Nomad's bare vault{}
+    blocks resolve to default_role; other jobs name their role explicitly.
   EOT
   type = map(object({
-    token_policies = list(string)
+    token_policies           = list(string)
+    include_templated_policy = optional(bool, false)
   }))
 }
 

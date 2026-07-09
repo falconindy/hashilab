@@ -25,18 +25,33 @@ resource "vault_jwt_auth_backend" "nomad_workloads" {
   jwks_url     = var.nomad_jwks_url
   default_role = var.default_role
 
-  # Match live: the method accepts Nomad's RS256 workload JWTs plus EdDSA. Unset,
-  # the provider would clear the list (the plan's ~ jwt_supported_algs diff).
-  jwt_supported_algs = ["RS256", "EdDSA"]
+  # Nomad signs workload-identity JWTs with RS256, so accept only that.
+  jwt_supported_algs = ["RS256"]
+}
+
+# ── The templated per-workload policy ────────────────────────────────────────
+# Scopes every default workload to its own KV subtree via Vault ACL templating.
+# The policy body has to embed THIS mount's accessor (auth_jwt_…) — the only way
+# to say "the claims on a token minted through jwt-nomad" — so it can't live as a
+# static vault/policies/*.hcl file with the accessor hand-copied (that silently
+# breaks the moment the mount is recreated and the accessor changes). Rendered
+# here instead, with the accessor read straight off the resource, so it always
+# tracks the live mount and survives a bootstrap/DR rebuild. chomp() matches how
+# policies.tf stores its files (Vault strips trailing whitespace).
+resource "vault_policy" "nomad_workloads" {
+  name = var.templated_policy_name
+  policy = chomp(templatefile("${path.module}/templates/nomad-workloads.hcl.tftpl", {
+    accessor = vault_jwt_auth_backend.nomad_workloads.accessor
+  }))
 }
 
 # ── The roles ────────────────────────────────────────────────────────────────
 # One role per distinct policy set. Nomad's bare vault{} blocks resolve to
 # default_role (nomad-workloads); a job that names a different role (e.g. the
-# raft snapshotter) selects it explicitly. Per-workload isolation for the default
-# role comes from its TEMPLATED policy, not from many roles — that policy embeds
-# the mount accessor and is managed centrally in vault/policies/*.hcl (passed in
-# by reference via token_policies, so roles order after the policies exist).
+# raft snapshotter) selects it explicitly. Roles that set include_templated_policy
+# get the accessor-templated policy above prepended to their token_policies
+# (the default role's per-workload KV scope); everything else is passed in by
+# reference from policies.tf, so roles order after those policies exist.
 #
 # Tokens are PERIODIC (token_period set, token_ttl/token_max_ttl left 0): Nomad
 # renews them on the period for the alloc's life and derives a fresh one on
@@ -65,7 +80,10 @@ resource "vault_jwt_auth_backend_role" "this" {
     nomad_task      = "nomad_task"
   }
 
-  token_type     = "service"
-  token_policies = each.value.token_policies
-  token_period   = var.token_period_seconds
+  token_type = "service"
+  token_policies = concat(
+    each.value.include_templated_policy ? [vault_policy.nomad_workloads.name] : [],
+    each.value.token_policies,
+  )
+  token_period = var.token_period_seconds
 }

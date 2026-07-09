@@ -89,11 +89,13 @@ The Nomad workload-identity flow into Vault:
   Nomad tokens). Two things differ from the Consul method: Vault reads its
   **node-local** Nomad agent's JWKS (`https://localhost:4646/...`) and embeds **no
   CA** (validation rides the node's system trust store), where Consul uses the
-  cluster DNS name with the home CA embedded. The roles' policies are **not**
-  created here — they live in `vault/policies/*.hcl` (`policies.tf`) and are
-  passed in by reference via `roles[*].token_policies`. The `nomad-workloads`
-  policy is **templated on the mount accessor** (`auth_jwt_…`), so the mount must
-  keep its accessor across changes — adopt by `import`, never a fresh apply.
+  cluster DNS name with the home CA embedded. The `nomad-workloads` policy is
+  **templated on the mount accessor** and owned by this module (rendered from
+  `templates/nomad-workloads.hcl.tftpl` with the accessor read off the live
+  resource), not a static `vault/policies/*.hcl` file — a hand-copied accessor
+  breaks silently when the mount is recreated. Roles opt in via
+  `roles[*].include_templated_policy`; other policies (e.g. `raft-snapshots`)
+  still come from `policies.tf` by reference.
 
 Nomad OIDC login:
 
@@ -301,19 +303,19 @@ tofu import 'module.vault_nomad.vault_nomad_secret_role.mgmt'     nomad/role/mgm
 # to it; delete the now-orphaned old token by hand.
 
 # ── Nomad workload identity into Vault (vault_nomad_wi) ──
-# Adopt the live method + roles — do NOT apply blind: the nomad-workloads POLICY
-# (managed by policies.tf, not here) embeds the mount accessor, and import
-# preserves the existing accessor, so a fresh apply would enable a new mount with
-# a new accessor and orphan the policy's templating. The two policies
-# (nomad-workloads, raft-snapshots) are vault/policies/*.hcl,
-# imported with the rest by the policy loop above — nothing to import here for
-# them. Confirm the live config first:
+# Adopt the live method + roles + policy — do NOT apply blind: the nomad-workloads
+# policy embeds the mount accessor, and import preserves the existing accessor, so
+# a fresh apply would enable a new mount with a new accessor and orphan the
+# templating. The nomad-workloads policy is module-owned (rendered from the
+# accessor); raft-snapshots stays in vault/policies/*.hcl, imported by the policy
+# loop above. Confirm the live config first:
 #   vault read auth/jwt-nomad/config
 #   vault read auth/jwt-nomad/role/nomad-workloads
 #   vault read auth/jwt-nomad/role/raft-snapshotter
 tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend.nomad_workloads'               jwt-nomad
 tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["nomad-workloads"]'  auth/jwt-nomad/role/nomad-workloads
 tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["raft-snapshotter"]' auth/jwt-nomad/role/raft-snapshotter
+tofu import 'module.vault_nomad_wi.vault_policy.nomad_workloads'                          nomad-workloads
 
 # ── Nomad OIDC login (pocket-id) ── also needs a management token
 tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
@@ -321,8 +323,10 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
 
 # ── ACL policies ── keyed on filename; import ID is the policy name
+# (nomad-workloads is NOT here — it's module-owned, imported in the vault_nomad_wi
+# block above.)
 for p in admin consul-user-policy internal-server-certs nomad-user-policy \
-         nomad-workloads raft-snapshots ssh; do
+         raft-snapshots ssh; do
   tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
 done
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
@@ -425,9 +429,9 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 ### modules/vault/nomad-wi
 
-- `vault_jwt_auth_backend` — the `jwt-nomad` JWT auth method (node-local Nomad JWKS, no embedded CA, `default_role`)
+- `vault_jwt_auth_backend` — the `jwt-nomad` JWT auth method (node-local Nomad JWKS, no embedded CA, `default_role`, `jwt_supported_algs = ["RS256"]`)
 - `vault_jwt_auth_backend_role` (`for_each`) — the `nomad-workloads` and `raft-snapshotter` roles (periodic `service` tokens)
-- (policies are in `vault/policies/*.hcl` via `policies.tf`, referenced by name — not created here)
+- `vault_policy.nomad_workloads` — the accessor-templated per-workload KV policy (rendered from `templates/nomad-workloads.hcl.tftpl`); other policies come from `policies.tf`
 
 ### modules/nomad/oidc
 

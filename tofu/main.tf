@@ -133,10 +133,10 @@ module "vault_nomad" {
 # The Nomad workload-identity flow INTO Vault: the jwt-nomad auth method + its
 # roles. The Vault-side twin of module.consul_nomad_wi. NB module.vault_nomad
 # above is the OPPOSITE direction (Vault minting Nomad mgmt tokens); this is Nomad
-# allocs logging in to Vault. The roles' policies live in vault/policies/*.hcl
-# (policies.tf) — the nomad-workloads one is templated on the mount accessor — and
-# are passed by reference so roles order after the policies exist. Must exist
-# before Nomad's vault{} default_identity goes live (see the module).
+# allocs logging in to Vault. The accessor-templated nomad-workloads policy is
+# owned by the module (it must embed the mount accessor); other roles' policies
+# live in vault/policies/*.hcl and are passed by reference so roles order after
+# them. Must exist before Nomad's vault{} default_identity goes live (see module).
 module "vault_nomad_wi" {
   source = "./modules/vault/nomad-wi"
 
@@ -148,9 +148,9 @@ module "vault_nomad_wi" {
 
   roles = {
     "nomad-workloads" = {
-      token_policies = [
-        vault_policy.this["nomad-workloads.hcl"].name,
-      ]
+      # The per-workload KV policy is the module's accessor-templated one.
+      include_templated_policy = true
+      token_policies           = []
     }
     "raft-snapshotter" = {
       token_policies = [vault_policy.this["raft-snapshots.hcl"].name]
