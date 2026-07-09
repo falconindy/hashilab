@@ -154,6 +154,14 @@ module "vault_nomad_wi" {
     }
     "raft-snapshotter" = {
       token_policies = [vault_policy.this["raft-snapshots.hcl"].name]
+      # This role hands out Consul + Nomad management tokens, so pin it to the one
+      # job that's meant to use it. cluster-config-snapshotter is periodic, so the
+      # nomad_job_id claim is the dispatched child (<parent>/periodic-<ts>), not the
+      # bare parent name — hence the glob.
+      bound_claims_type = "glob"
+      bound_claims = {
+        nomad_job_id = "cluster-config-snapshotter/periodic-*"
+      }
     }
   }
 }

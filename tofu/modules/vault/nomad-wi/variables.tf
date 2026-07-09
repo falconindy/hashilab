@@ -42,10 +42,21 @@ variable "roles" {
     accessor-templated per-workload policy (the default role, nomad-workloads,
     wants this; a role like raft-snapshotter does not). Nomad's bare vault{}
     blocks resolve to default_role; other jobs name their role explicitly.
+
+    Optional bound_claims / bound_claims_type gate WHICH workloads may assume the
+    role: without them, ANY job in the cluster can name the role in its vault{}
+    block (user_claim only identifies the entity, it doesn't restrict login). Set
+    e.g. { nomad_job_id = "cluster-config-snapshotter/periodic-*" } with type
+    "glob" to pin a privileged role to one job — note periodic/batch children
+    carry the dispatched id (<parent>/periodic-<ts>), not the bare parent name.
+    The default role stays unbound on purpose (it's the catch-all, and its
+    templated policy self-scopes each token to kv/<namespace>/<job_id>/*).
   EOT
   type = map(object({
     token_policies           = list(string)
     include_templated_policy = optional(bool, false)
+    bound_claims             = optional(map(string))
+    bound_claims_type        = optional(string)
   }))
 }
 

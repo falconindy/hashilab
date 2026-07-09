@@ -67,6 +67,13 @@ resource "vault_jwt_auth_backend_role" "this" {
 
   bound_audiences = [var.bound_audience]
 
+  # Optional per-role claim gate. user_claim below only NAMES the entity; it does
+  # not restrict which job may log in, so a privileged role (e.g. raft-snapshotter)
+  # is assumable by any workload until bound_claims pins it to a specific job id.
+  # Left null on unbound roles (the default catch-all) → no restriction.
+  bound_claims      = each.value.bound_claims
+  bound_claims_type = each.value.bound_claims_type
+
   # Identify the workload by job id. json_pointer because the claim is top-level
   # `nomad_job_id`; the leading "/" is the pointer, not a nested path.
   user_claim              = "/nomad_job_id"
