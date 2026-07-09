@@ -1,0 +1,11 @@
+# vault-agent reads its .tpl sources and config only at startup — SIGHUP reloads
+# just listener TLS and log level, not templates — so config/template changes
+# require a full restart. Unlike the control-plane daemons (see the nomad role's
+# "Flag nomad restart"), vault-agent is a per-node cert-rendering sidecar with no
+# leadership to protect, so it's safe to bounce in place. daemon_reload picks up
+# unit-file changes.
+- name: Restart vault-agent
+  ansible.builtin.systemd_service:
+    name: vault-agent.service
+    state: restarted
+    daemon_reload: true

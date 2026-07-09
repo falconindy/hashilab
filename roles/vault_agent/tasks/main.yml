@@ -3,6 +3,7 @@
     src: os/etc/systemd/system/vault-agent.service
     dest: /etc/systemd/system/vault-agent.service
     mode: "0644"
+  notify: Restart vault-agent
 
 - name: Create config directory
   ansible.builtin.file:
@@ -20,6 +21,7 @@
     - { src: agent.hcl.j2, dest: agent.hcl }
     - { src: agent.env.j2, dest: agent.env }
     - { src: agent.roleid, mode: "0640" }
+  notify: Restart vault-agent
 
 - name: Deploy consul vault-agent config
   ansible.builtin.copy:
@@ -30,6 +32,7 @@
     - consul-tls.hcl
     - consul-server.tpl
   when: "'consul_clients' in group_names or 'consul_servers' in group_names"
+  notify: Restart vault-agent
 
 - name: Deploy nomad vault-agent config
   ansible.builtin.copy:
@@ -40,6 +43,7 @@
     - nomad-tls.hcl
     - nomad-server.tpl
   when: "'nomad_clients' in group_names or 'nomad_servers' in group_names"
+  notify: Restart vault-agent
 
 - name: Deploy vault vault-agent config
   ansible.builtin.copy:
@@ -51,6 +55,7 @@
     - vault-server.tpl
     - vault-client.tpl
   when: "'vault_servers' in group_names"
+  notify: Restart vault-agent
 
 - name: Create vault TLS cert/key directories
   ansible.builtin.file:
