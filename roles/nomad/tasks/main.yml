@@ -37,16 +37,20 @@
   no_log: true
   when: "'nomad_clients' in group_names"
 
+# base.hcl holds the Nomad agent's Consul token, so it's 0600 (root:root — the
+# nomad service runs as root and reads it). client.hcl carries no secret → 0644.
 - name: Update nomad client config
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
-    mode: "0644"
+    mode: "{{ item.mode }}"
   loop:
     - src: os/etc/nomad.d/base.hcl.j2
       dest: /etc/nomad.d/base.hcl
+      mode: "0600"
     - src: os/etc/nomad.d/client.hcl.j2
       dest: /etc/nomad.d/client.hcl
+      mode: "0644"
   when: "'nomad_clients' in group_names"
   notify:
     - Flag nomad restart
@@ -55,7 +59,7 @@
   ansible.builtin.copy:
     src: os/etc/nomad.d/server.hcl
     dest: /etc/nomad.d/server.hcl
-    mode: "0644"
+    mode: "0600"
   when: "'nomad_servers' in group_names"
   notify:
     - Flag nomad restart
