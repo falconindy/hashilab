@@ -9,9 +9,6 @@
 # every day-to-day workload and cluster operation but not ACL management itself.
 # Keep a management token as break-glass for that, or bind your OIDC login with
 # `-bind-type=management` to get the full equivalent.
-#
-# Apply with:
-#   nomad acl policy apply -description "day-to-day admin" admin nomad-admin.hcl
 
 # Full control over jobs, allocs, logs, exec, and Nomad variables in every
 # namespace. `policy = "write"` already grants submit-job, dispatch, read-logs,

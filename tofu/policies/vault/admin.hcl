@@ -5,9 +5,6 @@
 # Attach it to a human auth method (OIDC via pocket-id, or userpass as a
 # cold-start backstop), log in, verify, then revoke the root token. Recover root
 # via `vault operator generate-root` from the unseal key shares if ever needed.
-#
-# Apply with:
-#   vault policy write admin admin.hcl
 
 # Manage auth methods broadly.
 path "auth/*" {
