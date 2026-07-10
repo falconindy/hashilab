@@ -10,6 +10,12 @@ StartLimitBurst=3
 [Service]
 Type=notify
 EnvironmentFile=-/etc/vault-agent.d/agent.env
+# tmpfs scratch for the omada host's token sink and rendered cert/key (agent.hcl
+# sink + omada-controller-tls.hcl). systemd recreates it on every start and clears
+# it on stop, so nothing sensitive persists across a reboot; harmless (unused) on
+# the other hosts. The agent renders the omada-controller/ subdir itself.
+RuntimeDirectory=vault-agent
+RuntimeDirectoryMode=0700
 ExecStart=/usr/bin/vault agent -config=/etc/vault-agent.d
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process

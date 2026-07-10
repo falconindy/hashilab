@@ -69,6 +69,23 @@
     - { path: /etc/vault.d/private, mode: "0700" }
   when: "'vault_servers' in group_names"
 
+# The omada host's vault-agent issues omada-controller's server cert and pushes it
+# into Vault KV; the Nomad job reads it back. Scoped to the single omada host so
+# there's exactly one cert writer. The token sink and rendered cert/key live under
+# /run/vault-agent (tmpfs, created by the unit's RuntimeDirectory) so the key never
+# lands on persistent/NFS storage; the authoritative copy lives in Vault KV.
+- name: Deploy omada-controller vault-agent config
+  ansible.builtin.copy:
+    src: "os/etc/vault-agent.d/{{ item.src }}"
+    dest: "/etc/vault-agent.d/{{ item.src }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: omada-controller-tls.hcl, mode: "0644" }
+    - { src: omada-controller.tpl, mode: "0644" }
+    - { src: omada-push-kv.sh, mode: "0755" }
+  when: "'omada_controller' in group_names"
+  notify: Restart vault-agent
+
 - name: Enable systemd services
   ansible.builtin.systemd_service:
     name: vault-agent.service

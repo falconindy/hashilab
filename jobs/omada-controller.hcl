@@ -41,14 +41,42 @@ job "omada-controller" {
 
     task "omada-controller" {
       driver = "docker"
+
+      vault {}
+
       config {
         image        = "mbentley/omada-controller:6.2.10.17-openj9"
         network_mode = "host"
         volumes = [
           "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
           "/clusterdata/omada-controller/logs:/opt/tplink/EAPController/logs:rw",
-          "/clusterdata/omada-controller/cert:/cert:ro",
+          # Only the cert subdir, so the task's Vault token (also under
+          # secrets/) stays out of the container.
+          "secrets/cert:/cert:ro",
         ]
+      }
+
+      # The cert is issued and rotated by the omada host's vault-agent, which
+      # pushes it into KV (see os/etc/vault-agent.d/omada-controller.tpl). Both
+      # blocks read the same KV path, so consul-template coalesces them into one
+      # read — always a matched pair. change_mode restart re-imports the keystore
+      # (omada only reads /cert at boot) when vault-agent rolls the cert.
+      template {
+        data        = <<-EOF
+          {{- with secret "kv/data/default/omada-controller/cert" }}{{ .Data.data.tls_crt }}{{ end }}
+        EOF
+        destination = "secrets/cert/tls.crt"
+        perms       = "0644"
+        change_mode = "restart"
+      }
+
+      template {
+        data        = <<-EOF
+          {{- with secret "kv/data/default/omada-controller/cert" }}{{ .Data.data.tls_key }}{{ end }}
+        EOF
+        destination = "secrets/cert/tls.key"
+        perms       = "0640"
+        change_mode = "restart"
       }
 
       service {

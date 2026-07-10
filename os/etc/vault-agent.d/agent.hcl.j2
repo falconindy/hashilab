@@ -6,6 +6,19 @@ auto_auth {
       role_id_file_path = "/etc/vault-agent.d/agent.roleid"
     }
   }
+{% if 'omada_controller' in group_names %}
+
+  # Token sink for omada-push-kv.sh: rendering omada's cert to disk is read-only,
+  # but pushing it into KV needs a `vault kv put`, which the CLI runs with this
+  # token. Only rendered on the omada host (see inventory omada_controller group).
+  sink {
+    type = "file"
+
+    config {
+      path = "/run/vault-agent/token"
+    }
+  }
+{% endif %}
 }
 
 vault {
