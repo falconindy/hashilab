@@ -1,4 +1,4 @@
-# DSM has no reload verb; synopkg restart is what bin/certctl.py uses too.
+# DSM has no reload verb, so synopkg restart is how config changes are applied.
 # Restarting a lone client is safe (no quorum), it just re-registers.
 - name: Restart consul
   ansible.builtin.command: /usr/syno/bin/synopkg restart {{ synology_consul_package }}

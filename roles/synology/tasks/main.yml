@@ -1,6 +1,9 @@
-# Manage the Consul client config on the Synology NAS. Consul itself and its
-# TLS material (/opt/consul/tls, via bin/certctl.py) are managed out of band;
-# this role only owns consul.hcl and restarts the package when it changes.
+# Manage the Consul client config + CA trust on the Synology NAS. nasty is a bare
+# auto_encrypt client (see consul.hcl.j2): the servers issue and rotate its RPC
+# cert, so the only TLS material this role delivers is the static home Root CA
+# (home-ca.pem) it uses to verify them. Consul itself (the SynoCommunity package)
+# is managed out of band; this role owns consul.hcl + home-ca.pem and restarts the
+# package when either changes.
 
 # The agent token (consul-agent policy) rendered into consul.hcl's acl.tokens
 # block — the NAS's own identity for anti-entropy (node registration + catalog
@@ -17,14 +20,32 @@
 
 # The config-file service-registration token (consul-config-services policy),
 # rendered into consul.hcl's acl.tokens block. Authorizes registration of the
-# NAS's config-file services (consul-client + nas). Same shared token and
-# controller-side lookup rationale as the agent token above.
+# NAS's config-file service (nas). Same shared token and controller-side lookup
+# rationale as the agent token above.
 - name: Read the Consul config-file service-registration token from Vault
   ansible.builtin.set_fact:
     synology_consul_config_services_token: >-
       {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-config-services',
                 engine_mount_point='kv', url=vault_addr).secret.token }}
   no_log: true
+
+# The home Root CA — nasty's ca_file, used to verify the servers on connect (and
+# the anchor its auto_encrypt cert chains under). pki/cert/ca is a public,
+# unauthenticated read; the same anchor the trust role writes as home.pem on the
+# Debian fleet. Controller-side lookup for the same become-scrub reason as above.
+- name: Read the home Root CA from Vault
+  ansible.builtin.set_fact:
+    synology_home_ca: >-
+      {{ lookup('community.hashi_vault.vault_read', 'pki/cert/ca', url=vault_addr).data.certificate }}
+
+- name: Deploy the home Root CA
+  ansible.builtin.copy:
+    content: "{{ synology_home_ca }}\n"
+    dest: "{{ synology_consul_config_dir }}/home-ca.pem"
+    owner: consul
+    group: consul
+    mode: "0644"
+  notify: Restart consul
 
 - name: Deploy Consul client config
   ansible.builtin.template:

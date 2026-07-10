@@ -158,9 +158,8 @@ CLAUDE.md     detailed architecture notes
 
 | Script                                     | Purpose                                                                                    |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `vault-ssh` / `vault-ssh-agent`            | Mint a short-lived SSH cert off the Vault CA and connect (or feed ssh-agent for Ansible)   |
+| `vault-ssh-agent`                          | Mint a short-lived SSH cert off the Vault CA and connect (or feed ssh-agent for Ansible)   |
 | `supercow`                                 | Break-glass subshell holding fresh Consul **and** Nomad management tokens, revoked on exit |
-| `certctl.py`                               | Certificate lifecycle tooling for anything vault/vault-agent can't manage                  |
 | `cfctl`                                    | Manage `#managed` Cloudflare CNAMEs from Vault-stored credentials                          |
 | `deploy-www` / `deploy-grafana-dashboards` | Rsync the SPA / dashboards to `clusterdata`                                                |
 | `registryctl`                              | Manage the private Docker registry                                                         |

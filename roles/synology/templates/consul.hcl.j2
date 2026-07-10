@@ -5,26 +5,25 @@ data_dir = "/volume1/consul/var/lib/consul"
 domain = "home."
 alt_domain = "consul."
 
-ui_config {
-  enabled = true
-}
-
 encrypt = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
 
+# nasty is a bare client: auto_encrypt gets its RPC cert from the servers
+# (auto-rotated, no provisioning), and it serves no HTTP/gRPC (ports below all
+# -1), so there's no manually-managed leaf to deliver — only the static CA (the
+# synology role writes home-ca.pem) to verify the servers on connect.
+auto_encrypt {
+  tls = true
+}
+
 tls {
   defaults {
-    verify_incoming        = true
+    verify_incoming        = false
     verify_outgoing        = true
     verify_server_hostname = true
 
-    ca_file   = "/volume1/consul/etc/consul.d/home-ca.pem"
-    cert_file = "/volume1/consul/etc/consul.d/tls.crt"
-    key_file  = "/volume1/consul/etc/consul.d/tls.key"
-  }
-  https {
-    verify_incoming = false
+    ca_file = "/volume1/consul/etc/consul.d/home-ca.pem"
   }
 }
 
@@ -40,8 +39,8 @@ acl {
   # agent: the NAS's own identity for anti-entropy (node registration + catalog
   # sync); carries the consul-agent policy (node write, service read).
   # config_file_service_registration: authorizes registration of the NAS's
-  # config-file services (consul-client + nas); carries the consul-config-services
-  # policy (service:write on those named services). Both minted by tofu
+  # config-file service (nas); carries the consul-config-services policy
+  # (service:write on that named service). Both minted by tofu
   # (module.consul_acl), stashed in Vault KV, and read on the controller side —
   # see the "Read the Consul ... token" tasks in the synology role.
   tokens {
@@ -50,11 +49,15 @@ acl {
   }
 }
 
+# RPC (8300, auto_encrypt cert) and gossip stay — all a bare client needs.
+# https + grpc_tls are TLS listeners that used the now-removed cert_file, so they
+# must go with it; grpc/http are unused too (nasty runs no Envoy, and the API is
+# reached via the servers over consul.service.home).
 ports {
   http     = -1
-  https    = 8501
-  grpc     = 8502
-  grpc_tls = 8503
+  https    = -1
+  grpc     = -1
+  grpc_tls = -1
 }
 
 server = false
@@ -67,20 +70,6 @@ bind_addr      = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
 advertise_addr = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
 
 retry_join = {{ groups["consul_servers"] | map('extract', hostvars, 'ansible_host') | list | to_json }}
-
-services {
-  id   = "consul-client"
-  name = "consul-client"
-  port = 8501
-
-  check {
-    id       = "consul-client"
-    name     = "Consul HTTPS"
-    http     = "https://localhost:8501/v1/status/leader"
-    interval = "10s"
-    timeout  = "1s"
-  }
-}
 
 services {
   id   = "nas"
