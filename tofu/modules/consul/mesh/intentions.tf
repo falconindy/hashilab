@@ -9,8 +9,12 @@
 # Keyed by destination service; each value is the ordered list of sources that
 # may reach it. Order matches what's live to keep diffs quiet. `type = "consul"`
 # is the only source type here (set explicitly so it doesn't drift against the
-# server default). `precedence` is computed by Consul from wildcard specificity,
-# so it's never set. Add an edge with a source; add a destination with a key.
+# server default). Add an edge with a source; add a destination with a key.
+#
+# `precedence` is Consul-computed (see the dynamic block) but the provider models
+# it as plain-optional rather than computed, so leaving it unset makes every plan
+# try to reset the imported value to 0. We set it to what Consul will compute so
+# state matches and plans stay clean.
 locals {
   intentions = {
     "*" = [
@@ -77,6 +81,12 @@ resource "consul_config_entry_service_intentions" "this" {
       name   = sources.value.name
       type   = "consul"
       action = sources.value.action
+
+      # Reproduce Consul's server-side precedence so the plan doesn't perpetually
+      # want to zero it out (the provider marks this optional, not computed). Rule
+      # (OSS, default namespace): max is 9 for an exact destination and 6 for the
+      # "*" destination; subtract 1 when the source itself is the "*" wildcard.
+      precedence = (each.key == "*" ? 6 : 9) - (sources.value.name == "*" ? 1 : 0)
     }
   }
 }

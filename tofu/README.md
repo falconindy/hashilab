@@ -140,8 +140,10 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
     default-deny (`*`/`*` deny at precedence 5); every allowed edge is an explicit
     higher-precedence source. Keyed by destination in the `intentions` local (one
     `consul_config_entry_service_intentions.this[<dest>]` per key). `precedence`
-    is computed by Consul, so it's never set. Adopt the live entries with `import`
-    (below) — a fresh apply would try to create them and clash with what's running.
+    is Consul-computed but the provider marks it plain-optional, so the module
+    recomputes the same value (9 exact-dest / 6 wildcard-dest, −1 for a `*`
+    source) to keep plans from perpetually zeroing it. Adopt the live entries with
+    `import` (below) — a fresh apply would try to create them and clash.
 
 Policies:
 
