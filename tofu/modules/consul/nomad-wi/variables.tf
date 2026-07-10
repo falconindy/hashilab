@@ -21,25 +21,26 @@ variable "nomad_tasks_role_name" {
   default     = "nomad-tasks"
 }
 
-variable "nomad_tasks_policy_name" {
-  description = "Name of the Consul policy the nomad-tasks role carries. Pass the policies.tf resource attribute so the role orders after the policy is created."
+variable "nomad_tasks_policy_file" {
+  description = "Filename under this module's policies/ dir whose policy the nomad-tasks role carries."
   type        = string
+  default     = "nomad-tasks.hcl"
 }
 
 variable "task_identity_roles" {
   description = <<-EOT
     Extra Consul roles granted to specific Nomad *task* workload identities (the
     token from a task's consul{} block) on top of the baseline nomad-tasks role.
-    Keyed by role name; each carries a `policy_name` (pass the policies.tf
-    resource attribute so the role orders after its policy) and a Consul binding-
-    rule `selector` matched against the task identity's JWT claims. For the few
-    workloads that need more than catalog read: the connectaware Traefik ingresses
-    (service:write on their own service, for Connect leaf certs) and Prometheus
-    (agent:read, to scrape Consul telemetry). Binding rules are additive, so these
-    tokens get nomad-tasks ∪ this role.
+    Keyed by role name; each carries a `policy_file` (a filename under this
+    module's policies/ dir, whose module-owned policy the role attaches) and a
+    Consul binding-rule `selector` matched against the task identity's JWT claims.
+    For the few workloads that need more than catalog read: the connectaware
+    Traefik ingresses (service:write on their own service, for Connect leaf certs)
+    and Prometheus (agent:read, to scrape Consul telemetry). Binding rules are
+    additive, so these tokens get nomad-tasks ∪ this role.
   EOT
   type = map(object({
-    policy_name = string
+    policy_file = string
     selector    = string
   }))
   default = {}

@@ -45,6 +45,19 @@ resource "vault_policy" "nomad_workloads" {
   }))
 }
 
+# ── Static policies owned by this module ─────────────────────────────────────
+# Colocated in policies/ because they're an implementation detail of a role
+# configured through this module and nothing outside references them (e.g.
+# raft-snapshots, used only by the raft-snapshotter role below). A role opts in
+# by filename via roles[*].owned_policies. Same file-per-policy convention as the
+# root policies.tf; chomp() to match Vault stripping trailing whitespace.
+resource "vault_policy" "owned" {
+  for_each = fileset("${path.module}/policies", "*.hcl")
+
+  name   = trimsuffix(each.value, ".hcl")
+  policy = chomp(file("${path.module}/policies/${each.value}"))
+}
+
 # ── The roles ────────────────────────────────────────────────────────────────
 # One role per distinct policy set. Nomad's bare vault{} blocks resolve to
 # default_role (nomad-workloads); a job that names a different role (e.g. the
@@ -90,6 +103,7 @@ resource "vault_jwt_auth_backend_role" "this" {
   token_type = "service"
   token_policies = concat(
     each.value.include_templated_policy ? [vault_policy.nomad_workloads.name] : [],
+    [for f in each.value.owned_policies : vault_policy.owned[f].name],
     each.value.token_policies,
   )
   token_period = var.token_period_seconds

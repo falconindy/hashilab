@@ -94,8 +94,10 @@ The Nomad workload-identity flow into Vault:
   `templates/nomad-workloads.hcl.tftpl` with the accessor read off the live
   resource), not a static `vault/policies/*.hcl` file — a hand-copied accessor
   breaks silently when the mount is recreated. Roles opt in via
-  `roles[*].include_templated_policy`; other policies (e.g. `raft-snapshots`)
-  still come from `policies.tf` by reference.
+  `roles[*].include_templated_policy`. The module also owns the static
+  `raft-snapshots` policy (`policies/raft-snapshots.hcl`, used only by the
+  `raft-snapshotter` role, which opts in via `roles[*].owned_policies`); other
+  policies come from `policies.tf` by reference (`token_policies`).
 
 Nomad OIDC login:
 
@@ -109,13 +111,16 @@ Nomad OIDC login:
 
 The Consul ACL layer (Consul provider — needs a Consul **management** token):
 
-- `modules/consul/acl` — the baseline ACL identities. Attaches the `anonymous`
-  policy to Consul's built-in anonymous token (what an unauthenticated request
-  gets under `default_policy = "deny"` — keeps DNS, the dashboard, and Prometheus
-  SD working with no token), and mints the four **non-expiring daemon tokens**
-  (`consul-agent`, `consul-config-services`, `nomad-agent`, `vault-registration`),
-  stashing each in **Vault KV** (`kv/consul/tokens/<name>`) for the Ansible roles
-  to template into config.
+- `modules/consul/acl` — the baseline ACL identities, and it **owns the baseline
+  policies** they carry (`policies/*.hcl` — `anonymous` plus the four daemon
+  policies — since nothing outside this module consumes them). Attaches the
+  `anonymous` policy to Consul's built-in anonymous token (what an unauthenticated
+  request gets under `default_policy = "deny"` — keeps DNS, the dashboard, and
+  Prometheus SD working with no token), and mints the four **non-expiring daemon
+  tokens** (`consul-agent`, `consul-config-services`, `nomad-agent`,
+  `vault-registration` — the `daemon_token_policy_files` default), stashing each
+  in **Vault KV** (`kv/consul/tokens/<name>`) for the Ansible roles to template
+  into config.
   Those are always-on daemon identities read once and never renewed, so they must
   not be leased — the dynamic/leased path is `modules/vault/consul`. Their
   `secret_id`s land in **tofu state** and KV.
@@ -132,10 +137,18 @@ Policies:
   `consul/policies/*.hcl`, one resource per file via `for_each`. The policy name
   is the filename minus `.hcl`; add or remove a file to add or remove the policy.
   tofu only deletes policies backed by a file here and never touches built-ins
-  (`default`/`root`, Nomad `anonymous`, Consul `global-management`). The
-  `nomad-tasks` role (`modules/consul/nomad-wi`) and the daemon/anonymous tokens
-  (`modules/consul/acl`) reference these Consul policy names by resource
-  attribute, so policy-create always orders before token/role-create.
+  (`default`/`root`, Nomad `anonymous`, Consul `global-management`). A policy
+  attached by exactly one module, as an implementation detail of it, is **owned by
+  that module** instead (its `.hcl` lives in the module's `policies/` dir): the
+  templated `nomad-workloads` + static `raft-snapshots` in `modules/vault/nomad-wi`,
+  `internal-server-certs` in `modules/vault/approle`, the `anonymous` + daemon
+  policies in `modules/consul/acl`, and the workload policies (`nomad-tasks`,
+  `traefik`, `traefik-ingress`, `prometheus`) in `modules/consul/nomad-wi`. What
+  remains at the root is the cross-cutting/human-facing set only: `admin` (Vault +
+  Nomad), `ssh`, and the `consul-user-policy`/`nomad-user-policy` pair — each
+  multi-consumer, human-facing, or attached out of band (no owning module). The
+  Consul `consul/policies/` dir is consequently empty (its `for_each` yields
+  nothing until a root-level Consul policy is added back).
 
 ## Auth
 
@@ -281,12 +294,14 @@ tofu import 'module.vault_oidc.vault_jwt_auth_backend_role.role' auth/oidc/role/
 # ── AppRole auth (vault-agent) ──
 tofu import 'module.vault_approle.vault_auth_backend.approle' approle
 tofu import 'module.vault_approle.vault_approle_auth_backend_role.this' auth/approle/role/vault-agent
+# internal-server-certs is module-owned (policies/internal-server-certs.hcl):
+tofu import 'module.vault_approle.vault_policy.owned["internal-server-certs.hcl"]' internal-server-certs
 # Verify tofu adopted the existing role rather than a new one:
 #   tofu output vault_approle_role_id   # must equal os/etc/vault-agent.d/agent.roleid
 # The module is pinned to the live role (token_type=batch, token_ttl=20m,
-# secret_id_bound_cidrs, token_policies=[internal-server-certs]), so plan should
-# be a no-op. If it shows a token_policies change, add the extra policies to the
-# module call before applying — dropping one breaks cert rendering.
+# secret_id_bound_cidrs, token_policies=[internal-server-certs] via owned_policy_files),
+# so plan should be a no-op. If it shows a token_policies change, add the extra
+# policies to the module call before applying — dropping one breaks cert rendering.
 
 # ── Nomad secrets engine (nomad) ── needs NOMAD_TOKEN = a management token
 # The vault provider keys this backend's existence on nomad/config/lease. If your
@@ -306,9 +321,9 @@ tofu import 'module.vault_nomad.vault_nomad_secret_role.mgmt'     nomad/role/mgm
 # Adopt the live method + roles + policy — do NOT apply blind: the nomad-workloads
 # policy embeds the mount accessor, and import preserves the existing accessor, so
 # a fresh apply would enable a new mount with a new accessor and orphan the
-# templating. The nomad-workloads policy is module-owned (rendered from the
-# accessor); raft-snapshots stays in vault/policies/*.hcl, imported by the policy
-# loop above. Confirm the live config first:
+# templating. Both the nomad-workloads (rendered from the accessor) and
+# raft-snapshots (policies/raft-snapshots.hcl) policies are module-owned —
+# imported here, not in the root policy loop below. Confirm the live config first:
 #   vault read auth/jwt-nomad/config
 #   vault read auth/jwt-nomad/role/nomad-workloads
 #   vault read auth/jwt-nomad/role/raft-snapshotter
@@ -316,25 +331,21 @@ tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend.nomad_workloads'      
 tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["nomad-workloads"]'  auth/jwt-nomad/role/nomad-workloads
 tofu import 'module.vault_nomad_wi.vault_jwt_auth_backend_role.this["raft-snapshotter"]' auth/jwt-nomad/role/raft-snapshotter
 tofu import 'module.vault_nomad_wi.vault_policy.nomad_workloads'                          nomad-workloads
+tofu import 'module.vault_nomad_wi.vault_policy.owned["raft-snapshots.hcl"]'              raft-snapshots
 
 # ── Nomad OIDC login (pocket-id) ── also needs a management token
 tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # Binding rule imports by its UUID (from `nomad acl binding-rule list`):
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
 
-# ── ACL policies ── keyed on filename; import ID is the policy name
-# (nomad-workloads is NOT here — it's module-owned, imported in the vault_nomad_wi
-# block above.)
-for p in admin consul-user-policy internal-server-certs nomad-user-policy \
-         raft-snapshots ssh; do
+# ── Root ACL policies ── only the cross-cutting/human-facing set stays here;
+# module-owned policies are imported in their module's block (vault_nomad_wi,
+# vault_approle, consul_acl, consul_nomad_wi). Vault import ID is the policy name:
+for p in admin consul-user-policy nomad-user-policy ssh; do
   tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
 done
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
-# Consul ACL policies — import ID is the policy *ID* (a UUID), not the name:
-for p in anonymous consul-agent consul-config-services nomad-agent nomad-tasks vault-registration; do
-  tofu import "consul_acl_policy.this[\"$p.hcl\"]" \
-    "$(consul acl policy read -name "$p" -format json | jq -r .ID)"
-done
+# No root-level Consul policies remain (consul/policies is empty).
 
 # ── Vault Consul secrets engine (consul) ── needs CONSUL_HTTP_TOKEN = mgmt token
 tofu import 'module.vault_consul.vault_consul_secret_backend.consul'      consul
@@ -346,6 +357,11 @@ tofu import 'module.vault_consul.vault_consul_secret_backend_role.mgmt'   consul
 # and repoints consul/config/access at it; delete the orphaned old token by hand.
 
 # ── Consul ACL base (consul_acl) ──
+# The module owns its baseline policies — import ID is the policy *ID* (UUID):
+for p in anonymous consul-agent consul-config-services nomad-agent vault-registration; do
+  tofu import "module.consul_acl.consul_acl_policy.owned[\"$p.hcl\"]" \
+    "$(consul acl policy read -name "$p" -format json | jq -r .ID)"
+done
 # The anonymous attachment imports as "<token-id>:<policy-id>":
 tofu import 'module.consul_acl.consul_acl_token_policy_attachment.anonymous' \
   "00000000-0000-0000-0000-000000000002:$(consul acl policy read -name anonymous -format json | jq -r .ID)"
@@ -358,8 +374,15 @@ tofu import 'module.consul_acl.consul_acl_token_policy_attachment.anonymous' \
 
 # ── Consul Nomad workload identity (consul_nomad_wi) ──
 tofu import 'module.consul_nomad_wi.consul_acl_auth_method.nomad_workloads' nomad-workloads
+# The module owns its workload policies — import ID is the policy *ID* (UUID):
+for p in nomad-tasks traefik traefik-ingress prometheus; do
+  tofu import "module.consul_nomad_wi.consul_acl_policy.owned[\"$p.hcl\"]" \
+    "$(consul acl policy read -name "$p" -format json | jq -r .ID)"
+done
 tofu import 'module.consul_nomad_wi.consul_acl_role.nomad_tasks' \
   "$(consul acl role read -name nomad-tasks -format json | jq -r .ID)"
+# The task-identity roles carry the like-named policy (import by role UUID):
+#   tofu import 'module.consul_nomad_wi.consul_acl_role.task_identity["traefik"]' <role-id>
 # Binding rules import by their UUID (from `consul acl binding-rule list -method nomad-workloads`):
 #   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.service' <rule-id>
 #   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.tasks'   <rule-id>
@@ -420,6 +443,7 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 - `vault_auth_backend` — the `approle` auth method
 - `vault_approle_auth_backend_role` — the `vault-agent` role (role_id-only, batch tokens)
+- `vault_policy.owned` (`for_each`) — one per `policies/*.hcl` in this module (`internal-server-certs`, attached to the role via `owned_policy_files`)
 
 ### modules/vault/nomad
 
@@ -431,7 +455,8 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 - `vault_jwt_auth_backend` — the `jwt-nomad` JWT auth method (node-local Nomad JWKS, no embedded CA, `default_role`, `jwt_supported_algs = ["RS256"]`)
 - `vault_jwt_auth_backend_role` (`for_each`) — the `nomad-workloads` and `raft-snapshotter` roles (periodic `service` tokens)
-- `vault_policy.nomad_workloads` — the accessor-templated per-workload KV policy (rendered from `templates/nomad-workloads.hcl.tftpl`); other policies come from `policies.tf`
+- `vault_policy.nomad_workloads` — the accessor-templated per-workload KV policy (rendered from `templates/nomad-workloads.hcl.tftpl`)
+- `vault_policy.owned` (`for_each`) — one per `policies/*.hcl` in this module (`raft-snapshots`, attached to the `raft-snapshotter` role via `owned_policies`); other policies come from `policies.tf`
 
 ### modules/nomad/oidc
 
@@ -448,6 +473,7 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 ### modules/consul/acl
 
+- `consul_acl_policy.owned` (`for_each`) — one per `policies/*.hcl` in this module (`anonymous` + the four daemon policies)
 - `consul_acl_token_policy_attachment` — the `anonymous` policy on the built-in anonymous token
 - `consul_acl_token.daemon` — the four non-expiring daemon tokens (`for_each`)
 - `consul_acl_token_secret_id.daemon` (data) — reads each daemon token's SecretID
@@ -455,12 +481,18 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 ### modules/consul/nomad-wi
 
+- `consul_acl_policy.owned` (`for_each`) — one per `policies/*.hcl` in this module (`nomad-tasks` + the task-identity policies `traefik`, `traefik-ingress`, `prometheus`)
 - `consul_acl_auth_method` — the `nomad-workloads` JWT method
-- `consul_acl_role` — the `nomad-tasks` role
-- `consul_acl_binding_rule.service` / `.tasks` — per-service identity / serviceless → role
+- `consul_acl_role.nomad_tasks` — the `nomad-tasks` role (carries the owned `nomad-tasks` policy)
+- `consul_acl_role.task_identity` (`for_each`) — extra per-task-identity roles (each carries its owned `policy_file`)
+- `consul_acl_binding_rule.service` / `.tasks` / `.task_identity` — per-service identity / serviceless → role / additive task-identity rules
 
 ### policies.tf (root)
 
-- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`)
-- `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`)
-- `consul_acl_policy.this` — one per `consul/policies/*.hcl` (`for_each`)
+Cross-cutting / human-facing policies only; a policy attached by a single module
+(as its implementation detail) is owned by that module instead — see the
+`modules/vault/{nomad-wi,approle}` and `modules/consul/{acl,nomad-wi}` sections.
+
+- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`; `admin`, `ssh`, the `consul-user-policy`/`nomad-user-policy` pair)
+- `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`; `admin`)
+- `consul_acl_policy.this` — one per `consul/policies/*.hcl` (`for_each`; currently **none** — every Consul policy is module-owned, so the dir is empty and this yields nothing)

@@ -50,14 +50,27 @@ resource "consul_acl_binding_rule" "service" {
   selector    = "\"nomad_service\" in value"
 }
 
+# ── ACL policies owned by this module ────────────────────────────────────────
+# The workload policies these roles attach (nomad-tasks + the task-identity ones:
+# traefik, traefik-ingress, prometheus) live in policies/ here because this module
+# is their only consumer — it creates both the policies and the roles/binding
+# rules that grant them. Same file-per-policy convention as the root policies.tf
+# (name = filename minus .hcl); Consul stores rules verbatim so no chomp().
+resource "consul_acl_policy" "owned" {
+  for_each = fileset("${path.module}/policies", "*.hcl")
+
+  name  = trimsuffix(each.value, ".hcl")
+  rules = file("${path.module}/policies/${each.value}")
+}
+
 # ── The nomad-tasks role ─────────────────────────────────────────────────────
 # Serviceless tasks (no service block — they only read the catalog/KV from a
-# `template` stanza) bind to this role. Its policy is created in policies.tf and
-# passed in by reference so the role orders after the policy exists.
+# `template` stanza) bind to this role. Its policy is module-owned (above), keyed
+# by filename, so the role orders after the policy exists.
 resource "consul_acl_role" "nomad_tasks" {
   name        = var.nomad_tasks_role_name
   description = "Nomad serviceless tasks"
-  policies    = [var.nomad_tasks_policy_name]
+  policies    = [consul_acl_policy.owned[var.nomad_tasks_policy_file].name]
 }
 
 # ── Serviceless tasks -> the nomad-tasks role ────────────────────────────────
@@ -85,7 +98,7 @@ resource "consul_acl_role" "task_identity" {
 
   name        = each.key
   description = "Extra grants for the ${each.key} task identity"
-  policies    = [each.value.policy_name]
+  policies    = [consul_acl_policy.owned[each.value.policy_file].name]
 }
 
 resource "consul_acl_binding_rule" "task_identity" {

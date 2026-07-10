@@ -110,9 +110,10 @@ module "vault_oidc" {
 module "vault_approle" {
   source = "./modules/vault/approle"
 
-  backend               = "approle"
-  role_name             = "vault-agent"
-  token_policies        = ["internal-server-certs"]
+  backend   = "approle"
+  role_name = "vault-agent"
+  # internal-server-certs is owned by the module (modules/vault/approle/policies).
+  owned_policy_files    = ["internal-server-certs.hcl"]
   bind_secret_id        = false
   token_type            = "batch"
   token_ttl_seconds     = 1200 # 20m
@@ -153,7 +154,10 @@ module "vault_nomad_wi" {
       token_policies           = []
     }
     "raft-snapshotter" = {
-      token_policies = [vault_policy.this["raft-snapshots.hcl"].name]
+      # raft-snapshots is owned by the module (modules/vault/nomad-wi/policies) —
+      # only this role uses it.
+      token_policies = []
+      owned_policies = ["raft-snapshots.hcl"]
       # This role hands out Consul + Nomad management tokens, so pin it to the one
       # job that's meant to use it. cluster-config-snapshotter is periodic, so the
       # nomad_job_id claim is the dispatched child (<parent>/periodic-<ts>), not the
@@ -189,20 +193,12 @@ module "vault_consul" {
   role_name         = "mgmt"
 }
 
-# The baseline Consul ACL layer: the anonymous-token attachment and the three
+# The baseline Consul ACL layer: the anonymous-token attachment and the four
 # non-expiring daemon tokens (also stashed in Vault KV for the Ansible roles).
-# Policy names are passed by reference from policies.tf so tokens order after the
-# policies exist.
+# The module owns these baseline policies (modules/consul/acl/policies) since it's
+# their only consumer; the daemon-token set and anonymous policy are its defaults.
 module "consul_acl" {
   source = "./modules/consul/acl"
-
-  anonymous_policy_name = consul_acl_policy.this["anonymous.hcl"].name
-  daemon_policy_names = {
-    "consul-agent"           = consul_acl_policy.this["consul-agent.hcl"].name
-    "consul-config-services" = consul_acl_policy.this["consul-config-services.hcl"].name
-    "nomad-agent"            = consul_acl_policy.this["nomad-agent.hcl"].name
-    "vault-registration"     = consul_acl_policy.this["vault-registration.hcl"].name
-  }
 }
 
 # The Nomad workload-identity flow into Consul: the nomad-workloads JWT auth
@@ -211,9 +207,10 @@ module "consul_acl" {
 module "consul_nomad_wi" {
   source = "./modules/consul/nomad-wi"
 
-  nomad_jwks_url          = local.nomad_jwks_url
-  home_ca_file            = var.home_ca_file
-  nomad_tasks_policy_name = consul_acl_policy.this["nomad-tasks.hcl"].name
+  nomad_jwks_url = local.nomad_jwks_url
+  home_ca_file   = var.home_ca_file
+  # nomad-tasks and the task-identity policies below are owned by the module
+  # (modules/consul/nomad-wi/policies) — it's their only consumer.
 
   # Task identities that need more than the read-only nomad-tasks role. The two
   # Traefik ingresses run connectaware and fetch their own Connect leaf cert
@@ -223,15 +220,15 @@ module "consul_nomad_wi" {
   # consul{} block, so it's the only one that ever mints this token.
   task_identity_roles = {
     traefik = {
-      policy_name = consul_acl_policy.this["traefik.hcl"].name
+      policy_file = "traefik.hcl"
       selector    = "value.nomad_job_id == \"traefik\" and \"nomad_service\" not in value"
     }
     traefik-ingress = {
-      policy_name = consul_acl_policy.this["traefik-ingress.hcl"].name
+      policy_file = "traefik-ingress.hcl"
       selector    = "value.nomad_job_id == \"traefik-ingress\" and \"nomad_service\" not in value"
     }
     prometheus = {
-      policy_name = consul_acl_policy.this["prometheus.hcl"].name
+      policy_file = "prometheus.hcl"
       selector    = "value.nomad_job_id == \"monitoring\" and value.nomad_task == \"server\" and \"nomad_service\" not in value"
     }
   }

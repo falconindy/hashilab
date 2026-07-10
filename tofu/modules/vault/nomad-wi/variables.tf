@@ -51,10 +51,17 @@ variable "roles" {
     carry the dispatched id (<parent>/periodic-<ts>), not the bare parent name.
     The default role stays unbound on purpose (it's the catch-all, and its
     templated policy self-scopes each token to kv/<namespace>/<job_id>/*).
+
+    owned_policies lists filenames under this module's policies/ dir (e.g.
+    "raft-snapshots.hcl") whose vault_policy the module creates and attaches to
+    this role. Use it for policies that are an implementation detail of a role
+    defined here (nothing outside the module references them); external policy
+    names still come in via token_policies by reference from policies.tf.
   EOT
   type = map(object({
     token_policies           = list(string)
     include_templated_policy = optional(bool, false)
+    owned_policies           = optional(list(string), [])
     bound_claims             = optional(map(string))
     bound_claims_type        = optional(string)
   }))

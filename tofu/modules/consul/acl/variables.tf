@@ -4,17 +4,24 @@ variable "kv_mount" {
   default     = "kv"
 }
 
-variable "anonymous_policy_name" {
-  description = "Name of the Consul policy to attach to the built-in anonymous token. Pass the policies.tf resource attribute so this orders after the policy is created."
+variable "anonymous_policy_file" {
+  description = "Filename under this module's policies/ dir whose policy attaches to the built-in anonymous token."
   type        = string
+  default     = "anonymous.hcl"
 }
 
-variable "daemon_policy_names" {
+variable "daemon_token_policy_files" {
   description = <<-EOT
-    Map of daemon token name -> the Consul policy name it carries. Drives both the
-    minted tokens and their KV paths (kv/consul/tokens/<key>). Pass policies.tf
-    resource attributes as the values so token creation orders after the policies
-    exist. Expected keys: consul-agent, nomad-agent, vault-registration.
+    Filenames under this module's policies/ dir to mint a non-expiring daemon
+    token for. Each token (and its KV path kv/consul/tokens/<name>) is named after
+    the file minus .hcl and carries the like-named policy. The anonymous policy is
+    NOT here — it's an attachment (var.anonymous_policy_file), not a token.
   EOT
-  type        = map(string)
+  type        = set(string)
+  default = [
+    "consul-agent.hcl",
+    "consul-config-services.hcl",
+    "nomad-agent.hcl",
+    "vault-registration.hcl",
+  ]
 }

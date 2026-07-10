@@ -11,9 +11,15 @@ variable "role_name" {
 }
 
 variable "token_policies" {
-  description = "Policies attached to tokens the role mints. vault-agent renders TLS certs from pki_int_internal, which internal-server-certs grants."
+  description = "External policy names (from policies.tf, by reference) attached to tokens the role mints. For policies this module owns, use owned_policy_files instead."
   type        = list(string)
-  default     = ["internal-server-certs"]
+  default     = []
+}
+
+variable "owned_policy_files" {
+  description = "Filenames under this module's policies/ dir whose vault_policy the module creates and attaches to the role. vault-agent uses internal-server-certs (renders TLS from pki_int_internal)."
+  type        = list(string)
+  default     = []
 }
 
 variable "bind_secret_id" {
