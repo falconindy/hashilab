@@ -37,8 +37,8 @@ explicit.
 The SSH client-cert CA:
 
 - `modules/vault/ssh` — the `ssh-client-signer` mount, the CA signing keypair, and
-  the `admin` signing role. (The `ssh` Vault policy is managed centrally — see
-  **Policies** below.)
+  the `admin` signing role. (Signing is authorized by the `admin` Vault policy,
+  which has `path "*"`; there's no dedicated lower-privilege SSH-signing policy.)
 
 Vault OIDC login:
 
@@ -144,11 +144,11 @@ Policies:
   `internal-server-certs` in `modules/vault/approle`, the `anonymous` + daemon
   policies in `modules/consul/acl`, and the workload policies (`nomad-tasks`,
   `traefik`, `traefik-ingress`, `prometheus`) in `modules/consul/nomad-wi`. What
-  remains at the root is the cross-cutting/human-facing set only: `admin` (Vault +
-  Nomad), `ssh`, and the `consul-user-policy`/`nomad-user-policy` pair — each
-  multi-consumer, human-facing, or attached out of band (no owning module). The
-  Consul `consul/policies/` dir is consequently empty (its `for_each` yields
-  nothing until a root-level Consul policy is added back).
+  remains at the root is only `admin` (a near-root policy for the solo sysadmin,
+  attached to the OIDC login on both Vault and Nomad) — the one policy that is
+  genuinely cross-cutting and not owned by a single module. The Consul
+  `consul/policies/` dir is empty (its `for_each` yields nothing until a
+  root-level Consul policy is added back).
 
 ## Auth
 
@@ -282,7 +282,7 @@ tofu import 'module.vault_ssh.vault_mount.ssh' ssh-client-signer
 tofu import 'module.vault_ssh.vault_ssh_secret_backend_role.admin' ssh-client-signer/roles/admin
 # The CA keypair (vault_ssh_secret_backend_ca) is bootstrap-gated and not
 # imported — its private half isn't readable, so it's treated as cold-start-only
-# like the PKI key material. (The `ssh` policy is imported below with the rest.)
+# like the PKI key material.
 
 # ── OIDC auth method (oidc) ──
 tofu import 'module.vault_oidc.vault_jwt_auth_backend.oidc'      oidc
@@ -338,12 +338,10 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # Binding rule imports by its UUID (from `nomad acl binding-rule list`):
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
 
-# ── Root ACL policies ── only the cross-cutting/human-facing set stays here;
-# module-owned policies are imported in their module's block (vault_nomad_wi,
-# vault_approle, consul_acl, consul_nomad_wi). Vault import ID is the policy name:
-for p in admin consul-user-policy nomad-user-policy ssh; do
-  tofu import "vault_policy.this[\"$p.hcl\"]" "$p"
-done
+# ── Root ACL policies ── only `admin` stays at the root now; module-owned
+# policies are imported in their module's block (vault_nomad_wi, vault_approle,
+# consul_acl, consul_nomad_wi). Import ID is the policy name:
+tofu import 'vault_policy.this["admin.hcl"]' admin
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
 # No root-level Consul policies remain (consul/policies is empty).
 
@@ -493,6 +491,6 @@ Cross-cutting / human-facing policies only; a policy attached by a single module
 (as its implementation detail) is owned by that module instead — see the
 `modules/vault/{nomad-wi,approle}` and `modules/consul/{acl,nomad-wi}` sections.
 
-- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`; `admin`, `ssh`, the `consul-user-policy`/`nomad-user-policy` pair)
+- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`; just `admin`)
 - `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`; `admin`)
 - `consul_acl_policy.this` — one per `consul/policies/*.hcl` (`for_each`; currently **none** — every Consul policy is module-owned, so the dir is empty and this yields nothing)
