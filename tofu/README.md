@@ -129,12 +129,19 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
   per-service + serviceless binding rules, and the `nomad-tasks` role. Must exist
   **before** Nomad's `consul{}` gets its `service_identity`/`task_identity`
   blocks (allocations start their JWT login the moment those deploy).
-- `modules/consul/mesh` — the mesh **config entries**. Currently just an empty
-  `proxy-defaults/global`: the Connect/Envoy bootstrap path fetches
-  `GET /v1/config/proxy-defaults/global` on every sidecar setup, and with no entry
-  present Consul logs each miss as an `ERROR` on a loop. The entry turns those
-  404s into 200s to silence the noise — it tunes nothing. Real defaults
-  (protocol, mesh-gateway mode, …) can go in its `config_json` later.
+- `modules/consul/mesh` — the mesh **config entries**. Two things:
+  - An empty `proxy-defaults/global`: the Connect/Envoy bootstrap path fetches
+    `GET /v1/config/proxy-defaults/global` on every sidecar setup, and with no
+    entry present Consul logs each miss as an `ERROR` on a loop. The entry turns
+    those 404s into 200s to silence the noise — it tunes nothing. Real defaults
+    (protocol, mesh-gateway mode, …) can go in its `config_json` later.
+  - The **service intentions** (`intentions.tf`) — the mesh's L4 authorization,
+    previously applied out of band with `consul config write`. The mesh is
+    default-deny (`*`/`*` deny at precedence 5); every allowed edge is an explicit
+    higher-precedence source. Keyed by destination in the `intentions` local (one
+    `consul_config_entry_service_intentions.this[<dest>]` per key). `precedence`
+    is computed by Consul, so it's never set. Adopt the live entries with `import`
+    (below) — a fresh apply would try to create them and clash with what's running.
 
 Policies:
 
@@ -393,6 +400,15 @@ tofu import 'module.consul_nomad_wi.consul_acl_role.nomad_tasks' \
 # Binding rules import by their UUID (from `consul acl binding-rule list -method nomad-workloads`):
 #   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.service' <rule-id>
 #   tofu import 'module.consul_nomad_wi.consul_acl_binding_rule.tasks'   <rule-id>
+
+# ── Consul mesh config entries (consul_mesh) ──
+# proxy-defaults/global is created by tofu (nothing to import). The service
+# intentions were applied out of band, so import each by its destination name
+# (the map keys in modules/consul/mesh/intentions.tf — mirror them here):
+for d in '*' deluge deluge-inbound go2rtc homeassistant jackett mosquitto \
+         nut pocket-id postgres prometheus victorialogs zwave-ws; do
+  tofu import "module.consul_mesh.consul_config_entry_service_intentions.this[\"$d\"]" "$d"
+done
 ```
 
 If nothing was created out of band (ACLs freshly bootstrapped), skip the Consul
