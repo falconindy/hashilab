@@ -12,7 +12,8 @@ server {
     scheduler_algorithm = "spread"
   }
 
-  # Gossip encryption should be used, but it's only specified in config during
-  # initial setup. Manage via `nomad operator gossip keyring`.
-  # encrypt = ""
+  # Live gossip key from Vault KV (kv/nomad/gossip); only used to bootstrap a
+  # from-scratch server — running servers rotate via `nomad operator gossip
+  # keyring` (see RUNBOOK).
+  encrypt = "{{ nomad_gossip_key }}"
 }

@@ -5,7 +5,9 @@ data_dir = "/volume1/consul/var/lib/consul"
 domain = "home."
 alt_domain = "consul."
 
-encrypt = "zCRKj1wD/rj5Mq747hHufzT/SN1RzHRiR4Kcr0KYQrQ="
+# Live gossip key from Vault KV (kv/consul/gossip); only used to bootstrap a
+# from-scratch agent — running agents rotate via `consul keyring` (see RUNBOOK).
+encrypt = "{{ synology_consul_gossip_key }}"
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
 

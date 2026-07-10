@@ -55,9 +55,22 @@
   notify:
     - Flag nomad restart
 
+# The gossip encryption key for the server Serf pool (symmetric, shared by the
+# servers), rendered into server.hcl's `encrypt`. Only servers gossip in Nomad, so
+# this is server-only. Like Consul: running servers ignore it and rotate via
+# `nomad operator gossip keyring` (see RUNBOOK); KV holds the current primary so a
+# from-scratch server bootstraps on the real key.
+- name: Read the Nomad gossip key from Vault
+  ansible.builtin.set_fact:
+    nomad_gossip_key: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'nomad/gossip',
+                engine_mount_point='kv', url=vault_addr).secret.key }}
+  no_log: true
+  when: "'nomad_servers' in group_names"
+
 - name: Update nomad server config
-  ansible.builtin.copy:
-    src: os/etc/nomad.d/server.hcl
+  ansible.builtin.template:
+    src: os/etc/nomad.d/server.hcl.j2
     dest: /etc/nomad.d/server.hcl
     mode: "0600"
   when: "'nomad_servers' in group_names"

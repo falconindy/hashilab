@@ -29,6 +29,17 @@
                 engine_mount_point='kv', url=vault_addr).secret.token }}
   no_log: true
 
+# The gossip encryption key (symmetric, shared by every Consul agent), rendered
+# into consul.hcl's `encrypt`. Same as the Debian fleet: KV holds the current
+# primary so a from-scratch agent bootstraps on the real key; running agents
+# ignore it and rotate via `consul keyring` (see RUNBOOK).
+- name: Read the Consul gossip key from Vault
+  ansible.builtin.set_fact:
+    synology_consul_gossip_key: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/gossip',
+                engine_mount_point='kv', url=vault_addr).secret.key }}
+  no_log: true
+
 # The home Root CA — nasty's ca_file, used to verify the servers on connect (and
 # the anchor its auto_encrypt cert chains under). pki/cert/ca is a public,
 # unauthenticated read; the same anchor the trust role writes as home.pem on the

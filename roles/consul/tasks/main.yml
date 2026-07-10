@@ -30,9 +30,22 @@
                 engine_mount_point='kv', url=vault_addr).secret.token }}
   no_log: true
 
-# consul.hcl holds the two ACL tokens, so it's owner consul + 0600 — only the
-# consul user (which the daemon runs as) can read it, matching how the synology
-# role deploys nasty's. consul.env carries no secret, so stays 0644.
+# The gossip encryption key (symmetric, shared by every agent), rendered into
+# consul.hcl's `encrypt`. Running agents ignore it — the live key lives in each
+# agent's persisted keyring, rotated via `consul keyring` (see RUNBOOK) — but a
+# from-scratch agent bootstraps on it, so KV holds the current primary and we
+# render the real value rather than a dummy. Same controller-side lookup rationale
+# as the tokens above.
+- name: Read the Consul gossip key from Vault
+  ansible.builtin.set_fact:
+    consul_gossip_key: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/gossip',
+                engine_mount_point='kv', url=vault_addr).secret.key }}
+  no_log: true
+
+# consul.hcl holds the gossip key and the two ACL tokens, so it's owner consul +
+# 0600 — only the consul user (which the daemon runs as) can read it, matching how
+# the synology role deploys nasty's. consul.env carries no secret, so stays 0644.
 - name: Deploy consul base config
   ansible.builtin.template:
     src: os/etc/consul.d/consul.hcl.j2
