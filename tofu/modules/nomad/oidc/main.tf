@@ -6,7 +6,7 @@ locals {
 }
 
 # ── The OIDC auth method ─────────────────────────────────────────────────────
-# Replaces `nomad acl auth-method create/update -type=OIDC ... pocket-id`.
+# Equivalent to `nomad acl auth-method create/update -type=OIDC ... pocket-id`.
 # No key material — pure config, so no bootstrap gate (like the Vault OIDC
 # module). Needs a Nomad *management* token to apply (see providers.tf).
 resource "nomad_acl_auth_method" "pocket_id" {
@@ -30,7 +30,7 @@ resource "nomad_acl_auth_method" "pocket_id" {
 }
 
 # ── The binding rule ─────────────────────────────────────────────────────────
-# Replaces `nomad acl binding-rule create -bind-type=policy -bind-name=admin`.
+# Equivalent to `nomad acl binding-rule create -bind-type=policy -bind-name=admin`.
 # No selector: everyone who authenticates through the (group-gated) Pocket-ID
 # client is bound to the admin policy.
 resource "nomad_acl_binding_rule" "admin" {

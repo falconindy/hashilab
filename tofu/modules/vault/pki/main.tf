@@ -7,7 +7,7 @@ locals {
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
-# Replaces: `vault secrets enable pki` + `vault secrets tune -max-lease-ttl=87600h`.
+# Equivalent to: `vault secrets enable pki` + `vault secrets tune -max-lease-ttl=87600h`.
 # No ACME on the root, so none of the pki_int header tuning here.
 resource "vault_mount" "pki" {
   path                      = var.backend
@@ -18,7 +18,7 @@ resource "vault_mount" "pki" {
 }
 
 # ── The self-signed root ─────────────────────────────────────────────────────
-# Replaces: `vault write pki/root/generate/internal ...`.
+# Equivalent to: `vault write pki/root/generate/internal ...`.
 #
 # One-shot cold-start ACTION that generates root key material. Gated behind
 # `var.bootstrap` (default false) so a normal plan/apply can NEVER propose

@@ -9,7 +9,7 @@ locals {
 }
 
 # ── The auth method ──────────────────────────────────────────────────────────
-# Replaces: `vault auth enable oidc` + `vault write auth/oidc/config ...`.
+# Equivalent to: `vault auth enable oidc` + `vault write auth/oidc/config ...`.
 # No key material here — pure config, fully idempotent, so unlike the PKI/SSH
 # modules there's no bootstrap gate.
 resource "vault_jwt_auth_backend" "oidc" {
@@ -25,7 +25,7 @@ resource "vault_jwt_auth_backend" "oidc" {
 }
 
 # ── The role ─────────────────────────────────────────────────────────────────
-# Replaces: `vault write auth/oidc/role/admin ...`. Every user who authenticates
+# Equivalent to: `vault write auth/oidc/role/admin ...`. Every user who authenticates
 # through the Pocket-ID client gets token_policies.
 resource "vault_jwt_auth_backend_role" "role" {
   backend               = vault_jwt_auth_backend.oidc.path

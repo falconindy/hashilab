@@ -21,7 +21,7 @@ data "consul_acl_token_secret_id" "engine" {
 }
 
 # ── The secrets engine ───────────────────────────────────────────────────────
-# Replaces `vault secrets enable consul` + `vault write consul/config/access`.
+# Equivalent to `vault secrets enable consul` + `vault write consul/config/access`.
 # The engine authenticates to Consul with the dedicated token above — NOT the
 # bootstrap token. `scheme=https` relies on the Vault servers trusting the home
 # CA via their OS trust store (same as the Nomad engine's https config).
@@ -37,9 +37,8 @@ resource "vault_consul_secret_backend" "consul" {
 # `vault read consul/creds/mgmt` mints a client token carrying the built-in
 # `global-management` policy — the break-glass path for Consul ACL administration
 # (creating tokens/policies/auth-methods/binding-rules), which no lesser policy
-# can grant. Consumed by bin/supercow. (This is the modern equivalent of the
-# script's `token_type=management`; legacy management tokens are deprecated in
-# Consul 1.11+, so we attach global-management instead.)
+# can grant. Consumed by bin/supercow. (Consul deprecated standalone management
+# tokens in 1.11+, so the role attaches the built-in global-management policy.)
 resource "vault_consul_secret_backend_role" "mgmt" {
   backend         = vault_consul_secret_backend.consul.path
   name            = var.role_name

@@ -17,8 +17,8 @@ resource "consul_acl_policy" "owned" {
 # 00000000-0000-0000-0000-000000000002) — what an unauthenticated request gets
 # under default_policy = "deny". A policy *attachment* (rather than owning the
 # token itself) leaves the built-in token in place and just asserts its policy
-# set. Replaces `consul acl token update -accessor-id ...002 -policy-name
-# anonymous` from bin/consul-build-acl-base.
+# set. Equivalent to `consul acl token update -accessor-id ...002 -policy-name
+# anonymous`.
 resource "consul_acl_token_policy_attachment" "anonymous" {
   token_id = "00000000-0000-0000-0000-000000000002"
   policy   = consul_acl_policy.owned[var.anonymous_policy_file].name
@@ -50,8 +50,8 @@ data "consul_acl_token_secret_id" "daemon" {
 # ── Stash each token in Vault KV ─────────────────────────────────────────────
 # The Ansible roles read these paths (kv/consul/tokens/<name>) to template the
 # tokens into config: the consul role's `consul acl set-agent-token agent`, the
-# nomad role's consul{} token, and Vault's service_registration token. Replaces
-# the `vault kv put` calls in bin/consul-build-acl-base.
+# nomad role's consul{} token, and Vault's service_registration token. Equivalent
+# to a `vault kv put` per token.
 #
 # NOTE: the token secret_id lands in tofu state here (and in KV). Protect state.
 resource "vault_kv_secret_v2" "daemon" {

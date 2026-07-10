@@ -1,5 +1,5 @@
 # ── The mount ────────────────────────────────────────────────────────────────
-# Replaces: `vault secrets enable -path=ssh-client-signer ssh`.
+# Equivalent to: `vault secrets enable -path=ssh-client-signer ssh`.
 resource "vault_mount" "ssh" {
   path        = var.backend
   type        = "ssh"
@@ -7,7 +7,7 @@ resource "vault_mount" "ssh" {
 }
 
 # ── The CA signing keypair ───────────────────────────────────────────────────
-# Replaces: `vault write <mount>/config/ca generate_signing_key=true`.
+# Equivalent to: `vault write <mount>/config/ca generate_signing_key=true`.
 #
 # One-shot cold-start ACTION that generates CA key material. Gated behind
 # var.bootstrap (default false) so a normal plan/apply can NEVER re-generate the

@@ -3,7 +3,7 @@
 # vault{} block mint a workload-identity JWT (aud=vault.io, see base.hcl.j2's
 # default_identity) and log in here to get a short-lived, per-job Vault token —
 # instead of Nomad holding one shared Vault token and handing derived tokens out.
-# Replaces the hand-run `vault auth enable -path=jwt-nomad jwt` +
+# Equivalent to `vault auth enable -path=jwt-nomad jwt` +
 # `vault write auth/jwt-nomad/config ...`.
 #
 # ── jwks_url is Vault's *node-local* Nomad agent (localhost:4646), NOT the

@@ -18,7 +18,7 @@ resource "nomad_acl_token" "engine" {
 # killing the engine. ttl/max_ttl write nomad/config/lease (the creds lease that
 # governs how long a minted token lives), which the vault provider also keys the
 # backend's existence on — so managing it here means the endpoint always exists
-# (and an import no longer needs it hand-written first). We deliberately do NOT
+# (so an import finds it already present). We deliberately do NOT
 # set default_lease_ttl_seconds/max_lease_ttl_seconds; those are the *mount* tune
 # and we leave the mount's existing values alone.
 resource "vault_nomad_secret_backend" "nomad" {
@@ -31,7 +31,7 @@ resource "vault_nomad_secret_backend" "nomad" {
 }
 
 # ── The mgmt role ────────────────────────────────────────────────────────────
-# Replaces `vault write nomad/role/mgmt type=management global=true`. This is the
+# Equivalent to `vault write nomad/role/mgmt type=management global=true`. This is the
 # break-glass path for Nomad ACL administration, which no ACL *policy* can grant.
 resource "vault_nomad_secret_role" "mgmt" {
   backend = vault_nomad_secret_backend.nomad.backend

@@ -143,8 +143,8 @@ Policies:
   templated `nomad-workloads` + static `raft-snapshots` in `modules/vault/nomad-wi`,
   `internal-server-certs` in `modules/vault/approle`, the `anonymous` + daemon
   policies in `modules/consul/acl`, and the workload policies (`nomad-tasks`,
-  `traefik`, `traefik-ingress`, `prometheus`) in `modules/consul/nomad-wi`. What
-  remains at the root is only `admin` (a near-root policy for the solo sysadmin,
+  `traefik`, `traefik-ingress`, `prometheus`) in `modules/consul/nomad-wi`. The
+  only policy at the root is `admin` (a near-root policy for the solo sysadmin,
   attached to the OIDC login on both Vault and Nomad) — the one policy that is
   genuinely cross-cutting and not owned by a single module. There's **no root
   Consul policy list**: Consul's admin is the built-in `global-management`
@@ -339,14 +339,14 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # Binding rule imports by its UUID (from `nomad acl binding-rule list`):
 #   tofu import 'module.nomad_oidc.nomad_acl_binding_rule.admin' <rule-id>
 
-# ── Root ACL policies ── only `admin` stays at the root now; module-owned
+# ── Root ACL policies ── only `admin` is at the root; module-owned
 # policies are imported in their module's block (vault_nomad_wi, vault_approle,
 # consul_acl, consul_nomad_wi). Import ID is the policy name:
 tofu import 'vault_policy.this["admin.hcl"]' admin
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
-# No root-level Consul policy list exists (consul_acl_policy.this was removed —
-# Consul admin is the built-in global-management; every other Consul policy is
-# module-owned and imported in its module's block).
+# There's no root-level Consul policy list — Consul admin is the built-in
+# global-management; every other Consul policy is module-owned and imported in
+# its module's block.
 
 # ── Vault Consul secrets engine (consul) ── needs CONSUL_HTTP_TOKEN = mgmt token
 tofu import 'module.vault_consul.vault_consul_secret_backend.consul'      consul

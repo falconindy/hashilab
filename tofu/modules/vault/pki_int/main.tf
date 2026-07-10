@@ -9,7 +9,7 @@ locals {
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
-# Replaces: `vault secrets enable -path=pki_int pki` + the ACME header `tune`.
+# Equivalent to: `vault secrets enable -path=pki_int pki` + the ACME header `tune`.
 resource "vault_mount" "pki_int" {
   path                      = var.backend
   type                      = "pki"

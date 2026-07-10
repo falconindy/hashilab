@@ -1,9 +1,8 @@
 # ── The JWT auth method ──────────────────────────────────────────────────────
 # Nomad allocations log in to Consul with a signed JWT and get a short-lived,
-# service-scoped token instead of sharing one static agent token. Replaces the
-# `consul acl auth-method create -type jwt nomad-workloads` in
-# bin/consul-build-nomad-wi. config_json embeds the home CA PEM so Consul can
-# validate Nomad's HTTPS JWKS endpoint.
+# service-scoped token instead of sharing one static agent token. Equivalent to
+# `consul acl auth-method create -type jwt nomad-workloads`. config_json embeds
+# the home CA PEM so Consul can validate Nomad's HTTPS JWKS endpoint.
 #
 # ── max_token_ttl is deliberately OMITTED (no cap). Nomad manages the token's
 # lifecycle by login (alloc start) / logout (alloc stop), NOT by renewal, so

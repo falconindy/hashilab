@@ -7,7 +7,7 @@ locals {
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
-# Replaces: `vault secrets enable -path=pki_int_internal pki` + the ttl tune.
+# Equivalent to: `vault secrets enable -path=pki_int_internal pki` + the ttl tune.
 # No ACME on this engine, so none of the pki_int header tuning here.
 resource "vault_mount" "pki_int_internal" {
   path                      = var.backend
