@@ -129,6 +129,12 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
   per-service + serviceless binding rules, and the `nomad-tasks` role. Must exist
   **before** Nomad's `consul{}` gets its `service_identity`/`task_identity`
   blocks (allocations start their JWT login the moment those deploy).
+- `modules/consul/mesh` — the mesh **config entries**. Currently just an empty
+  `proxy-defaults/global`: the Connect/Envoy bootstrap path fetches
+  `GET /v1/config/proxy-defaults/global` on every sidecar setup, and with no entry
+  present Consul logs each miss as an `ERROR` on a loop. The entry turns those
+  404s into 200s to silence the noise — it tunes nothing. Real defaults
+  (protocol, mesh-gateway mode, …) can go in its `config_json` later.
 
 Policies:
 

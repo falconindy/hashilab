@@ -234,6 +234,14 @@ module "consul_nomad_wi" {
   }
 }
 
+# The mesh config-entry layer. Currently just an empty proxy-defaults/global to
+# silence the not-found ERROR the Connect/Envoy bootstrap logs when it fetches
+# global proxy defaults that don't exist. Needs the same Consul management token
+# in CONSUL_HTTP_TOKEN as the other Consul modules (see providers.tf).
+module "consul_mesh" {
+  source = "./modules/consul/mesh"
+}
+
 output "vault_pki_backend" {
   value = module.vault_pki.backend
 }
