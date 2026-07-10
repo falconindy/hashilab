@@ -92,7 +92,7 @@ The Nomad workload-identity flow into Vault:
   cluster DNS name with the home CA embedded. The `nomad-workloads` policy is
   **templated on the mount accessor** and owned by this module (rendered from
   `templates/nomad-workloads.hcl.tftpl` with the accessor read off the live
-  resource), not a static `vault/policies/*.hcl` file — a hand-copied accessor
+  resource), not a static policy file — a hand-copied accessor
   breaks silently when the mount is recreated. Roles opt in via
   `roles[*].include_templated_policy`. The module also owns the static
   `raft-snapshots` policy (`policies/raft-snapshots.hcl`, used only by the
@@ -132,10 +132,10 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
 
 Policies:
 
-- `policies.tf` (root) — reconciles Vault ACL policies from `vault/policies/*.hcl`,
-  Nomad ACL policies from `nomad/policies/*.hcl`, and Consul ACL policies from
-  `consul/policies/*.hcl`, one resource per file via `for_each`. The policy name
-  is the filename minus `.hcl`; add or remove a file to add or remove the policy.
+- `policies.tf` (root) — reconciles Vault and Nomad ACL policies from
+  `tofu/policies/{vault,nomad}/*.hcl`, one resource per file via `for_each`.
+  The policy name is the filename minus `.hcl`; add or remove a file to add or
+  remove the policy.
   tofu only deletes policies backed by a file here and never touches built-ins
   (`default`/`root`, Nomad `anonymous`, Consul `global-management`). A policy
   attached by exactly one module, as an implementation detail of it, is **owned by
@@ -146,9 +146,10 @@ Policies:
   `traefik`, `traefik-ingress`, `prometheus`) in `modules/consul/nomad-wi`. What
   remains at the root is only `admin` (a near-root policy for the solo sysadmin,
   attached to the OIDC login on both Vault and Nomad) — the one policy that is
-  genuinely cross-cutting and not owned by a single module. The Consul
-  `consul/policies/` dir is empty (its `for_each` yields nothing until a
-  root-level Consul policy is added back).
+  genuinely cross-cutting and not owned by a single module. There's **no root
+  Consul policy list**: Consul's admin is the built-in `global-management`
+  (delivered as an ephemeral token via `bin/supercow`), and every other Consul
+  policy is module-owned.
 
 ## Auth
 
@@ -343,7 +344,9 @@ tofu import 'module.nomad_oidc.nomad_acl_auth_method.pocket_id' pocket-id
 # consul_acl, consul_nomad_wi). Import ID is the policy name:
 tofu import 'vault_policy.this["admin.hcl"]' admin
 tofu import 'nomad_acl_policy.this["admin.hcl"]' admin
-# No root-level Consul policies remain (consul/policies is empty).
+# No root-level Consul policy list exists (consul_acl_policy.this was removed —
+# Consul admin is the built-in global-management; every other Consul policy is
+# module-owned and imported in its module's block).
 
 # ── Vault Consul secrets engine (consul) ── needs CONSUL_HTTP_TOKEN = mgmt token
 tofu import 'module.vault_consul.vault_consul_secret_backend.consul'      consul
@@ -491,6 +494,7 @@ Cross-cutting / human-facing policies only; a policy attached by a single module
 (as its implementation detail) is owned by that module instead — see the
 `modules/vault/{nomad-wi,approle}` and `modules/consul/{acl,nomad-wi}` sections.
 
-- `vault_policy.this` — one per `vault/policies/*.hcl` (`for_each`; just `admin`)
-- `nomad_acl_policy.this` — one per `nomad/policies/*.hcl` (`for_each`; `admin`)
-- `consul_acl_policy.this` — one per `consul/policies/*.hcl` (`for_each`; currently **none** — every Consul policy is module-owned, so the dir is empty and this yields nothing)
+- `vault_policy.this` — one per `policies/vault/*.hcl` (`for_each`; just `admin`)
+- `nomad_acl_policy.this` — one per `policies/nomad/*.hcl` (`for_each`; `admin`)
+
+(No `consul_acl_policy.this` — Consul has no root policy list; its admin is the built-in `global-management` and every other Consul policy is module-owned.)

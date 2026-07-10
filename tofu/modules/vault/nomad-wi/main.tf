@@ -33,7 +33,7 @@ resource "vault_jwt_auth_backend" "nomad_workloads" {
 # Scopes every default workload to its own KV subtree via Vault ACL templating.
 # The policy body has to embed THIS mount's accessor (auth_jwt_…) — the only way
 # to say "the claims on a token minted through jwt-nomad" — so it can't live as a
-# static vault/policies/*.hcl file with the accessor hand-copied (that silently
+# static policy file with the accessor hand-copied (that silently
 # breaks the moment the mount is recreated and the accessor changes). Rendered
 # here instead, with the accessor read straight off the resource, so it always
 # tracks the live mount and survives a bootstrap/DR rebuild. chomp() matches how

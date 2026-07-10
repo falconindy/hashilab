@@ -135,9 +135,9 @@ module "vault_nomad" {
 # roles. The Vault-side twin of module.consul_nomad_wi. NB module.vault_nomad
 # above is the OPPOSITE direction (Vault minting Nomad mgmt tokens); this is Nomad
 # allocs logging in to Vault. The accessor-templated nomad-workloads policy is
-# owned by the module (it must embed the mount accessor); other roles' policies
-# live in vault/policies/*.hcl and are passed by reference so roles order after
-# them. Must exist before Nomad's vault{} default_identity goes live (see module).
+# owned by the module (it must embed the mount accessor), as is raft-snapshots
+# (the raft-snapshotter role opts in via owned_policies). Must exist before
+# Nomad's vault{} default_identity goes live (see module).
 module "vault_nomad_wi" {
   source = "./modules/vault/nomad-wi"
 
