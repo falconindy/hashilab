@@ -2,6 +2,35 @@ server             = true
 bootstrap_expect   = {{ groups["consul_servers"] | length }}
 leave_on_terminate = true
 
+# Connect's mesh CA. `connect { enabled = true }` lives in consul.hcl (every
+# agent); Consul deep-merges this server-only block onto it. The CA is Vault: root
+# pki + the pki_int_connect intermediate that Consul generates and rotates.
+# Servers log in to Vault with a keyless AppRole (role_id only; bind_secret_id=
+# false, CIDR-bound) — the connect-ca role tofu owns (module.vault_pki_int_connect)
+# — and the provider auto-renews the token. role_id comes from Vault KV
+# (kv/consul/connect-ca), read controller-side in the consul role.
+#
+# NB: this block only drives the CA on a FRESH bootstrap. On a running cluster the
+# CA config lives in Consul state — change it with `consul connect ca set-config`
+# (see RUNBOOK). Kept here so a rebuilt cluster comes up on Vault directly.
+connect {
+  ca_provider = "vault"
+  ca_config {
+    address               = "{{ vault_addr }}"
+    root_pki_path         = "pki"
+    intermediate_pki_path = "pki_int_connect"
+
+    auth_method {
+      type       = "approle"
+      mount_path = "approle"
+
+      params = {
+        role_id = "{{ consul_connect_ca_role_id }}"
+      }
+    }
+  }
+}
+
 ui_config {
   enabled = true
 

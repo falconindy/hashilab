@@ -19,7 +19,7 @@ _secrets engine_ (`modules/vault/consul`) vs. the Consul-provider ACL modules
 
 ## Modules
 
-Three PKI engines:
+Four PKI engines:
 
 - `modules/vault/pki` — the self-signed root CA (`home`, 10y): the `pki` mount,
   the self-signed root, `config/cluster`, `config/urls`, and the `servers` role.
@@ -29,8 +29,18 @@ Three PKI engines:
 - `modules/vault/pki_int_internal` — the internal-client-cert intermediate: same
   shape as `pki_int` but no ACME, and its `intermediate` role sets
   `no_store=true` with a longer `max_ttl` (4380h).
+- `modules/vault/pki_int_connect` — the Consul Connect mesh CA. **Different shape
+  from the other intermediates: Consul, not tofu, generates the intermediate,
+  gets `pki` to sign it, and rotates all mesh leaf certs.** So there's no
+  CSR/sign/import chain and no `bootstrap` gate here — the module only reserves
+  the empty `pki_int_connect` mount, owns the least-privilege `consul-connect-ca`
+  policy, and creates a keyless AppRole role (`consul-connect-ca`) on the existing
+  `approle` mount, stashing its `role_id` in Vault KV (`kv/consul/connect-ca`) for
+  the consul Ansible role. The Consul-side provider switch is applied out of band
+  ("Migrate Consul Connect to the Vault CA provider" in `RUNBOOK.md`), not by a
+  tofu resource.
 
-The root config (`main.tf`) wires them together: both intermediates' signing
+The root config (`main.tf`) wires them together: both signing intermediates'
 `root_issuer_ref` is fed from `module.vault_pki.issuer_name`, so the chain is
 explicit.
 
@@ -292,6 +302,16 @@ tofu import 'module.vault_pki_int_internal.vault_mount.pki_int_internal' pki_int
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_config_cluster.this' pki_int_internal/config/cluster
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_config_urls.this'    pki_int_internal/config/urls
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_role.intermediate'   pki_int_internal/roles/intermediate
+
+# ── Connect CA (pki_int_connect) ──
+# The connect-ca role is created on the approle mount imported above (no clash —
+# this module only references that mount by path). The KV stash imports by its
+# data path (mount/data/name). After adopting these, follow "Consul Connect CA
+# cutover" below to switch the live cluster onto the Vault provider.
+tofu import 'module.vault_pki_int_connect.vault_mount.pki_int_connect'                    pki_int_connect
+tofu import 'module.vault_pki_int_connect.vault_policy.connect_ca'                        consul-connect-ca
+tofu import 'module.vault_pki_int_connect.vault_approle_auth_backend_role.connect_ca'     auth/approle/role/consul-connect-ca
+tofu import 'module.vault_pki_int_connect.vault_kv_secret_v2.role_id'                     kv/data/consul/connect-ca
 
 # ── SSH client-cert CA (ssh-client-signer) ──
 tofu import 'module.vault_ssh.vault_mount.ssh' ssh-client-signer

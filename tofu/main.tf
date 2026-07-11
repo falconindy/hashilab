@@ -85,6 +85,21 @@ module "vault_pki_int_internal" {
   bootstrap       = var.bootstrap
 }
 
+# The Vault side of Consul Connect's mesh CA: the pki_int_connect intermediate
+# mount, the least-privilege provider policy, and a keyless AppRole role the
+# Consul servers log in with (role_id stashed in Vault KV for the consul role).
+# Consul itself generates + rotates the intermediate and all leaf certs; the
+# root (module.vault_pki) only signs the intermediate. The Consul-side provider
+# switch is applied out of band with `consul connect ca set-config` — see
+# README / RUNBOOK.
+module "vault_pki_int_connect" {
+  source = "./modules/vault/pki_int_connect"
+
+  backend         = "pki_int_connect"
+  approle_backend = "approle" # the mount module.vault_approle enables
+  server_cidrs    = ["10.0.100.0/24"]
+}
+
 module "vault_ssh" {
   source = "./modules/vault/ssh"
 
@@ -264,6 +279,15 @@ output "vault_pki_int_internal_backend" {
 
 output "vault_pki_int_internal_role" {
   value = module.vault_pki_int_internal.role_name
+}
+
+output "vault_pki_int_connect_backend" {
+  value = module.vault_pki_int_connect.backend
+}
+
+output "consul_connect_ca_role_id" {
+  description = "role_id for Consul servers' connect.ca_config auth_method. Also in Vault KV (kv/consul/connect-ca), which the consul role reads."
+  value       = module.vault_pki_int_connect.role_id
 }
 
 output "vault_ssh_backend" {

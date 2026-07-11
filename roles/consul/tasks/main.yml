@@ -43,6 +43,18 @@
                 engine_mount_point='kv', url=vault_addr).secret.key }}
   no_log: true
 
+# The Connect CA AppRole role_id, rendered into server.hcl's connect.ca_config
+# auth_method. Consul servers log in to Vault with this (keyless, role_id alone)
+# to run the Vault Connect CA provider; clients don't run the CA, so servers only.
+# Minted by tofu (module.vault_pki_int_connect) and stashed in Vault KV. Same
+# controller-side lookup rationale as the tokens above.
+- name: Read the Consul Connect CA role_id from Vault
+  ansible.builtin.set_fact:
+    consul_connect_ca_role_id: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/connect-ca',
+                engine_mount_point='kv', url=vault_addr).secret.role_id }}
+  when: "'consul_servers' in group_names"
+
 # consul.hcl holds the gossip key and the two ACL tokens, so it's owner consul +
 # 0600 — only the consul user (which the daemon runs as) can read it, matching how
 # the synology role deploys nasty's. consul.env carries no secret, so stays 0644.
@@ -64,11 +76,15 @@
   notify:
     - Flag consul restart
 
+# server.hcl now carries the Connect CA AppRole role_id (connect.ca_config), so
+# owner consul + 0600 like consul.hcl — only the daemon's user can read it.
 - name: Deploy consul server config
   ansible.builtin.template:
     src: os/etc/consul.d/server.hcl.j2
     dest: /etc/consul.d/server.hcl
-    mode: "0644"
+    owner: consul
+    group: consul
+    mode: "0600"
   when: "'consul_servers' in group_names"
   notify:
     - Flag consul restart

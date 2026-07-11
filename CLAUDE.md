@@ -73,11 +73,12 @@ To show a service in the homelab dashboard, also add `"homelabdash.uri=<path>"` 
 
 ### PKI / TLS
 
-Vault runs three PKI secret engines:
+Vault runs four PKI secret engines:
 
 - `pki` — self-signed root CA (`home`, 10-year TTL)
 - `pki_int` — intermediate CA with ACME enabled; used by Traefik to issue TLS certs for `*.service.home`
 - `pki_int_internal` — intermediate CA for internal client certs (no ACME, no storage)
+- `pki_int_connect` — intermediate CA for the Consul Connect mesh CA. Unlike the others, **Consul** (not tofu) generates the intermediate, has `pki` sign it, and rotates every mesh leaf cert; tofu (`modules/vault/pki_int_connect`) only reserves the mount and grants the Consul servers a keyless AppRole (`consul-connect-ca`, role_id in Vault KV `kv/consul/connect-ca`) scoped by the `consul-connect-ca` policy. Consul's server config points at it via `connect { ca_provider = "vault" }` in `server.hcl`
 
 All nodes run **vault-agent** (AppRole auth, role ID in `/etc/vault-agent.d/agent.roleid`) which renders TLS certs for Nomad, Consul, and Vault itself from templates in `/etc/vault-agent.d/*.tpl`. The CA bundle is at `/etc/ssl/certs/home.pem` on every node.
 

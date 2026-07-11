@@ -120,3 +120,94 @@ First-time setup (before the roles can render these): seed each secret with the 
 live primary and bound its history —
 `vault kv put kv/consul/gossip key=<current>` (likewise `kv/nomad/gossip`), then
 `vault kv metadata put -max-versions=3 kv/consul/gossip` (likewise Nomad).
+
+## Migrate Consul Connect to the Vault CA provider
+
+Switches Connect's mesh CA from the built-in provider (root key in Consul's Raft)
+to Vault (`pki` root + the `pki_int_connect` intermediate Consul manages). The
+Vault side is tofu (`module.vault_pki_int_connect`); this is the live-cluster
+cutover, which is **not** a tofu resource — editing `server.hcl` alone does
+nothing on a running cluster (Consul reads `ca_config` from the agent file only
+at first bootstrap; after that the CA config lives in Consul state and changes
+only via `consul connect ca set-config`).
+
+Prereqs: `tofu apply` has created the mount/policy/role and stashed `role_id`;
+the consul role has been deployed so `server.hcl` carries the matching block (so
+a rebuilt server comes up on Vault too). Do the cutover in a maintenance window.
+
+```bash
+supercow                                  # CONSUL_HTTP_TOKEN = mgmt, VAULT_TOKEN set
+export CONSUL_HTTP_ADDR=https://consul.service.home:8501
+export CONSUL_CACERT=/etc/ssl/certs/home.pem
+
+# The CA CLI is only get-config/set-config — the roots live on the HTTP API.
+# Helper to list them (which root is Active + what's still in the trust bundle):
+ca_roots() { curl -s --cacert "$CONSUL_CACERT" -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  "$CONSUL_HTTP_ADDR/v1/connect/ca/roots" | jq '{ActiveRootID, Roots: [.Roots[] | {Name, Active}]}'; }
+
+# Pre-flight — capture the rollback target and a safety net.
+consul connect ca get-config > /tmp/ca-config.before.json   # the built-in config, verbatim
+consul snapshot save connect-ca-preflight.snap
+ca_roots                                                     # note the current Active root
+
+# Build the Vault provider config. role_id is the one tofu stashed.
+role_id=$(vault kv get -field=role_id kv/consul/connect-ca)
+cat > /tmp/ca-config.vault.json <<EOF
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "https://vault.service.home:8200",
+    "RootPKIPath": "pki/",
+    "IntermediatePKIPath": "pki_int_connect/",
+    "AuthMethod": {
+      "Type": "approle",
+      "MountPath": "approle",
+      "Params": { "role_id": "$role_id" }
+    }
+  }
+}
+EOF
+
+consul connect ca set-config -config-file=/tmp/ca-config.vault.json
+
+# GATE: the Vault-issued root is now Active, and the old built-in root is still
+# in the trust bundle (cross-signed) so existing leaf certs stay valid.
+ca_roots                              # Vault root Active=true; built-in root still listed (Active=false)
+consul connect ca get-config          # Provider = vault
+```
+
+Then watch Envoy/xDS settle across the fleet (this is the same failure surface as
+the WI-token TTL incident — leaf issuance breaking shows up as xDS "ACL not
+found" churn). Consul cross-signs the new intermediate from the old CA, so a
+healthy cutover is zero-downtime.
+
+### Rollback
+
+The Vault-side `tofu apply` is inert until the cutover points Consul at it, so
+before the `set-config` there's nothing to undo. After it, replay the captured
+built-in config:
+
+```bash
+supercow
+consul connect ca set-config -config-file=/tmp/ca-config.before.json
+ca_roots                              # built-in root Active again; Vault root still listed (Active=false)
+```
+
+This cross-signs the returning built-in root **from the currently-active Vault
+CA**, so it's zero-downtime _as long as Vault is reachable_. If you're rolling
+back because Vault is down, cross-signing isn't possible — force it, accepting a
+brief mesh-wide disruption until every proxy has the new root:
+
+```bash
+consul connect ca set-config -config-file=/tmp/ca-config.before.json -force-without-cross-signing
+```
+
+`consul snapshot restore connect-ca-preflight.snap` is the last resort — it
+rewinds **all** Consul state, not just the CA, so reserve it for a wedged control
+plane.
+
+**Vault cleanup ordering:** after a rollback, leave `pki_int_connect` and the
+`consul-connect-ca` role/policy in place until `ca_roots` no longer lists the
+Vault root (it drops out once its leaf certs have rotated away). Only then `tofu
+destroy` the module — deleting the mount while its certs are still in the trust
+bundle turns a clean rollback into an outage.
