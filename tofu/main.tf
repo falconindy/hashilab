@@ -125,15 +125,14 @@ module "vault_oidc" {
 module "vault_approle" {
   source = "./modules/vault/approle"
 
-  backend   = "approle"
-  role_name = "vault-agent"
-  # internal-server-certs is owned by the module (modules/vault/approle/policies).
-  owned_policy_files    = ["internal-server-certs.hcl"]
-  bind_secret_id        = false
-  token_type            = "batch"
-  token_ttl_seconds     = 1200 # 20m
-  secret_id_bound_cidrs = ["10.0.100.0/24", "10.0.1.99/32"]
-  # token_max_ttl (0) and token_bound_cidrs ([]) match provider defaults, so
+  backend            = "approle"
+  role_name          = "vault-agent"
+  owned_policy_files = ["internal-server-certs.hcl"]
+  bind_secret_id     = false
+  token_type         = "batch"
+  token_ttl_seconds  = 1200 # 20m
+  token_bound_cidrs  = ["10.0.100.0/24", "10.0.1.99/32"]
+  # token_max_ttl (0) and secret_id_bound_cidrs ([]) match provider defaults, so
   # they're left null/unset.
 }
 
