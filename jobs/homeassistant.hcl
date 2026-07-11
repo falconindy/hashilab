@@ -33,7 +33,7 @@ job "homeassistant" {
       driver = "docker"
 
       config {
-        image = "homeassistant/home-assistant:2026.7.1"
+        image = "homeassistant/home-assistant:2026.7.2"
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
