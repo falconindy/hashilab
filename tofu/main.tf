@@ -174,12 +174,12 @@ module "vault_nomad_wi" {
       token_policies = []
       owned_policies = ["raft-snapshots.hcl"]
       # This role hands out Consul + Nomad management tokens, so pin it to the one
-      # job that's meant to use it. cluster-config-snapshotter is periodic, so the
-      # nomad_job_id claim is the dispatched child (<parent>/periodic-<ts>), not the
-      # bare parent name — hence the glob.
-      bound_claims_type = "glob"
+      # job that's meant to use it. Nomad's workload-identity nomad_job_id claim is
+      # the PARENT job id even for a periodic child — the timestamped child id shows
+      # up in the alloc's Job ID and in `sub`, but NOT in this claim — so match the
+      # bare parent name (exact, no glob needed).
       bound_claims = {
-        nomad_job_id = "cluster-config-snapshotter/periodic-*"
+        nomad_job_id = "cluster-config-snapshotter"
       }
     }
   }
