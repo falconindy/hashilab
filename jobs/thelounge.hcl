@@ -30,7 +30,7 @@ job "thelounge" {
       user   = "1000:1000"
 
       config {
-        image = "ghcr.io/thelounge/thelounge:4.5.0"
+        image = "ghcr.io/thelounge/thelounge:4.5.2"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
