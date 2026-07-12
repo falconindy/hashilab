@@ -207,7 +207,7 @@ module "vault_consul" {
   role_name         = "mgmt"
 }
 
-# The baseline Consul ACL layer: the anonymous-token attachment and the four
+# The baseline Consul ACL layer: the anonymous-token attachment and the
 # non-expiring daemon tokens (also stashed in Vault KV for the Ansible roles).
 # The module owns these baseline policies (modules/consul/acl/policies) since it's
 # their only consumer; the daemon-token set and anonymous policy are its defaults.
@@ -248,10 +248,10 @@ module "consul_nomad_wi" {
   }
 }
 
-# The mesh config-entry layer. Currently just an empty proxy-defaults/global to
-# silence the not-found ERROR the Connect/Envoy bootstrap logs when it fetches
-# global proxy defaults that don't exist. Needs the same Consul management token
-# in CONSUL_HTTP_TOKEN as the other Consul modules (see providers.tf).
+# The mesh config-entry layer: the Consul config entries that shape the Connect
+# mesh (service intentions for L4 authz, global proxy defaults, and so on — see
+# the module). Needs the same Consul management token in CONSUL_HTTP_TOKEN as the
+# other Consul modules (see providers.tf).
 module "consul_mesh" {
   source = "./modules/consul/mesh"
 }

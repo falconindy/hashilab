@@ -25,11 +25,12 @@ resource "consul_acl_token_policy_attachment" "anonymous" {
 }
 
 # ── The always-on daemon tokens ──────────────────────────────────────────────
-# consul-agent, nomad-agent and vault-registration are daemon identities whose
-# consumers read the token ONCE and never renew, so they must be plain,
-# non-expiring Consul tokens (NOT leased/expiring — that's the Vault Consul
-# secrets engine, for break-glass mgmt tokens). tofu owns them in state; each
-# carries the like-named owned policy above, so token creation orders after it.
+# One Consul token per file in var.daemon_token_policy_files. These are daemon
+# identities whose consumers read the token ONCE and never renew, so they must be
+# plain, non-expiring Consul tokens (NOT leased/expiring — that's the
+# Vault Consul secrets engine, for break-glass mgmt tokens). tofu owns them in
+# state; each carries the like-named owned policy above, so token creation orders
+# after it.
 # Keyed on the policy name (filename minus .hcl), which is also the token
 # description and its KV path below.
 resource "consul_acl_token" "daemon" {
@@ -48,10 +49,8 @@ data "consul_acl_token_secret_id" "daemon" {
 }
 
 # ── Stash each token in Vault KV ─────────────────────────────────────────────
-# The Ansible roles read these paths (kv/consul/tokens/<name>) to template the
-# tokens into config: the consul role's `consul acl set-agent-token agent`, the
-# nomad role's consul{} token, and Vault's service_registration token. Equivalent
-# to a `vault kv put` per token.
+# The Ansible roles read these paths (kv/consul/tokens/<name>) to template each
+# daemon's token into its config. Equivalent to a `vault kv put` per token.
 #
 # NOTE: the token secret_id lands in tofu state here (and in KV). Protect state.
 resource "vault_kv_secret_v2" "daemon" {

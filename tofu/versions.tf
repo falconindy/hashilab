@@ -24,7 +24,7 @@ terraform {
   # Where the state lives is up to you. Local state is fine for a POC, BUT the
   # state file contains secrets — treat it as one. The Nomad *management* token
   # (module.vault_nomad), the Consul *management* token the Consul secrets engine
-  # uses (module.vault_consul), and the three non-expiring Consul daemon tokens
+  # uses (module.vault_consul), and the non-expiring Consul daemon tokens
   # (module.consul_acl, also mirrored into Vault KV) all land in state. Use a
   # secure backend and/or OpenTofu state encryption:
   #

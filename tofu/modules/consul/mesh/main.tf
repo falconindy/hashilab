@@ -6,9 +6,9 @@
 # proxy-defaults / global") on a loop. Creating the entry turns those 404s into
 # 200s and silences the noise — it does not change any proxy behaviour.
 #
-# This is a mesh config entry (same category as intentions), the first one owned
-# by tofu. Add real defaults (protocol, mesh-gateway mode, envoy prometheus bind
-# addr, …) to config_json alongside the empty maps below if the mesh ever needs them.
+# This is a mesh config entry, the same category as the intentions alongside it.
+# Add real defaults (protocol, mesh-gateway mode, envoy prometheus bind addr, …)
+# to config_json alongside the empty maps below if the mesh ever needs them.
 resource "consul_config_entry" "proxy_defaults" {
   kind = "proxy-defaults"
   name = "global"
