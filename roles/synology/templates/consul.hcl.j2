@@ -30,21 +30,11 @@ tls {
 }
 
 acl {
-  # Stage 2: agent token is now provisioned (the `tokens.agent` below), matching
-  # the Debian fleet. default_policy stays "allow" until the whole cluster is
-  # verified; flip to "deny" (Stage 4) fleet-wide, not per-node.
   enabled                  = true
-  default_policy           = "allow"
+  default_policy           = "deny"
   down_policy              = "extend-cache"
   enable_token_persistence = true
 
-  # agent: the NAS's own identity for anti-entropy (node registration + catalog
-  # sync); carries the consul-agent policy (node write, service read).
-  # config_file_service_registration: authorizes registration of the NAS's
-  # config-file service (nas); carries the consul-config-services policy
-  # (service:write on that named service). Both minted by tofu
-  # (module.consul_acl), stashed in Vault KV, and read on the controller side —
-  # see the "Read the Consul ... token" tasks in the synology role.
   tokens {
     agent                            = "{{ synology_consul_agent_token }}"
     config_file_service_registration = "{{ synology_consul_config_services_token }}"
