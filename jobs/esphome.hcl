@@ -46,8 +46,9 @@ job "esphome" {
       }
 
       resources {
-        cpu    = 500
-        memory = 4096
+        cpu        = 500
+        memory     = 512
+        memory_max = 4096
       }
     }
 
