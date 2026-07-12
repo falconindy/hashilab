@@ -20,9 +20,7 @@ job "node-exporter" {
 
   group "node-exporter" {
     network {
-      port "metrics" {
-        static = 9100
-      }
+      port "metrics" {}
     }
 
     task "server" {
@@ -37,6 +35,7 @@ job "node-exporter" {
         pid_mode     = "host"
 
         args = [
+          "--web.listen-address=:${NOMAD_PORT_metrics}",
           "--path.rootfs=/host",
           "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($|/)"
         ]
