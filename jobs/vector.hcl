@@ -215,10 +215,11 @@ job "vector" {
             vlogs:
               type: elasticsearch
               inputs: [log_level]
-              # VictoriaLogs reached over the Consul service mesh via the sidecar
-              # upstream below — Envoy provides mTLS, so this is plain local http.
+              # VictoriaLogs reached over the Consul service mesh via transparent
+              # proxy — Envoy provides mTLS, so this is plain http to the mesh
+              # virtual address.
               endpoints:
-                - http://127.0.0.1:9428/insert/elasticsearch/
+                - http://victorialogs.virtual.home/insert/elasticsearch/
               api_version: v8
               compression: gzip
               healthcheck:
@@ -251,16 +252,22 @@ job "vector" {
       connect {
         sidecar_service {
           proxy {
+            transparent_proxy {
+              no_dns = true
+            }
+
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }
 
-            upstreams {
-              destination_name = "victorialogs"
-              local_bind_port  = 9428
-            }
-
             expose {
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 9102
+                listener_port   = "envoy_metrics"
+              }
+
               path {
                 path            = "/metrics"
                 protocol        = "http"
