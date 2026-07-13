@@ -82,6 +82,7 @@ locals {
     "postgres" = [
       { name = "teslamate", action = "allow" },
       { name = "grafana", action = "allow" },
+      { name = "pocket-id", action = "allow" },
     ]
     "prometheus" = [
       { name = "grafana", action = "allow" },

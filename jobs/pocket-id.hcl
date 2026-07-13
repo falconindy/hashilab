@@ -33,7 +33,7 @@ job "pocket-id" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/pocket-id/pocket-id:v2.9.0"
+        image = "ghcr.io/pocket-id/pocket-id:v2.11.0"
 
         volumes = [
           "/clusterdata/pocket-id:/app/data:rw",
@@ -52,6 +52,7 @@ job "pocket-id" {
         data        = <<-EOF
           {{ with secret "kv/data/default/pocket-id" }}
             ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
+            DB_CONNECTION_STRING="postgres://pocketid:{{ .Data.data.postgres_password }}@127.0.0.1:5432/pocketid?sslmode=disable"
           {{ end }}
         EOF
         destination = "secrets/pocket-id.env"
@@ -81,6 +82,11 @@ job "pocket-id" {
       connect {
         sidecar_service {
           proxy {
+            upstreams {
+              destination_name = "postgres"
+              local_bind_port  = 5432
+            }
+
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }
