@@ -13,37 +13,48 @@ rotate themselves. SSH has no static keys. Secrets never touch the repo.
 
 ## The big picture
 
-```
-    LAN                                    outside world
-     │                                          │
-     │  *.service.home                          │  router port-forward ─► keepalived VIP
-     ▼                                          ▼
- ┌─────────────────────────────┐   ┌─────────────────────────────┐
- │  traefik                    │   │  traefik-ingress            │
- │  <name>.service.home        │   │  <name>.falconindy.com      │
- │  ACME via Vault             │   │  ACME via Let's Encrypt     │
- └──────────────┬──────────────┘   └───────────────┬─────────────┘
-                │                                  │
-                │                                  │
-                └───────────────┬──────────────────┘
-                                │  routed via the Consul catalog
- ┌──────────────────────────────┴───────────────────────────────────────┐
- │                     Consul service mesh                              │
- │    mTLS everywhere · Envoy sidecars · default-deny intentions        │
- └──────┬───────────────────┬───────────────────┬────────────────┬──────┘
-        │                   │                   │                │
-   ┌────┴────┐         ┌────┴────┐         ┌────┴────┐      ┌────┴────┐
-   │ nomad0  │         │ nomad1  │         │ nomad2  │      │ bastion │
-   │ dc1     │         │ dc1     │         │ dc1     │      │ dc2     │
-   └─────────┘         └─────────┘         └─────────┘      └─────────┘
-       server + client for Consul / Nomad / Vault            client-only
+```mermaid
+---
+config:
+  theme: default
+---
+flowchart TB
+subgraph dc1["dc1"]
+    nomad0["nomad0<br>server + client"]
+    nomad1["nomad1<br>server + client"]
+    nomad2["nomad2<br>server + client"]
+    nas["nas<br>client-only"]
+end
+subgraph dc2["dc2"]
+    bastion["bastion<br>client-only"]
+end
 
-   ┌──────────────────────── control plane ────────────────────────┐
-   │  Consul  service discovery · DNS · KV · ACLs                  │
-   │  Nomad   workload orchestration (Docker + system jobs)        │
-   │  Vault   PKI (3 CAs) · SSH CA · OIDC · dynamic secrets        │
-   └───────────────────────────────────────────────────────────────┘
+lan(["LAN"])
+wan(["WAN"])
+router["Router<hr>Port forward to keepalived VIP"]
+traefik["traefik<hr>*.service.home<br>ACME via Vault"]
+ingress["traefik-ingress<hr>*.falconindy.com<br>ACME via Let's Encrypt"]
+consul_catalog["Routing via Consul service catalog"]
+mesh["Consul service mesh · mTLS everywhere via Envoy sidecars"]
+
+lan --> traefik
+wan --> router --> ingress
+traefik --> consul_catalog
+ingress --> consul_catalog
+consul_catalog --> mesh
+mesh --> nomad0 & nomad1 & nomad2 & nas & bastion
+
+classDef Aqua stroke-width:1px, stroke-dasharray:none, stroke:#46EDC8, fill:#DEFFF8, color:#378E7A
+classDef Rose stroke-width:1px, stroke-dasharray:none, stroke:#FF5978, fill:#FFDFE5, color:#8E2236
+lan:::Aqua
+wan:::Rose
 ```
+
+| Control plane | Role                                          |
+| ------------- | --------------------------------------------- |
+| **Consul**    | service discovery · DNS · KV · ACLs           |
+| **Nomad**     | workload orchestration (Docker + system jobs) |
+| **Vault**     | PKI (3 CAs) · SSH CA · OIDC · dynamic secrets |
 
 **Topology.** Three servers (`nomad0-2.node.home`) in `dc1` each run Consul, Nomad,
 and Vault as both server and client. A `bastion` node in `dc2` and a Synology NAS join
