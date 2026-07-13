@@ -16,3 +16,11 @@ node_prefix "" {
 service_prefix "" {
   policy = "write"
 }
+
+# ── Nomad SERVERS (but not clients) additionally require these two:
+#   - mesh = "write": manage the Connect mesh / proxy config the servers drive
+#     for Connect-enabled (incl. transparent-proxy) allocations.
+#   - acl  = "write": drive the workload-identity Consul token lifecycle.
+# Clients get these capabilities as well in the name of simplicity.
+mesh = "write"
+acl  = "write"
