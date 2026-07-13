@@ -50,11 +50,11 @@ lan:::Aqua
 wan:::Rose
 ```
 
-| Control plane | Role                                          |
-| ------------- | --------------------------------------------- |
-| **Consul**    | service discovery · DNS · KV · ACLs           |
-| **Nomad**     | workload orchestration (Docker + system jobs) |
-| **Vault**     | PKI (3 CAs) · SSH CA · OIDC · dynamic secrets |
+| Control plane | Role                             |
+| ------------- | -------------------------------- |
+| **Consul**    | service discovery · DNS · ACLs   |
+| **Nomad**     | workload orchestration           |
+| **Vault**     | private PKI · SSH CA · OIDC · KV |
 
 **Topology.** Three servers (`nomad0-2.node.home`) in `dc1` each run Consul, Nomad,
 and Vault as both server and client. A `bastion` node in `dc2` and a Synology NAS join
