@@ -62,6 +62,7 @@ bind_addr      = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
 advertise_addr = "{% raw %}{{ GetInterfaceIP \"bond0\" }}{% endraw %}"
 
 retry_join = {{ groups["consul_servers"] | map('extract', hostvars, 'ansible_host') | list | to_json }}
+retry_interval = "5s"
 
 services {
   id   = "nas"

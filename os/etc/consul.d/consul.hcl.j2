@@ -19,6 +19,9 @@ client_addr    = "0.0.0.0"
 advertise_addr = "{{ ansible_host }}"
 bind_addr      = "{{ ansible_host }}"
 retry_join     = {{ groups["consul_servers"] | map('extract', hostvars, 'ansible_host') | list | to_json }}
+# Lower default from 30s.
+retry_interval = "5s"
+
 
 enable_local_script_checks = true
 
