@@ -87,6 +87,8 @@ job "homeassistant" {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
             }
 
+            # It would be nice to use transparent_proxy, but the netns
+            # introduced by it messes with HA's service discovery.
             upstreams {
               destination_name = "mosquitto"
               local_bind_port  = 1883
