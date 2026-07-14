@@ -52,6 +52,9 @@ job "coredns" {
         args  = ["-conf", "/local/corefile"]
       }
 
+      # An explicit consul identity is needed to render the config.
+      consul {}
+
       template {
         data          = <<-EOF
           . {
