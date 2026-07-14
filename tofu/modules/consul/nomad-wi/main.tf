@@ -49,6 +49,27 @@ resource "consul_acl_binding_rule" "service" {
   selector    = "\"nomad_service\" in value"
 }
 
+# ── Every service workload also gets agent:read (Envoy bootstrap) ────────────
+# Nomad boots each Connect sidecar with `consul connect envoy -bootstrap`, run
+# with the service-identity token above; that command probes /v1/agent/self
+# (needs agent:read). The service identity doesn't include agent:read, so union
+# it in via an additive role — binding rules union, so a service token ends up
+# service-identity ∪ connect-agent-read. Same selector as the service rule so it
+# tracks exactly the service-bearing workloads and never a serviceless task.
+resource "consul_acl_role" "connect_agent_read" {
+  name        = "connect-agent-read"
+  description = "agent:read for service workloads (Envoy bootstrap probes /v1/agent/self)"
+  policies    = [consul_acl_policy.owned["connect-agent-read.hcl"].name]
+}
+
+resource "consul_acl_binding_rule" "connect_agent_read" {
+  auth_method = consul_acl_auth_method.nomad_workloads.name
+  description = "nomad-workloads -> connect-agent-read role (service workloads)"
+  bind_type   = "role"
+  bind_name   = consul_acl_role.connect_agent_read.name
+  selector    = "\"nomad_service\" in value"
+}
+
 # ── ACL policies owned by this module ────────────────────────────────────────
 # The workload policies these roles attach (nomad-tasks + the task-identity ones:
 # traefik, traefik-ingress, prometheus) live in policies/ here because this module
