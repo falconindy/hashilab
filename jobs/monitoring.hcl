@@ -18,14 +18,20 @@ job "monitoring" {
     }
   }
 
-  group "blackbox-exporter" {
+  group "prometheus" {
     network {
       mode = "bridge"
+
+      dns {
+        servers = ["172.17.0.1"]
+      }
 
       port "envoy_metrics" { to = 9102 }
     }
 
-    task "server" {
+    # Blackbox is consumed only by prometheus, so it lives in the same group
+    # and is reached over loopback.
+    task "blackbox" {
       driver = "docker"
 
       config {
@@ -58,44 +64,6 @@ job "monitoring" {
         EOF
         destination = "local/blackbox.yml"
       }
-    }
-
-    service {
-      name = "blackbox-exporter"
-      port = 9115
-
-      meta {
-        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
-      }
-
-      connect {
-        sidecar_service {
-          proxy {
-            config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-          }
-        }
-
-        sidecar_task {
-          resources {
-            cpu    = 50
-            memory = 48
-          }
-        }
-      }
-    }
-  }
-
-  group "prometheus" {
-    network {
-      mode = "bridge"
-
-      dns {
-        servers = ["172.17.0.1"]
-      }
-
-      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -419,11 +387,6 @@ job "monitoring" {
           proxy {
             config {
               envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-
-            upstreams {
-              destination_name = "blackbox-exporter"
-              local_bind_port  = 9115
             }
           }
         }
