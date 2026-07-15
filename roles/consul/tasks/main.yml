@@ -19,17 +19,6 @@
                 engine_mount_point='kv', url=vault_addr).secret.token }}
   no_log: true
 
-# The config-file service-registration token (consul-config-services policy),
-# rendered into consul.hcl's acl.tokens block. Authorizes registration of the
-# services defined in config files (client.hcl's consul-client here). Same Vault
-# KV + controller-side lookup rationale as the agent token above.
-- name: Read the Consul config-file service-registration token from Vault
-  ansible.builtin.set_fact:
-    consul_config_services_token: >-
-      {{ lookup('community.hashi_vault.vault_kv2_get', 'consul/tokens/consul-config-services',
-                engine_mount_point='kv', url=vault_addr).secret.token }}
-  no_log: true
-
 # The gossip encryption key (symmetric, shared by every agent), rendered into
 # consul.hcl's `encrypt`. Running agents ignore it — the live key lives in each
 # agent's persisted keyring, rotated via `consul keyring` (see RUNBOOK) — but a
@@ -86,15 +75,6 @@
     group: consul
     mode: "0600"
   when: "'consul_servers' in group_names"
-  notify:
-    - Flag consul restart
-
-- name: Deploy consul client config
-  ansible.builtin.copy:
-    src: os/etc/consul.d/client.hcl
-    dest: /etc/consul.d/client.hcl
-    mode: "0644"
-  when: "'consul_clients' in group_names"
   notify:
     - Flag consul restart
 

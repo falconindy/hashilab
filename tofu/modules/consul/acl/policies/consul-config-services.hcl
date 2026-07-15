@@ -4,19 +4,13 @@
 # from the agent token (node anti-entropy) and from Nomad workload identity
 # (which carries its own token). Under default_policy = "deny", config-file
 # service registration falls back to this token, then the anonymous token; the
-# anonymous policy is read-only, so without this the nas/consul-client services
-# silently stop registering.
+# anonymous policy is read-only, so without this the nas service silently stop
+# registering.
 #
 # service:write is required for EVERY config-file service on any node:
-#   - consul-client — defined in os/etc/consul.d/client.hcl (all Debian nodes)
-#     and inline on the NAS (roles/synology/templates/consul.hcl.j2)
 #   - nas           — the NAS only
 # Named rather than service_prefix "" write to keep the blast radius tight (cf.
 # anonymous.hcl): add a service here when a new one is defined in a *.hcl config.
-service "consul-client" {
-  policy = "write"
-}
-
 service "nas" {
   policy = "write"
 }

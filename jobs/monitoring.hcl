@@ -118,14 +118,19 @@ job "monitoring" {
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
-                  services: [consul]
+                  # Consul only registers a "consul" service that allows
+                  # discovery of Consul servers, but makes no such arrangements
+                  # for discovering *clients*. However, Nomad does this via the
+                  # nomad-client service, so leverage that for scraping Consul
+                  # clients. Naturally, this implicitly defines a coupling
+                  # requirement that if Nomad is running on a machine, then so
+                  # is Consul.
+                  services: [nomad-client]
               relabel_configs:
                 - source_labels: [__meta_consul_dc]
                   target_label:  dc
                 - source_labels: [__meta_consul_node]
                   target_label:  host
-                - source_labels: [__meta_consul_tags]
-                  target_label: tags
                 - source_labels: [__address__]
                   action: replace
                   regex: ([^:]+):.*
@@ -192,7 +197,7 @@ job "monitoring" {
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
-                  services: [nomad-client, consul-client, vault, omada-controller]
+                  services: [vault, omada-controller]
               # A relabeling config that lets us scrape target through the Blackbox Exporter,
               # while labeling the resulting metrics with the probed target's URL.
               relabel_configs:
