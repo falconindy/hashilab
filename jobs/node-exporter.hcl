@@ -27,7 +27,7 @@ job "node-exporter" {
       driver = "docker"
 
       config {
-        image = "prom/node-exporter:v1.12.0"
+        image = "prom/node-exporter:v1.12.1"
         ports = ["metrics"]
 
         # Necessary to see the host's real processes and network
