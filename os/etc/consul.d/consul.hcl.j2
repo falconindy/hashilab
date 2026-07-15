@@ -58,8 +58,7 @@ acl {
   enable_token_persistence = true
 
   tokens {
-    agent                            = "{{ consul_agent_token }}"
-    config_file_service_registration = "{{ consul_config_services_token }}"
+    agent = "{{ consul_agent_token }}"
   }
 }
 

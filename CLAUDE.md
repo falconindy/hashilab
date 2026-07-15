@@ -103,7 +103,7 @@ Jobs live in `jobs/`. Key patterns:
 
 ### Monitoring
 
-Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service discovery — no static targets. Grafana reads from Prometheus. The Blackbox Exporter probes TLS endpoints for certificate expiry, and `x509-exporter` watches client certs on each node.
+Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service discovery — no static targets. Grafana reads from Prometheus. The Blackbox Exporter probes TLS endpoints for certificate expiry on `vault` and `omada-controller` (the only services with no native metric). Consul agent cert expiry is scraped via `consul_agent_tls_cert_expiry` off each agent's `/v1/agent/metrics` — discovered through the `nomad-client` service, which every Nomad-running node registers. Nomad agent cert expiry comes from `nomad_agent_tls_cert_expiration_seconds` on the existing `/v1/metrics` scrape. `x509-exporter` watches client certs on each node.
 
 ### Dashboard
 
