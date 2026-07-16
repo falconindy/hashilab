@@ -35,7 +35,7 @@ job "victorialogs" {
       user   = "1000:1000"
 
       config {
-        image = "victoriametrics/victoria-logs:v1.51.0"
+        image = "victoriametrics/victoria-logs:v1.52.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
