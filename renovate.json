@@ -39,6 +39,17 @@
       "matchStrings": [
         "\\s*image\\s*=\\s*\\\"(?<depName>.*?):([a-z0-9]+-)?(?<currentValue>.*?)\\\""
       ]
+    },
+    {
+      "description": "Update CNI plugins version in Nomad role defaults",
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "containernetworking/plugins",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "managerFilePatterns": ["/roles/nomad/defaults/main\\.yml$"],
+      "matchStrings": [
+        "nomad_cni_plugins_version:\\s*\"(?<currentValue>[^\"]+)\""
+      ]
     }
   ]
 }
