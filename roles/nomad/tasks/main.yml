@@ -2,6 +2,7 @@
   ansible.builtin.apt:
     name:
       - nomad
+      - nomad-driver-exec2
       - docker.io
     dpkg_options: "force-confdef,force-confold"
     state: present

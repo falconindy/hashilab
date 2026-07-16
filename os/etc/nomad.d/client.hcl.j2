@@ -55,6 +55,14 @@ plugin "raw_exec" {
   }
 }
 
+plugin "nomad-driver-exec2" {
+  config {
+    unveil_defaults = true
+    unveil_paths    = []
+    unveil_by_task  = false
+  }
+}
+
 plugin "docker" {
   config {
     allow_privileged = true
