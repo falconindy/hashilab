@@ -121,6 +121,78 @@ live primary and bound its history —
 `vault kv put kv/consul/gossip key=<current>` (likewise `kv/nomad/gossip`), then
 `vault kv metadata put -max-versions=3 kv/consul/gossip` (likewise Nomad).
 
+## Rotate the pki_int / pki_int_internal intermediate CAs
+
+Rotates the intermediate CA certs themselves — the certs `pki` (the root)
+issues to `pki_int` and `pki_int_internal`. These are 5-year-TTL CA certs with
+no automatic renewal, so rotating one is a manual, live-cluster procedure.
+(Leaf certs issued _by_ those intermediates — Traefik's `*.service.home`
+certs, the Consul/Nomad/Vault/omada-controller daemon certs — already
+auto-rotate on their own and aren't covered here.)
+
+The root (`pki`)'s own cert is also out of scope: it's the trust anchor baked
+into `/etc/ssl/certs/home.pem` on every node, `bootstrap`-gated in tofu, and
+rotating it means re-establishing trust fleet-wide — not something this entry
+covers.
+
+tofu only ever touches an intermediate's cert as a one-shot bootstrap action
+(`vault_pki_secret_backend_intermediate_cert_request` →
+`..._root_sign_intermediate` → `..._intermediate_set_signed`, gated by
+`var.bootstrap`) — after bootstrap it's never touched again, and it's not in
+`tofu/README.md`'s import list either. Live rotation replays that chain by
+hand, against the mount's existing role/config which tofu still owns.
+
+Do this for the 5-year TTL running out, or a suspected intermediate-key
+compromise — not routine. Pick the mount and repeat for the other if needed;
+they're independent.
+
+```bash
+export VAULT_ADDR=https://vault.service.home:8200
+mount=pki_int_internal   # or pki_int
+cn="home Vault Intermediate Authority [Internal]"  # match main.tf's common_name for the mount
+
+# Preflight: note the current default issuer so you can tell old from new.
+vault read -field=default "$mount/config/issuers"
+
+# 1. New intermediate keypair + CSR. Private key never leaves Vault.
+vault write -format=json "$mount/intermediate/generate/internal" \
+  common_name="$cn" | jq -r .data.csr > /tmp/$mount.csr
+
+# 2. Root signs it, off the same issuer tofu used (root_issuer_name, "root-2026").
+vault write -format=json pki/issuer/root-2026/sign-intermediate \
+  csr=@/tmp/$mount.csr format=pem_bundle ttl=43800h \
+  | jq -r .data.certificate > /tmp/$mount.new.pem
+
+# 3. Import — adds a NEW issuer alongside the old one, does not replace it.
+vault write -format=json "$mount/intermediate/set-signed" \
+  certificate=@/tmp/$mount.new.pem | tee /tmp/$mount.import.json
+new_issuer=$(jq -r '.data.imported_issuers[0]' /tmp/$mount.import.json)
+
+# GATE: confirm the new issuer looks right before cutting over.
+vault read "$mount/issuer/$new_issuer"
+
+# 4. Cut new leaf/ACME issuance over to it.
+vault write "$mount/config/issuers" default="$new_issuer"
+```
+
+Nothing on any node needs to change: `/etc/ssl/certs/home.pem` is only the
+root, and leaf certs bundle whichever intermediate actually issued them — old
+leaves stay valid as long as the old issuer is still present in the mount.
+Existing leaf certs roll onto the new intermediate as they naturally renew
+(vault-agent's 32-day lease cycle, Traefik's ACME renewal) — no forced action
+needed.
+
+**Cleanup ordering:** leave the old issuer in the mount until every leaf cert
+that could have been signed by it has since rotated — a full 32-day cycle plus
+margin, tracked per node/service rather than assumed. Only then:
+
+```bash
+vault delete "$mount/issuer/<old-issuer-id>"
+```
+
+Deleting a still-referenced issuer breaks every leaf cert it signed — the same
+"clean rollback into an outage" trap as the Connect CA cleanup below.
+
 ## Migrate Consul Connect to the Vault CA provider
 
 Switches Connect's mesh CA from the built-in provider (root key in Consul's Raft)
