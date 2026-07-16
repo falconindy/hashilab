@@ -23,6 +23,69 @@
 - name: Perform hardware discovery
   ansible.builtin.include_tasks: discovery.yml
 
+# Debian's cni-plugins package is ancient. Download directly from upstream into
+# a versioned directory; /opt/cni/bin is a symlink to the active version, so
+# each upgrade lands in a clean directory and the cutover is atomic.
+- name: Create versioned CNI plugins directory
+  ansible.builtin.file:
+    path: "/opt/cni/plugins-v{{ nomad_cni_plugins_version }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: "'nomad_clients' in group_names"
+
+- name: Check if CNI plugins are already at the desired version
+  ansible.builtin.stat:
+    path: "/opt/cni/plugins-v{{ nomad_cni_plugins_version }}/bridge"
+  register: nomad_cni_bridge
+  when: "'nomad_clients' in group_names"
+
+- name: Download CNI plugins tarball
+  vars:
+    _ver: "{{ nomad_cni_plugins_version }}"
+    _arch: "{{ nomad_cni_arch_map[ansible_facts['architecture']] }}"
+  ansible.builtin.get_url:
+    url: "https://github.com/containernetworking/plugins/releases/download/v{{ _ver }}/cni-plugins-linux-{{ _arch }}-v{{ _ver }}.tgz"
+    dest: "/opt/cni/cni-plugins-v{{ _ver }}-{{ _arch }}.tgz"
+    mode: "0644"
+  when:
+    - "'nomad_clients' in group_names"
+    - not nomad_cni_bridge.stat.exists
+
+- name: Extract CNI plugins into versioned directory
+  vars:
+    _ver: "{{ nomad_cni_plugins_version }}"
+    _arch: "{{ nomad_cni_arch_map[ansible_facts['architecture']] }}"
+  ansible.builtin.command:
+    argv:
+      - tar
+      - -xzf
+      - "/opt/cni/cni-plugins-v{{ _ver }}-{{ _arch }}.tgz"
+      - -C
+      - "/opt/cni/plugins-v{{ _ver }}"
+    creates: "/opt/cni/plugins-v{{ _ver }}/bridge"
+  when:
+    - "'nomad_clients' in group_names"
+    - not nomad_cni_bridge.stat.exists
+
+- name: Point /opt/cni/bin at the active plugin version
+  ansible.builtin.file:
+    src: "/opt/cni/plugins-v{{ nomad_cni_plugins_version }}"
+    dest: /opt/cni/bin
+    state: link
+    force: true
+  when: "'nomad_clients' in group_names"
+
+# consul-cni is installed by the consul apt package; expose it in /opt/cni/bin
+# so Nomad's CNI plugin discovery finds it alongside the other plugins.
+- name: Symlink consul-cni into /opt/cni/bin
+  ansible.builtin.file:
+    src: /usr/bin/consul-cni
+    dest: /opt/cni/bin/consul-cni
+    state: link
+  when: "'nomad_clients' in group_names"
+
 # The Nomad agent's Consul token (nomad-agent policy) rendered into base.hcl's
 # consul.token. Minted by tofu (module.consul_acl) and stashed in Vault KV. Read
 # via a controller-side lookup, NOT a delegate_to:localhost vault_read: the
