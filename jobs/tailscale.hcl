@@ -31,7 +31,7 @@ job "tailscale" {
       driver = "docker"
 
       config {
-        image        = "tailscale/tailscale:v1.98.8"
+        image        = "tailscale/tailscale:v1.98.9"
         network_mode = "host"
         cap_add      = ["NET_ADMIN", "NET_RAW"]
         volumes = [
