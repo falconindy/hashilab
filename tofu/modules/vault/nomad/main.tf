@@ -4,12 +4,15 @@
 # pruning are automatic — re-applying with a change rotates it and Nomad deletes
 # the superseded one. Creating this requires NOMAD_TOKEN to be a *management*
 # token (see providers.tf).
-#
-# NOTE: secret_id lands in tofu state. Protect state (see versions.tf).
 resource "nomad_acl_token" "engine" {
   name   = var.engine_token_name
   type   = "management"
   global = true
+}
+
+# Reads back the secret_id for the engine token without persisting it to state.
+ephemeral "nomad_acl_token" "engine" {
+  accessor_id = nomad_acl_token.engine.accessor_id
 }
 
 # ── The secrets engine ───────────────────────────────────────────────────────
@@ -22,12 +25,13 @@ resource "nomad_acl_token" "engine" {
 # set default_lease_ttl_seconds/max_lease_ttl_seconds; those are the *mount* tune
 # and we leave the mount's existing values alone.
 resource "vault_nomad_secret_backend" "nomad" {
-  backend     = var.backend
-  address     = var.nomad_address
-  token       = nomad_acl_token.engine.secret_id
-  ttl         = var.creds_ttl_seconds
-  max_ttl     = var.creds_max_ttl_seconds
-  description = "Mints short-lived, lease-bound Nomad management tokens on demand."
+  backend          = var.backend
+  address          = var.nomad_address
+  token_wo         = ephemeral.nomad_acl_token.engine.secret_id
+  token_wo_version = 1
+  ttl              = var.creds_ttl_seconds
+  max_ttl          = var.creds_max_ttl_seconds
+  description      = "Mints short-lived, lease-bound Nomad management tokens on demand."
 }
 
 # ── The mgmt role ────────────────────────────────────────────────────────────

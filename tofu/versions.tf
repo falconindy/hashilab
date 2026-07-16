@@ -1,16 +1,16 @@
 terraform {
-  required_version = ">= 1.6"
+  required_version = ">= 1.7"
 
   required_providers {
     vault = {
       source  = "hashicorp/vault"
-      version = ">= 4.3"
+      version = ">= 5.7"
     }
     # Used only by modules/vault/nomad, to own the dedicated Nomad management
     # token the secrets engine is configured with.
     nomad = {
       source  = "hashicorp/nomad"
-      version = ">= 2.0"
+      version = ">= 2.4"
     }
     # Drives the Consul ACL layer: policies, the anonymous-token attachment, the
     # daemon tokens, and the nomad-workloads auth method + binding rules. Also
@@ -22,11 +22,11 @@ terraform {
   }
 
   # Where the state lives is up to you. Local state is fine for a POC, BUT the
-  # state file contains secrets — treat it as one. The Nomad *management* token
-  # (module.vault_nomad), the Consul *management* token the Consul secrets engine
-  # uses (module.vault_consul), and the non-expiring Consul daemon tokens
-  # (module.consul_acl, also mirrored into Vault KV) all land in state. Use a
-  # secure backend and/or OpenTofu state encryption:
+  # state file contains secrets — treat it as one. The Consul *management* token
+  # the Consul secrets engine uses (module.vault_consul), and the non-expiring
+  # Consul daemon tokens (module.consul_acl, also mirrored into Vault KV) all
+  # land in state. The Nomad management token's secret_id is fetched ephemerally
+  # and never persisted. Use a secure backend and/or OpenTofu state encryption:
   #
   #   encryption {
   #     key_provider "pbkdf2" "k" { passphrase = "..." }   # or a KMS/Vault provider
@@ -37,7 +37,7 @@ terraform {
   #
   # State lives in Consul KV at kv path `tofu/hashilab`. It is NOT encrypted (see
   # the encryption block above if you change your mind) — the state holds the
-  # Nomad/Consul management tokens and daemon secret_ids in plaintext, so the
+  # Consul management token and daemon secret_ids in plaintext, so the
   # `tofu/hashilab` KV prefix MUST be locked down to management tokens only.
   #
   # The backend reads CONSUL_HTTP_TOKEN from the environment for both the KV

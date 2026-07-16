@@ -1,14 +1,14 @@
 terraform {
-  required_version = ">= 1.6"
+  required_version = ">= 1.7"
 
   required_providers {
     vault = {
       source  = "hashicorp/vault"
-      version = ">= 4.0"
+      version = ">= 5.7"
     }
     nomad = {
       source  = "hashicorp/nomad"
-      version = ">= 2.0"
+      version = ">= 2.4"
     }
   }
 }
