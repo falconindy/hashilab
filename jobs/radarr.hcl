@@ -30,7 +30,7 @@ job "radarr" {
     }
 
     task "await-deluge" {
-      driver = "raw_exec"
+      driver = "exec2"
 
       config {
         command = "/bin/sh"
