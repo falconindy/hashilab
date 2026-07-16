@@ -130,10 +130,10 @@ no automatic renewal, so rotating one is a manual, live-cluster procedure.
 certs, the Consul/Nomad/Vault/omada-controller daemon certs — already
 auto-rotate on their own and aren't covered here.)
 
-The root (`pki`)'s own cert is also out of scope: it's the trust anchor baked
-into `/etc/ssl/certs/home.pem` on every node, `bootstrap`-gated in tofu, and
-rotating it means re-establishing trust fleet-wide — not something this entry
-covers.
+The root (`pki`)'s own cert is a separate, larger-blast-radius operation —
+it's the trust anchor baked into `/etc/ssl/certs/home.pem` on every node, so
+rotating it means re-establishing trust fleet-wide. See [Rotate the pki root
+CA (cross-signing)](#rotate-the-pki-root-ca-cross-signing) below.
 
 tofu only ever touches an intermediate's cert as a one-shot bootstrap action
 (`vault_pki_secret_backend_intermediate_cert_request` →
@@ -192,6 +192,152 @@ vault delete "$mount/issuer/<old-issuer-id>"
 
 Deleting a still-referenced issuer breaks every leaf cert it signed — the same
 "clean rollback into an outage" trap as the Connect CA cleanup below.
+
+## Rotate the pki root CA (cross-signing)
+
+The larger-blast-radius sibling of the above: `pki`'s own root cert, not just
+what it signs. 10-year TTL, and it's the trust anchor baked into
+`/etc/ssl/certs/home.pem` on every node (via the `trust` role), so a naive
+swap invalidates every mTLS handshake fleet-wide the instant it lands. **Cross-
+signing decouples "generate the new root" from "everyone trusts it"**: the
+intermediates keep their existing keys and just pick up a second signature
+from the new root, so leaf certs already issued (and the leaf-issuing keys
+themselves) are untouched throughout — you control the fleet-wide trust
+rollout and the cutover as two separate, reversible steps instead of one
+flag day. Rare — a root nearing its 10-year TTL, or a suspected root-key
+compromise.
+
+`pki_int_connect` (Consul's mesh CA intermediate) isn't rotated by this
+procedure the way `pki_int`/`pki_int_internal` are — but it's not immune to
+it either. Consul's Vault CA provider config (see [Migrate Consul Connect to
+the Vault CA provider](#migrate-consul-connect-to-the-vault-ca-provider)
+below) has no pinned `issuer_ref`: `RootPKIPath: "pki/"` means Consul always
+signs its intermediate against whatever `pki`'s **current default issuer**
+is at request time. So flipping that default — the root mount's own
+`config/issuers` write, down in cleanup below — silently changes what
+Consul gets _the next time it rotates its own intermediate_, on Consul's
+own schedule, using Consul's own internal cross-sign (old intermediate →
+new intermediate) for sidecar continuity — a separate mechanism from the
+Vault-level cross-sign this procedure does for `pki_int`/`pki_int_internal`.
+Mesh trust itself is unaffected by the fleet trust-store staging below —
+sidecars trust whatever Consul's own Connect CA roots API serves them, not
+`/etc/ssl/certs/home.pem` — but don't leave the pickup to chance: the
+cleanup step forces and confirms it explicitly.
+
+```bash
+export VAULT_ADDR=https://vault.service.home:8200
+
+# 1. New root, in the SAME pki mount — multi-issuer, doesn't touch root-2026.
+#    Distinct common_name/issuer_name so the two are unmistakable side by side.
+#    This is NOT the endpoint tofu's bootstrap resource uses (that one assumes
+#    a green-field mount); this is the add-a-second-root path.
+vault write pki/issuers/generate/root/internal \
+  common_name="home 2031" issuer_name="root-2031" ttl=87600h
+```
+
+```bash
+# 2. Cross-sign each intermediate's EXISTING cert under the new root — same
+#    key (key_ref), same subject, just a second signature. Repeat per mount.
+mount=pki_int_internal   # or pki_int
+cn="home Vault Intermediate Authority [Internal]"   # main.tf's common_name — must match exactly
+
+old_issuer=$(vault read -field=default "$mount/config/issuers")
+key_ref=$(vault read -field=key_id "$mount/issuer/$old_issuer")
+
+vault write -format=json "$mount/intermediate/cross-sign" \
+  key_ref="$key_ref" common_name="$cn" | jq -r .data.csr > /tmp/$mount.xsign.csr
+
+vault write -format=json pki/issuer/root-2031/sign-intermediate \
+  csr=@/tmp/$mount.xsign.csr format=pem_bundle ttl=43800h \
+  | jq -r .data.certificate > /tmp/$mount.xsign.pem
+
+vault write -format=json "$mount/intermediate/set-signed" \
+  certificate=@/tmp/$mount.xsign.pem | tee /tmp/$mount.xsign-import.json
+new_issuer=$(jq -r '.data.imported_issuers[0]' /tmp/$mount.xsign-import.json)
+
+# Vault won't detect a cross-signed pair on its own — tell it about both paths.
+vault patch "$mount/issuer/$old_issuer" manual_chain=self,root-2026,"$new_issuer",root-2031
+vault patch "$mount/issuer/$new_issuer" manual_chain=self,root-2031,"$old_issuer",root-2026
+```
+
+```bash
+# GATE: confirm both chains verify before anything client-facing changes.
+vault pki verify-sign pki/issuer/root-2031 "$mount/issuer/$new_issuer"   # new pair
+vault pki verify-sign pki/issuer/root-2026 "$mount/issuer/$old_issuer"   # old pair, unchanged
+```
+
+Roll trust out to the fleet **before** cutting anything over. The `trust`
+role only ever syncs the mount's _current default_ issuer (`pki/cert/ca`), so
+mid-rotation you stage both roots into `home.crt` by hand — Debian's local-CA
+mechanism accepts multiple concatenated PEM certs in one file:
+
+```bash
+vault read -field=certificate pki/issuer/root-2026 >  /tmp/home-dual.crt
+vault read -field=certificate pki/issuer/root-2031 >> /tmp/home-dual.crt
+
+ansible all:\!synology -i inventory/hosts.yml -m ansible.builtin.copy \
+  -a "src=/tmp/home-dual.crt dest=/usr/local/share/ca-certificates/home.crt mode=0644" --become
+ansible all:\!synology -i inventory/hosts.yml -m ansible.builtin.command \
+  -a "update-ca-certificates" --become
+```
+
+`nasty` needs the same treatment through its own path — `roles/synology/tasks/
+main.yml` renders a single-issuer `home-ca.pem` the same way the `trust` role
+does; push the dual-cert bundle there by hand too (its role has the same
+one-issuer limitation).
+
+Once every node trusts both roots, cut new leaf/ACME issuance over to the
+cross-signed intermediate:
+
+```bash
+vault write "$mount/config/issuers" default="$new_issuer"
+```
+
+Existing leaf certs are unaffected (same intermediate key underneath either
+cert) and roll onto the new chain as they naturally renew — same as
+intermediate rotation, no forced action needed.
+
+**Cleanup, once every leaf has cycled onto the new chain** (a full 32-day
+cycle plus margin) **and `home.crt` has been rolled back to just root-2031**
+(re-run the `trust` role — it'll now pick up `pki/cert/ca` = root-2031 on its
+own):
+
+```bash
+vault write pki/config/issuers default=root-2031   # root mount's own default
+```
+
+This is also the point where `pki_int_connect` picks up the new root — see
+the caveat above. Don't leave that to Consul's own timing; force it and
+check before going further:
+
+```bash
+supercow   # CONSUL_HTTP_TOKEN = mgmt
+export CONSUL_HTTP_ADDR=https://consul.service.home:8501
+export CONSUL_CACERT=/etc/ssl/certs/home.pem
+
+# Re-apply the SAME provider config Consul already has — forces it to
+# regenerate its intermediate now, against pki's new default, instead of
+# whenever it next decides to on its own.
+consul connect ca get-config > /tmp/ca-config.current.json
+consul connect ca set-config -config-file=/tmp/ca-config.current.json
+
+# GATE: the new pki_int_connect intermediate (signed under root-2031) is
+# Active; Consul's own cross-signed prior intermediate is still listed so
+# in-flight sidecars aren't broken mid-rollout.
+curl -s --cacert "$CONSUL_CACERT" -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  "$CONSUL_HTTP_ADDR/v1/connect/ca/roots" | jq '{ActiveRootID, Roots: [.Roots[] | {Name, Active}]}'
+```
+
+Only once that settles — the mesh no longer needs `root-2026` — is it safe
+to remove it:
+
+```bash
+vault delete "$mount/issuer/$old_issuer"   # the pre-rotation pki_int/pki_int_internal cert
+vault delete pki/issuer/root-2026          # the old root itself
+```
+
+Same "clean rollback into an outage" trap as the intermediate cleanup above:
+don't delete an issuer anything might still be presenting.
 
 ## Migrate Consul Connect to the Vault CA provider
 
