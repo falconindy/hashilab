@@ -84,7 +84,9 @@ job "omada-controller" {
         port = "manage_https"
 
         check {
-          type     = "tcp"
+          type     = "http"
+          protocol = "https"
+          path     = "/api/v2/anon/info"
           interval = "10s"
           timeout  = "2s"
         }
