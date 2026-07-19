@@ -113,13 +113,15 @@ module "vault_ssh" {
 module "vault_oidc" {
   source = "./modules/vault/oidc"
 
-  vault_address      = local.vault_address
-  path               = "oidc"
-  oidc_discovery_url = local.oidc_discovery_url
-  oidc_client_id     = var.vault_oidc_client_id
-  oidc_client_secret = var.vault_oidc_client_secret
-  role_name          = "admin"
-  token_policies     = ["admin"]
+  vault_address         = local.vault_address
+  path                  = "oidc"
+  oidc_discovery_url    = local.oidc_discovery_url
+  oidc_client_id        = var.vault_oidc_client_id
+  oidc_client_secret    = var.vault_oidc_client_secret
+  role_name             = "admin"
+  token_policies        = ["admin"]
+  token_ttl_seconds     = 72000 # 20h
+  token_max_ttl_seconds = 72000 # 20h
 }
 
 module "vault_approle" {
@@ -193,6 +195,7 @@ module "nomad_oidc" {
   oidc_client_id     = var.nomad_oidc_client_id
   oidc_client_secret = var.nomad_oidc_client_secret
   bind_policy_name   = "admin"
+  max_token_ttl      = "20h"
 }
 
 # The Vault Consul secrets engine — mints break-glass Consul management tokens
