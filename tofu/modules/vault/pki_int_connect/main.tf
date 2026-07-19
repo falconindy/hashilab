@@ -12,10 +12,10 @@
 # (default 8760h/1y), so Consul owns the field thereafter — we ignore_changes on it
 # rather than re-asserting our value and fighting Consul on every plan.
 resource "vault_mount" "pki_int_connect" {
-  path                      = var.backend
+  path                      = "pki_int_connect"
   type                      = "pki"
   description               = "Intermediate CA for Consul Connect mesh mTLS (generated + rotated by Consul)."
-  max_lease_ttl_seconds     = var.max_lease_ttl_seconds
+  max_lease_ttl_seconds     = 157680000 # 43800h
   default_lease_ttl_seconds = 0
 
   lifecycle {
@@ -29,7 +29,7 @@ resource "vault_mount" "pki_int_connect" {
 # single-consumer policy in the repo; chomp() to match Vault stripping trailing
 # whitespace.
 resource "vault_policy" "connect_ca" {
-  name   = var.policy_name
+  name   = "consul-connect-ca"
   policy = chomp(file("${path.module}/policies/consul-connect-ca.hcl"))
 }
 
@@ -40,13 +40,13 @@ resource "vault_policy" "connect_ca" {
 # ca_config auth_method passes only role_id. token_type=service so the CA
 # provider can renew it (batch tokens can't self-renew).
 resource "vault_approle_auth_backend_role" "connect_ca" {
-  backend        = var.approle_backend
-  role_name      = var.approle_role_name
+  backend        = "approle" # the mount module.vault_approle enables
+  role_name      = "consul-connect-ca"
   token_policies = [vault_policy.connect_ca.name]
 
   bind_secret_id    = false
-  token_bound_cidrs = var.server_cidrs
-  token_ttl         = var.token_ttl_seconds
+  token_bound_cidrs = ["10.0.100.0/24"] # the Consul servers
+  token_ttl         = 1200              # 20m
   token_type        = "service"
 }
 
@@ -57,7 +57,7 @@ resource "vault_approle_auth_backend_role" "connect_ca" {
 # sourcing it from KV keeps tofu the source of truth (it mints role_id) rather
 # than hardcoding it in an Ansible var. Equivalent to a `vault kv put`.
 resource "vault_kv_secret_v2" "role_id" {
-  mount     = var.kv_mount
+  mount     = "kv"
   name      = "consul/connect-ca"
   data_json = jsonencode({ role_id = vault_approle_auth_backend_role.connect_ca.role_id })
 }

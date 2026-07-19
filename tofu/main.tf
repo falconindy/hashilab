@@ -1,9 +1,3 @@
-variable "root_issuer_name" {
-  description = "issuer_name of the root CA, conventionally root-YYYY; feeds both the root and the intermediate's signing issuer_ref."
-  type        = string
-  default     = "root-2026"
-}
-
 variable "bootstrap" {
   description = <<-EOT
     Green-field cold start: generate the root, then generate + sign + import the
@@ -13,12 +7,6 @@ variable "bootstrap" {
   EOT
   type        = bool
   default     = false
-}
-
-variable "home_ca_file" {
-  description = "Path to the home CA PEM the nomad-workloads auth method embeds so Consul can validate Nomad's HTTPS JWKS endpoint. Read at plan time on the machine running tofu; present at this path on every node."
-  type        = string
-  default     = "/etc/ssl/certs/home.pem"
 }
 
 variable "vault_oidc_client_id" {
@@ -49,9 +37,6 @@ module "vault_pki" {
   # Root has no ACME; its cluster path only backs OCSP. Keep it on the plaintext,
   # node-local endpoint (AIA/CRL/OCSP over http, loop-free).
   cluster_base = local.vault_plaintext_base
-  backend      = "pki"
-  common_name  = "home"
-  issuer_name  = var.root_issuer_name
   bootstrap    = var.bootstrap
 }
 
@@ -64,12 +49,9 @@ module "vault_pki_int" {
   # aia_base = local.vault_plaintext_base if you'd rather their AIA/CRL be
   # loop-free http — at the cost of off-node CRL fetches not resolving.
   cluster_base = local.vault_address
-  backend      = "pki_int"
-  common_name  = "home Vault Intermediate Authority"
   root_backend = module.vault_pki.backend
   # Chain the intermediate's signing issuer to the root the pki module owns.
   root_issuer_ref = module.vault_pki.issuer_name
-  acme_enabled    = true
   bootstrap       = var.bootstrap
 }
 
@@ -78,8 +60,6 @@ module "vault_pki_int_internal" {
 
   # No ACME; cluster path only backs OCSP. Plaintext node-local, like the root.
   cluster_base    = local.vault_plaintext_base
-  backend         = "pki_int_internal"
-  common_name     = "home Vault Intermediate Authority [Internal]"
   root_backend    = module.vault_pki.backend
   root_issuer_ref = module.vault_pki.issuer_name
   bootstrap       = var.bootstrap
@@ -94,57 +74,36 @@ module "vault_pki_int_internal" {
 # README / RUNBOOK.
 module "vault_pki_int_connect" {
   source = "./modules/vault/pki_int_connect"
-
-  backend         = "pki_int_connect"
-  approle_backend = "approle" # the mount module.vault_approle enables
-  server_cidrs    = ["10.0.100.0/24"]
 }
 
 module "vault_ssh" {
   source = "./modules/vault/ssh"
 
-  backend       = "ssh-client-signer"
-  role_name     = "admin"
-  allowed_users = "root"
-  default_user  = "root"
-  bootstrap     = var.bootstrap
+  bootstrap = var.bootstrap
 }
 
 module "vault_oidc" {
   source = "./modules/vault/oidc"
 
-  vault_address         = local.vault_address
-  path                  = "oidc"
-  oidc_discovery_url    = local.oidc_discovery_url
-  oidc_client_id        = var.vault_oidc_client_id
-  oidc_client_secret    = var.vault_oidc_client_secret
-  role_name             = "admin"
-  token_policies        = ["admin"]
-  token_ttl_seconds     = 72000 # 20h
-  token_max_ttl_seconds = 72000 # 20h
+  vault_address      = local.vault_address
+  oidc_discovery_url = local.oidc_discovery_url
+  oidc_client_id     = var.vault_oidc_client_id
+  oidc_client_secret = var.vault_oidc_client_secret
 }
 
 module "vault_approle" {
   source = "./modules/vault/approle"
 
-  backend            = "approle"
-  role_name          = "vault-agent"
   owned_policy_files = ["internal-server-certs.hcl"]
-  bind_secret_id     = false
   token_type         = "batch"
   token_ttl_seconds  = 1200 # 20m
   token_bound_cidrs  = ["10.0.100.0/24", "10.0.1.99/32"]
-  # token_max_ttl (0) and secret_id_bound_cidrs ([]) match provider defaults, so
-  # they're left null/unset.
 }
 
 module "vault_nomad" {
   source = "./modules/vault/nomad"
 
-  backend           = "nomad"
-  nomad_address     = local.nomad_address
-  engine_token_name = "vault-nomad-secrets-engine"
-  role_name         = "mgmt"
+  nomad_address = local.nomad_address
 }
 
 # The Nomad workload-identity flow INTO Vault: the jwt-nomad auth method + its
@@ -156,12 +115,6 @@ module "vault_nomad" {
 # Nomad's vault{} default_identity goes live (see module).
 module "vault_nomad_wi" {
   source = "./modules/vault/nomad-wi"
-
-  auth_method_path = "jwt-nomad"
-  default_role     = "nomad-workloads"
-  # Vault reads its co-located Nomad agent's JWKS, not the cluster DNS name.
-  nomad_jwks_url = "https://localhost:4646/.well-known/jwks.json"
-  bound_audience = "vault.io"
 
   roles = {
     "nomad-workloads" = {
@@ -190,12 +143,9 @@ module "nomad_oidc" {
   source = "./modules/nomad/oidc"
 
   nomad_address      = local.nomad_address
-  auth_method_name   = "pocket-id"
   oidc_discovery_url = local.oidc_discovery_url
   oidc_client_id     = var.nomad_oidc_client_id
   oidc_client_secret = var.nomad_oidc_client_secret
-  bind_policy_name   = "admin"
-  max_token_ttl      = "20h"
 }
 
 # The Vault Consul secrets engine — mints break-glass Consul management tokens
@@ -204,10 +154,7 @@ module "nomad_oidc" {
 module "vault_consul" {
   source = "./modules/vault/consul"
 
-  backend           = "consul"
-  consul_address    = local.consul_address
-  engine_token_name = "vault-consul-secrets-engine"
-  role_name         = "mgmt"
+  consul_address = local.consul_address
 }
 
 # The baseline Consul ACL layer: the anonymous-token attachment and the
@@ -225,7 +172,6 @@ module "consul_nomad_wi" {
   source = "./modules/consul/nomad-wi"
 
   nomad_jwks_url = local.nomad_jwks_url
-  home_ca_file   = var.home_ca_file
   # nomad-tasks and the task-identity policies below are owned by the module
   # (modules/consul/nomad-wi/policies) — it's their only consumer.
 

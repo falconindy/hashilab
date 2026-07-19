@@ -18,12 +18,12 @@
 # the moment it starts, and a missing method fails the alloc. Same "auth method
 # first, workloads second" rule as the Consul side.
 resource "vault_jwt_auth_backend" "nomad_workloads" {
-  path = var.auth_method_path
+  path = "jwt-nomad"
   type = "jwt"
   # description left unset to match the live mount (empty) — a no-diff import.
 
-  jwks_url     = var.nomad_jwks_url
-  default_role = var.default_role
+  jwks_url     = "https://localhost:4646/.well-known/jwks.json"
+  default_role = "nomad-workloads"
 
   # Nomad signs workload-identity JWTs with RS256, so accept only that.
   jwt_supported_algs = ["RS256"]
@@ -39,7 +39,7 @@ resource "vault_jwt_auth_backend" "nomad_workloads" {
 # tracks the live mount and survives a bootstrap/DR rebuild. chomp() matches how
 # policies.tf stores its files (Vault strips trailing whitespace).
 resource "vault_policy" "nomad_workloads" {
-  name = var.templated_policy_name
+  name = "nomad-workloads"
   policy = chomp(templatefile("${path.module}/templates/nomad-workloads.hcl.tftpl", {
     accessor = vault_jwt_auth_backend.nomad_workloads.accessor
   }))
@@ -78,7 +78,7 @@ resource "vault_jwt_auth_backend_role" "this" {
   role_name = each.key
   role_type = "jwt"
 
-  bound_audiences = [var.bound_audience]
+  bound_audiences = ["vault.io"]
 
   # Optional per-role claim gate. user_claim below only NAMES the entity; it does
   # not restrict which job may log in, so a privileged role (e.g. raft-snapshotter)
@@ -106,5 +106,5 @@ resource "vault_jwt_auth_backend_role" "this" {
     [for f in each.value.owned_policies : vault_policy.owned[f].name],
     each.value.token_policies,
   )
-  token_period = var.token_period_seconds
+  token_period = 1800 # 30m
 }

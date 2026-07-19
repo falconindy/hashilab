@@ -2,18 +2,18 @@ locals {
   issuing_certificates    = "{{cluster_aia_path}}/issuer/{{issuer_id}}/der"
   crl_distribution_points = "{{cluster_aia_path}}/issuer/{{issuer_id}}/crl/der"
   ocsp_servers            = "{{cluster_path}}/ocsp"
-  cluster_path            = "${var.cluster_base}/v1/${var.backend}"
-  aia_path                = "${coalesce(var.aia_base, var.cluster_base)}/v1/${var.backend}"
+  cluster_path            = "${var.cluster_base}/v1/pki_int_internal"
+  aia_path                = "${coalesce(var.aia_base, var.cluster_base)}/v1/pki_int_internal"
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
 # Equivalent to: `vault secrets enable -path=pki_int_internal pki` + the ttl tune.
 # No ACME on this engine, so none of the pki_int header tuning here.
 resource "vault_mount" "pki_int_internal" {
-  path                      = var.backend
+  path                      = "pki_int_internal"
   type                      = "pki"
   description               = "Intermediate CA for internal client certs (no ACME, no storage)."
-  max_lease_ttl_seconds     = var.max_lease_ttl_seconds
+  max_lease_ttl_seconds     = 157680000 # 43800h
   default_lease_ttl_seconds = 0
 }
 
@@ -24,17 +24,17 @@ resource "vault_pki_secret_backend_intermediate_cert_request" "csr" {
   count       = var.bootstrap ? 1 : 0
   backend     = vault_mount.pki_int_internal.path
   type        = "internal" # private key stays in Vault, never exported
-  common_name = var.common_name
+  common_name = "home Vault Intermediate Authority [Internal]"
 }
 
 resource "vault_pki_secret_backend_root_sign_intermediate" "signed" {
   count       = var.bootstrap ? 1 : 0
   backend     = var.root_backend
   csr         = vault_pki_secret_backend_intermediate_cert_request.csr[0].csr
-  common_name = var.common_name
+  common_name = "home Vault Intermediate Authority [Internal]"
   issuer_ref  = var.root_issuer_ref
   format      = "pem_bundle"
-  ttl         = var.intermediate_sign_ttl
+  ttl         = "43800h"
 }
 
 resource "vault_pki_secret_backend_intermediate_set_signed" "import" {
@@ -64,9 +64,9 @@ resource "vault_pki_secret_backend_config_urls" "this" {
 # no_store=true: internal client certs are ephemeral and not persisted by Vault.
 resource "vault_pki_secret_backend_role" "intermediate" {
   backend        = vault_mount.pki_int_internal.path
-  name           = var.role_name
+  name           = "intermediate"
   allow_any_name = true
-  max_ttl        = var.role_max_ttl_seconds
+  max_ttl        = 15768000 # 4380h
   no_store       = true
 
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]

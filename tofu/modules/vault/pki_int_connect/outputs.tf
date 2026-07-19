@@ -20,5 +20,5 @@ output "role_id" {
 
 output "kv_path" {
   description = "Vault KV path role_id is stashed under, for the consul Ansible role."
-  value       = "${var.kv_mount}/${vault_kv_secret_v2.role_id.name}"
+  value       = "kv/${vault_kv_secret_v2.role_id.name}"
 }

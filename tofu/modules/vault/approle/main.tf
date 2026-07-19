@@ -3,7 +3,7 @@
 # config, so no bootstrap gate.
 resource "vault_auth_backend" "approle" {
   type = "approle"
-  path = var.backend
+  path = "approle"
 }
 
 # ── Policies owned by this module ────────────────────────────────────────────
@@ -25,17 +25,16 @@ resource "vault_policy" "owned" {
 # role_id is stable and shipped to hosts as a static file out of band; import
 # this role so tofu adopts the existing role_id rather than minting a new one.
 resource "vault_approle_auth_backend_role" "this" {
-  backend   = vault_auth_backend.approle.path
-  role_name = var.role_name
-  token_policies = concat(
-    var.token_policies,
-    [for f in var.owned_policy_files : vault_policy.owned[f].name],
-  )
-  bind_secret_id = var.bind_secret_id
+  backend        = vault_auth_backend.approle.path
+  role_name      = "vault-agent"
+  token_policies = [for f in var.owned_policy_files : vault_policy.owned[f].name]
+  bind_secret_id = false
 
-  secret_id_bound_cidrs = var.secret_id_bound_cidrs
+  # null = adopt whatever the live role has (matches provider default), so left
+  # unset rather than pinned.
+  secret_id_bound_cidrs = null
   token_bound_cidrs     = var.token_bound_cidrs
   token_ttl             = var.token_ttl_seconds
-  token_max_ttl         = var.token_max_ttl_seconds
+  token_max_ttl         = null
   token_type            = var.token_type
 }

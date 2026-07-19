@@ -5,5 +5,5 @@ output "daemon_token_accessors" {
 
 output "kv_paths" {
   description = "Vault KV paths the daemon tokens are stashed under, for the Ansible roles."
-  value       = { for k, s in vault_kv_secret_v2.daemon : k => "${var.kv_mount}/${s.name}" }
+  value       = { for k, s in vault_kv_secret_v2.daemon : k => "kv/${s.name}" }
 }

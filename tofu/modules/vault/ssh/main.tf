@@ -1,7 +1,7 @@
 # ── The mount ────────────────────────────────────────────────────────────────
 # Equivalent to: `vault secrets enable -path=ssh-client-signer ssh`.
 resource "vault_mount" "ssh" {
-  path        = var.backend
+  path        = "ssh-client-signer"
   type        = "ssh"
   description = "SSH client-certificate CA — signs short-lived certs off an OIDC login."
 }
@@ -24,19 +24,19 @@ resource "vault_ssh_secret_backend_ca" "this" {
 # permit-pty is the minimum for an interactive shell; forwarding is convenience.
 resource "vault_ssh_secret_backend_role" "admin" {
   backend                 = vault_mount.ssh.path
-  name                    = var.role_name
+  name                    = "admin"
   key_type                = "ca"
   algorithm_signer        = "rsa-sha2-256"
   allow_user_certificates = true
-  allowed_users           = var.allowed_users
+  allowed_users           = "root"
   allowed_users_template  = false
-  default_user            = var.default_user
+  default_user            = "root"
   allowed_extensions      = "permit-pty,permit-port-forwarding,permit-agent-forwarding"
   default_extensions = {
     "permit-pty" = ""
   }
-  ttl     = var.ttl_seconds
-  max_ttl = var.max_ttl_seconds
+  ttl     = "1800" # 30m
+  max_ttl = "7200" # 2h
 
   # The role can only be created once its CA exists. On an existing cluster the
   # CA is already there (bootstrap=false → this depends_on is a no-op).

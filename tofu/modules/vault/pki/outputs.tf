@@ -5,7 +5,7 @@ output "backend" {
 
 output "issuer_name" {
   description = "issuer_name of the root — feed this to the pki_int module's root_issuer_ref."
-  value       = var.issuer_name
+  value       = local.issuer_name
 }
 
 output "role_name" {

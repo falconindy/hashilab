@@ -2,18 +2,24 @@ locals {
   issuing_certificates    = "{{cluster_aia_path}}/issuer/{{issuer_id}}/der"
   crl_distribution_points = "{{cluster_aia_path}}/issuer/{{issuer_id}}/crl/der"
   ocsp_servers            = "{{cluster_path}}/ocsp"
-  cluster_path            = "${var.cluster_base}/v1/${var.backend}"
-  aia_path                = "${coalesce(var.aia_base, var.cluster_base)}/v1/${var.backend}"
+  cluster_path            = "${var.cluster_base}/v1/pki"
+  aia_path                = "${coalesce(var.aia_base, var.cluster_base)}/v1/pki"
+
+  # Conventionally year-based. tofu can't derive the year at plan time without
+  # forcing perpetual drift, so it's an explicit value here — the intermediate
+  # modules read it back via the issuer_name output as their signing
+  # issuer_ref.
+  issuer_name = "root-2026"
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
 # Equivalent to: `vault secrets enable pki` + `vault secrets tune -max-lease-ttl=87600h`.
 # No ACME on the root, so none of the pki_int header tuning here.
 resource "vault_mount" "pki" {
-  path                      = var.backend
+  path                      = "pki"
   type                      = "pki"
   description               = "Self-signed root CA (home, 10-year TTL)."
-  max_lease_ttl_seconds     = var.max_lease_ttl_seconds
+  max_lease_ttl_seconds     = 315360000 # 87600h
   default_lease_ttl_seconds = 0
 }
 
@@ -31,9 +37,9 @@ resource "vault_pki_secret_backend_root_cert" "root" {
   count       = var.bootstrap ? 1 : 0
   backend     = vault_mount.pki.path
   type        = "internal" # private key stays in Vault, never exported
-  common_name = var.common_name
-  issuer_name = var.issuer_name
-  ttl         = var.root_ttl
+  common_name = "home"
+  issuer_name = local.issuer_name
+  ttl         = "87600h"
 }
 
 # ── Cluster + AIA config ─────────────────────────────────────────────────────
@@ -58,7 +64,7 @@ resource "vault_pki_secret_backend_config_urls" "this" {
 # intermediates and any direct server certs off the root.
 resource "vault_pki_secret_backend_role" "servers" {
   backend        = vault_mount.pki.path
-  name           = var.role_name
+  name           = "servers"
   allow_any_name = true
   no_store       = false
 

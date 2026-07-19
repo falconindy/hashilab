@@ -15,18 +15,6 @@ variable "aia_base" {
   default     = null
 }
 
-variable "backend" {
-  description = "Mount path for this intermediate PKI engine."
-  type        = string
-  default     = "pki_int"
-}
-
-variable "common_name" {
-  description = "CN for the intermediate CA certificate."
-  type        = string
-  default     = "home Vault Intermediate Authority"
-}
-
 variable "root_backend" {
   description = "Mount path of the root PKI engine that signs this intermediate (managed out of band / by a separate module)."
   type        = string
@@ -41,36 +29,6 @@ variable "root_issuer_ref" {
   EOT
   type        = string
   default     = "default"
-}
-
-variable "max_lease_ttl_seconds" {
-  description = "max-lease-ttl for the mount. 43800h = 5y, shorter than the 10y root."
-  type        = number
-  default     = 157680000 # 43800h
-}
-
-variable "intermediate_sign_ttl" {
-  description = "TTL Vault stamps on the signed intermediate cert."
-  type        = string
-  default     = "43800h"
-}
-
-variable "role_name" {
-  description = "Name of the issuing role created on this backend."
-  type        = string
-  default     = "intermediate"
-}
-
-variable "role_max_ttl_seconds" {
-  description = "max_ttl for leaf certs issued through the role. 768h = 32d."
-  type        = number
-  default     = 2764800 # 768h
-}
-
-variable "acme_enabled" {
-  description = "Enable the ACME directory on this backend (Traefik uses it for *.service.home)."
-  type        = bool
-  default     = true
 }
 
 variable "bootstrap" {

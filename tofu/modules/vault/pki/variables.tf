@@ -15,47 +15,6 @@ variable "aia_base" {
   default     = null
 }
 
-variable "backend" {
-  description = "Mount path for the root PKI engine."
-  type        = string
-  default     = "pki"
-}
-
-variable "common_name" {
-  description = "CN for the self-signed root CA certificate."
-  type        = string
-  default     = "home"
-}
-
-variable "issuer_name" {
-  description = <<-EOT
-    issuer_name stamped on the generated root, conventionally year-based
-    (e.g. root-2026). tofu can't derive the year at plan time without forcing
-    perpetual drift, so it's an explicit input — the intermediate module
-    references this same name as its signing issuer_ref.
-  EOT
-  type        = string
-  default     = "root-2026"
-}
-
-variable "max_lease_ttl_seconds" {
-  description = "max-lease-ttl for the mount. 87600h = 10y."
-  type        = number
-  default     = 315360000 # 87600h
-}
-
-variable "root_ttl" {
-  description = "TTL Vault stamps on the self-signed root cert."
-  type        = string
-  default     = "87600h"
-}
-
-variable "role_name" {
-  description = "Name of the issuing role created on this backend."
-  type        = string
-  default     = "servers"
-}
-
 variable "bootstrap" {
   description = <<-EOT
     Generate the self-signed root CA. This is a one-shot cold-start action that

@@ -21,7 +21,7 @@ resource "consul_acl_policy" "owned" {
 # anonymous`.
 resource "consul_acl_token_policy_attachment" "anonymous" {
   token_id = "00000000-0000-0000-0000-000000000002"
-  policy   = consul_acl_policy.owned[var.anonymous_policy_file].name
+  policy   = consul_acl_policy.owned["anonymous.hcl"].name
 }
 
 # ── The always-on daemon tokens ──────────────────────────────────────────────
@@ -34,7 +34,12 @@ resource "consul_acl_token_policy_attachment" "anonymous" {
 # Keyed on the policy name (filename minus .hcl), which is also the token
 # description and its KV path below.
 resource "consul_acl_token" "daemon" {
-  for_each = { for f in var.daemon_token_policy_files : trimsuffix(f, ".hcl") => f }
+  for_each = { for f in [
+    "consul-agent.hcl",
+    "consul-config-services.hcl",
+    "nomad-agent.hcl",
+    "vault-registration.hcl",
+  ] : trimsuffix(f, ".hcl") => f }
 
   description = each.key
   policies    = [consul_acl_policy.owned[each.value].name]
@@ -56,7 +61,7 @@ data "consul_acl_token_secret_id" "daemon" {
 resource "vault_kv_secret_v2" "daemon" {
   for_each = consul_acl_token.daemon
 
-  mount     = var.kv_mount
+  mount     = "kv"
   name      = "consul/tokens/${each.key}"
   data_json = jsonencode({ token = data.consul_acl_token_secret_id.daemon[each.key].secret_id })
 }

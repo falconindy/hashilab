@@ -18,13 +18,13 @@
 # method is missing, registration fails. So apply this first, then deploy the
 # Nomad config change, verify, then flip Consul to default_policy=deny.
 resource "consul_acl_auth_method" "nomad_workloads" {
-  name        = var.auth_method_name
+  name        = "nomad-workloads"
   type        = "jwt"
   description = "Login for Nomad workloads (workload identity)"
 
   config_json = jsonencode({
     JWKSURL          = var.nomad_jwks_url
-    JWKSCACert       = file(var.home_ca_file)
+    JWKSCACert       = file("/etc/ssl/certs/home.pem")
     JWTSupportedAlgs = ["RS256"]
     BoundAudiences   = ["consul.io"]
     ClaimMappings = {
@@ -67,9 +67,9 @@ resource "consul_acl_policy" "owned" {
 # `template` stanza) bind to this role. Its policy is module-owned (above), keyed
 # by filename, so the role orders after the policy exists.
 resource "consul_acl_role" "nomad_tasks" {
-  name        = var.nomad_tasks_role_name
+  name        = "nomad-tasks"
   description = "Nomad serviceless tasks"
-  policies    = [consul_acl_policy.owned[var.nomad_tasks_policy_file].name]
+  policies    = [consul_acl_policy.owned["nomad-tasks.hcl"].name]
 }
 
 # ── Serviceless tasks -> the nomad-tasks role ────────────────────────────────

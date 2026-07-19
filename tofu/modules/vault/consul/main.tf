@@ -10,7 +10,7 @@
 #
 # NOTE: secret_id lands in tofu state. Protect state (see versions.tf).
 resource "consul_acl_token" "engine" {
-  description = var.engine_token_name
+  description = "vault-consul-secrets-engine"
   policies    = ["global-management"]
 }
 
@@ -26,9 +26,9 @@ data "consul_acl_token_secret_id" "engine" {
 # bootstrap token. `scheme=https` relies on the Vault servers trusting the home
 # CA via their OS trust store (same as the Nomad engine's https config).
 resource "vault_consul_secret_backend" "consul" {
-  path        = var.backend
+  path        = "consul"
   address     = var.consul_address
-  scheme      = var.scheme
+  scheme      = "https"
   token       = data.consul_acl_token_secret_id.engine.secret_id
   description = "Mints short-lived, lease-bound Consul management tokens on demand."
 }
@@ -41,6 +41,6 @@ resource "vault_consul_secret_backend" "consul" {
 # tokens in 1.11+, so the role attaches the built-in global-management policy.)
 resource "vault_consul_secret_backend_role" "mgmt" {
   backend         = vault_consul_secret_backend.consul.path
-  name            = var.role_name
+  name            = "mgmt"
   consul_policies = ["global-management"]
 }

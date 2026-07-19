@@ -158,7 +158,8 @@ vault read -field=default "$mount/config/issuers"
 vault write -format=json "$mount/intermediate/generate/internal" \
   common_name="$cn" | jq -r .data.csr > /tmp/$mount.csr
 
-# 2. Root signs it, off the same issuer tofu used (root_issuer_name, "root-2026").
+# 2. Root signs it, off the same issuer tofu used (modules/vault/pki's
+#    local.issuer_name, "root-2026").
 vault write -format=json pki/issuer/root-2026/sign-intermediate \
   csr=@/tmp/$mount.csr format=pem_bundle ttl=43800h \
   | jq -r .data.certificate > /tmp/$mount.new.pem

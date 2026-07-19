@@ -5,7 +5,7 @@
 # the superseded one. Creating this requires NOMAD_TOKEN to be a *management*
 # token (see providers.tf).
 resource "nomad_acl_token" "engine" {
-  name   = var.engine_token_name
+  name   = "vault-nomad-secrets-engine"
   type   = "management"
   global = true
 }
@@ -25,12 +25,12 @@ ephemeral "nomad_acl_token" "engine" {
 # set default_lease_ttl_seconds/max_lease_ttl_seconds; those are the *mount* tune
 # and we leave the mount's existing values alone.
 resource "vault_nomad_secret_backend" "nomad" {
-  backend          = var.backend
+  backend          = "nomad"
   address          = var.nomad_address
   token_wo         = ephemeral.nomad_acl_token.engine.secret_id
   token_wo_version = 1
-  ttl              = var.creds_ttl_seconds
-  max_ttl          = var.creds_max_ttl_seconds
+  ttl              = 3600  # 1h
+  max_ttl          = 28800 # 8h
   description      = "Mints short-lived, lease-bound Nomad management tokens on demand."
 }
 
@@ -39,7 +39,7 @@ resource "vault_nomad_secret_backend" "nomad" {
 # break-glass path for Nomad ACL administration, which no ACL *policy* can grant.
 resource "vault_nomad_secret_role" "mgmt" {
   backend = vault_nomad_secret_backend.nomad.backend
-  role    = var.role_name
+  role    = "mgmt"
   type    = "management"
   global  = true
 }
