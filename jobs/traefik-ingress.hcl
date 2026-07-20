@@ -85,7 +85,7 @@ job "traefik-ingress" {
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
           "/clusterdata/traefik/acme:/certs:rw",
-          "/clusterdata/traefik/plugins/geoblock-0.3.7:/plugins-local/src/github.com/PascalMinder/geoblock:ro",
+          "/clusterdata/traefik/plugins/geoblock-0.3.8:/plugins-local/src/github.com/PascalMinder/geoblock:ro",
         ]
       }
 
