@@ -26,5 +26,7 @@ vault {
 }
 
 template_config {
-  lease_renewal_threshold = 0.7
+  # 0.5 of a 32d cert leaves ~16d of margin before actual expiry — surely this
+  # is enough time to detect/debug/fix any cert issurance problems.
+  lease_renewal_threshold = 0.5
 }

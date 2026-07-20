@@ -525,28 +525,36 @@ job "monitoring" {
                     description: "A Vault node has been sealed for more than 2 minutes."
 
                 - alert: CertExpiringSoon
-                  expr: (probe_ssl_earliest_cert_expiry - time()) < 7 * 86400
+                  expr: (probe_ssl_earliest_cert_expiry - time()) < 14 * 86400
                   labels:
                     severity: warning
                   annotations:
                     summary: "TLS cert expiring soon: {{ $labels.instance }}"
-                    description: "Certificate probed via blackbox_exporter expires in under 7 days."
+                    description: "Certificate probed via blackbox_exporter expires in under 14 days."
 
                 - alert: ConsulAgentCertExpiringSoon
-                  expr: consul_agent_tls_cert_expiry < 7 * 86400
+                  expr: consul_agent_tls_cert_expiry < 14 * 86400
                   labels:
                     severity: warning
                   annotations:
                     summary: "Consul agent TLS cert expiring soon: {{ $labels.host }}"
-                    description: "Consul agent cert on this node expires in under 7 days."
+                    description: "Consul agent cert on this node expires in under 14 days."
 
                 - alert: NomadAgentCertExpiringSoon
-                  expr: nomad_agent_tls_cert_expiration_seconds < 7 * 86400
+                  expr: nomad_agent_tls_cert_expiration_seconds < 14 * 86400
                   labels:
                     severity: warning
                   annotations:
                     summary: "Nomad agent TLS cert expiring soon: {{ $labels.host }}"
-                    description: "Nomad agent cert on this node expires in under 7 days."
+                    description: "Nomad agent cert on this node expires in under 14 days."
+
+                - alert: X509WatchedCertExpiringSoon
+                  expr: (x509_cert_not_after - time()) < 14 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Watched x509 cert expiring soon: {{ $labels.filepath }} on {{ $labels.instance }}"
+                    description: "Cert watched by x509-exporter (Vault raft client cert, root/intermediate CAs) expires in under 14 days."
         EOF
 
         destination   = "local/alerts.yml"
