@@ -50,6 +50,15 @@
       "matchStrings": [
         "nomad_cni_plugins_version:\\s*\"(?<currentValue>[^\"]+)\""
       ]
+    },
+    {
+      "description": "Update geoblock Traefik plugin version in traefik-ingress job",
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "PascalMinder/geoblock",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "managerFilePatterns": ["/jobs/traefik-ingress\\.hcl$/"],
+      "matchStrings": ["geoblock-(?<currentValue>[\\d.]+):"]
     }
   ]
 }
