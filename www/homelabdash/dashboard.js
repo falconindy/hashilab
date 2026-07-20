@@ -1,5 +1,6 @@
 const CONSUL_ADDR = "https://consul.service.home:8501";
 const NOMAD_ADDR = "https://nomad.service.home:4646";
+const PROM_ADDR = "https://prometheus.service.home";
 const DOMAIN = "service.home";
 
 const allocJobCache = {};
@@ -43,12 +44,95 @@ async function resolveNomadJob(allocId) {
 
 let servicesData = {};
 let checksData = [];
+let alertsData = [];
 let isCatalogLoaded = false;
 let isHealthLoaded = false;
 
 function init() {
   watchCatalog();
   watchHealth();
+  watchAlerts();
+}
+
+// Prometheus's /api/v1/alerts has no blocking-query support (unlike Consul),
+// so this polls on a timer instead of long-polling. Deliberately independent
+// of isCatalogLoaded/isHealthLoaded: the banner should render as soon as it
+// has data, and a Prometheus outage should never block the service tiles.
+async function watchAlerts() {
+  while (true) {
+    try {
+      const res = await fetch(`${PROM_ADDR}/api/v1/alerts`);
+      if (res.ok) {
+        const body = await res.json();
+        alertsData = (body.data?.alerts || []).filter(
+          (a) => a.state === "firing" || a.state === "pending",
+        );
+        renderAlerts();
+      }
+    } catch (err) {
+      console.error("Alerts watch error:", err);
+    }
+    await new Promise((r) => setTimeout(r, 20000));
+  }
+}
+
+function formatDuration(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+
+function renderAlerts() {
+  const container = document.getElementById("alerts");
+  if (!container) return;
+
+  // Firing alerts sort ahead of pending ones (pending is a quieter,
+  // not-yet-actionable tier), then by severity, then by duration
+  // descending (oldest activeAt first) as a stable tiebreaker: unlike
+  // relying on whatever order the API returns, an alert's relative age
+  // only moves in one direction, so same-tier rows don't reshuffle
+  // between polls with nothing having actually changed.
+  const stateRank = { firing: 0, pending: 1 };
+  const severityRank = { critical: 0, warning: 1 };
+  const activeAtMs = (a) =>
+    a.activeAt ? new Date(a.activeAt).getTime() : Infinity;
+  const sorted = [...alertsData].sort((a, b) => {
+    const stateDiff = (stateRank[a.state] ?? 2) - (stateRank[b.state] ?? 2);
+    if (stateDiff !== 0) return stateDiff;
+    const severityDiff =
+      (severityRank[a.labels?.severity] ?? 2) -
+      (severityRank[b.labels?.severity] ?? 2);
+    if (severityDiff !== 0) return severityDiff;
+    return activeAtMs(a) - activeAtMs(b);
+  });
+
+  container.classList.toggle("hidden", sorted.length === 0);
+  container.innerHTML = sorted
+    .map((a) => {
+      const isPending = a.state === "pending";
+      const cls = isPending
+        ? "pending"
+        : a.labels?.severity === "warning"
+          ? "warning"
+          : "critical";
+      const text = a.annotations?.summary || a.labels?.alertname || "Alert";
+      // activeAt marks when the condition first became true and doesn't
+      // reset on the pending->firing transition, so this is how long the
+      // condition itself has been true, not just how long it's been firing.
+      const duration = a.activeAt
+        ? formatDuration(Date.now() - new Date(a.activeAt).getTime())
+        : null;
+      const suffix = [isPending ? "pending" : null, duration]
+        .filter(Boolean)
+        .join(" · ");
+      return `<div class="alert-row ${cls}"><span class="alert-text">${text}</span>${suffix ? `<span class="alert-duration">${suffix}</span>` : ""}</div>`;
+    })
+    .join("");
 }
 
 async function watchCatalog() {

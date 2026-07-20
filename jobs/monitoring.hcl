@@ -66,6 +66,34 @@ job "monitoring" {
       }
     }
 
+    # consul-exporter is consumed only by prometheus (feeds the
+    # ConsulCheckCritical alert), so it lives in the same group and is
+    # reached over loopback, same as blackbox above.
+    task "consul-health" {
+      driver = "docker"
+
+      config {
+        image = "prom/consul-exporter:v0.13.0"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
+        args = [
+          "--consul.server=https://consul.service.home:8501",
+          "--consul.ca-file=/etc/ssl/certs/ca-certificates.crt",
+          "--web.listen-address=127.0.0.1:9107",
+        ]
+        volumes = [
+          "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
+        ]
+      }
+
+      resources {
+        cpu    = 50
+        memory = 64
+      }
+    }
+
     task "server" {
       driver = "docker"
       user   = "1000:2000"
@@ -84,6 +112,9 @@ job "monitoring" {
           global:
             scrape_interval:     15s # Scrape every 15 seconds (default 1m)
             evaluation_interval: 15s # Evaluate rules every 15 seconds (default 1m)
+
+          rule_files:
+            - /prometheus/alerts.yml
 
           scrape_configs:
             - job_name: nomad
@@ -229,6 +260,15 @@ job "monitoring" {
                 - source_labels: [__meta_consul_service]
                   target_label: job
 
+            - job_name: consul-health
+              # consul-exporter (task "consul-health") is colocated with
+              # prometheus and reached over loopback, same as blackbox below.
+              # It turns per-check health state into a scrapable metric
+              # (consul_health_service_status) for the ConsulCheckCritical
+              # alert.
+              static_configs:
+                - targets: ["127.0.0.1:9107"]
+
             - job_name: envoy-consul
               consul_sd_configs:
                 - server: consul.service.home:8501
@@ -351,6 +391,170 @@ job "monitoring" {
         env           = false
       }
 
+      # Alerting rules. Uses [[ ]] delimiters (rather than the job's default
+      # {{ }}) purely so Prometheus's own annotation templating syntax
+      # ({{ $labels.foo }}, {{ $value }}) passes through untouched instead of
+      # being consumed by Nomad's consul-template rendering.
+      template {
+        left_delimiter  = "[["
+        right_delimiter = "]]"
+        data            = <<-EOF
+          groups:
+            - name: hashilab
+              rules:
+                # --- Raft leadership: Consul, Nomad, Vault ---
+                - alert: ConsulNoLeader
+                  expr: max(consul_server_isLeader) == 0
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Consul has no elected leader"
+                    description: "No Consul server has reported itself as leader for at least 2 minutes."
+
+                - alert: NomadNoLeader
+                  # nomad_nomad_autopilot_healthy is only emitted by the
+                  # current Nomad leader (autopilot state is leader-computed),
+                  # so its absence means no leader is elected.
+                  expr: absent(nomad_nomad_autopilot_healthy)
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Nomad has no elected leader"
+                    description: "No Nomad server has reported autopilot health (leader-only metric) for at least 2 minutes."
+
+                - alert: VaultNoActiveNode
+                  expr: max(vault_core_active) == 0 or absent(vault_core_active)
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Vault has no active node"
+                    description: "No Vault server has reported itself as active (unsealed leader) for at least 2 minutes."
+
+                - alert: ConsulLeaderFlapping
+                  # Threshold sits above what a normal rolling reboot of the
+                  # 3 servers produces (~3 handoffs), so it's insensitive to
+                  # planned reboots.
+                  expr: sum(increase(consul_raft_state_leader[1h])) > 3
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Consul leadership is flapping"
+                    description: "Consul has elected more than 3 leaders in the last hour."
+
+                - alert: NomadLeaderFlapping
+                  expr: sum(increase(nomad_raft_state_leader[1h])) > 3
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Nomad leadership is flapping"
+                    description: "Nomad has elected more than 3 leaders in the last hour."
+
+                - alert: VaultLeaderFlapping
+                  expr: sum(increase(vault_raft_state_leader[1h])) > 3
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Vault leadership is flapping"
+                    description: "Vault has elected more than 3 active nodes in the last hour."
+
+                # --- Nomad jobs ---
+                - alert: NomadJobHardDown
+                  # 0 running, plus either stuck unplaceable (queued > 0, e.g.
+                  # a constraint no node satisfies) or a recent failure. This
+                  # still doesn't fire for a clean `job stop` or a
+                  # periodic/batch job idling between runs: both leave
+                  # running=0, queued=0, and no recent failed increase.
+                  expr: nomad_nomad_job_summary_running == 0 and (nomad_nomad_job_summary_queued > 0 or increase(nomad_nomad_job_summary_failed[10m]) > 0)
+                  for: 5m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Nomad job {{ $labels.exported_job }}/{{ $labels.task_group }} is down"
+                    description: "Task group has 0 running and 0 queued allocations after recent placement failures."
+
+                - alert: NomadAllocationsRestartingFrequently
+                  # nomad_client_allocations_restart is host-level only (no
+                  # job/task_group label on this Nomad version), so this
+                  # points at a node, not a specific job.
+                  expr: increase(nomad_client_allocations_restart_count[10m]) > 3
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Allocations restarting frequently on {{ $labels.host }}"
+                    description: "More than 3 allocation restarts on this Nomad client in the last 10 minutes."
+
+                # --- Consul health checks ---
+                - alert: ConsulCheckCritical
+                  expr: consul_health_service_status{status="critical"} == 1
+                  for: 5m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Consul check critical: {{ $labels.service_name }}"
+                    description: "A Consul health check has been critical for more than 5 minutes."
+
+                # --- PKI ---
+                - alert: VaultPkiIntInternalIssuanceFailing
+                  expr: increase(vault_pki_int_internal_issue_failure[15m]) > 0
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Vault pki_int_internal certificate issuance is failing"
+                    description: "At least one certificate issuance failure on the pki_int_internal mount in the last 15 minutes."
+
+                # --- Extras: cheap wins on metrics already scraped ---
+                - alert: TargetDown
+                  expr: up == 0
+                  for: 5m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Scrape target down: {{ $labels.job }} on {{ $labels.host }}"
+                    description: "Prometheus has failed to scrape this target for more than 5 minutes."
+
+                - alert: VaultSealed
+                  expr: vault_core_unsealed == 0
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Vault node sealed: {{ $labels.host }}"
+                    description: "A Vault node has been sealed for more than 2 minutes."
+
+                - alert: CertExpiringSoon
+                  expr: (probe_ssl_earliest_cert_expiry - time()) < 7 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "TLS cert expiring soon: {{ $labels.instance }}"
+                    description: "Certificate probed via blackbox_exporter expires in under 7 days."
+
+                - alert: ConsulAgentCertExpiringSoon
+                  expr: consul_agent_tls_cert_expiry < 7 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Consul agent TLS cert expiring soon: {{ $labels.host }}"
+                    description: "Consul agent cert on this node expires in under 7 days."
+
+                - alert: NomadAgentCertExpiringSoon
+                  expr: nomad_agent_tls_cert_expiration_seconds < 7 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Nomad agent TLS cert expiring soon: {{ $labels.host }}"
+                    description: "Nomad agent cert on this node expires in under 7 days."
+        EOF
+
+        destination   = "local/alerts.yml"
+        change_mode   = "signal"
+        change_signal = "SIGHUP"
+        env           = false
+      }
+
       config {
         image = "prom/prometheus:v3.13.1"
 
@@ -367,6 +571,7 @@ job "monitoring" {
         ]
         volumes = [
           "local/prometheus.yml:/prometheus/prometheus.yml",
+          "local/alerts.yml:/prometheus/alerts.yml",
           "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
           "/clusterdata/prometheus:/opt/prometheus:rw",
         ]
@@ -385,6 +590,10 @@ job "monitoring" {
       tags = [
         "traefik.enable=true",
         "traefik.consulcatalog.connect=true",
+        # Lets the browser (homelabdash) fetch /api/v1/alerts cross-origin
+        # from d.service.home. Internal Traefik only, so this doesn't widen
+        # public exposure.
+        "traefik.http.routers.prometheus.middlewares=cors-allow-all@file",
       ]
 
       connect {

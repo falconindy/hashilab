@@ -287,6 +287,49 @@
         height: 18px;
       }
 
+      /* ---- Alert banner ---- */
+      .alerts {
+        max-width: 1280px;
+        margin: 0 auto 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .alert-row {
+        padding: 10px 16px;
+        border-radius: var(--radius-card);
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .alert-duration {
+        font-size: 0.72rem;
+        font-weight: 400;
+        opacity: 0.75;
+        white-space: nowrap;
+      }
+
+      .alert-row.critical {
+        background: var(--md-err-container);
+        color: var(--md-on-err-container);
+      }
+
+      .alert-row.warning {
+        background: var(--md-warn-container);
+        color: var(--md-on-warn-container);
+      }
+
+      .alert-row.pending {
+        background: transparent;
+        border: 1px dashed var(--md-outline-variant);
+        color: var(--md-on-surface-variant);
+      }
+
       /* ---- Card grid ---- */
       .grid {
         display: grid;
@@ -550,6 +593,7 @@
     </div>
 
     <div id="loader">Loading…</div>
+    <div id="alerts" class="alerts hidden"></div>
     <div id="dashboard" class="grid"></div>
 
     <script src="dashboard.js"></script>
