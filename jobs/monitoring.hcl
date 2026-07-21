@@ -571,7 +571,7 @@ job "monitoring" {
 
         args = [
           "--storage.tsdb.path", "/opt/prometheus",
-          "--storage.tsdb.retention.time", "900d",
+          "--storage.tsdb.retention.time", "365d",
           "--enable-feature", join(",", [
             "promql-experimental-functions",
             "use-uncached-io",
