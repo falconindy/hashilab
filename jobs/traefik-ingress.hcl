@@ -81,7 +81,7 @@ job "traefik-ingress" {
       driver = "docker"
 
       config {
-        image = "traefik:v3.7.8"
+        image = "traefik:v3.7.9"
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
           "/clusterdata/traefik/acme:/certs:rw",
