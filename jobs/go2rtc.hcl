@@ -62,9 +62,7 @@ job "go2rtc" {
 
           api:
             listen: ":1984"
-            origin:
-              - "https://homeassistant.service.home"
-              - "https://homeassistant.falconindy.com"
+            origin: ""
 
           rtsp:
             listen: ":8554"
