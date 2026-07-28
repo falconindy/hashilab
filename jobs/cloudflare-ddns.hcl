@@ -26,7 +26,7 @@ job "cloudflare-ddns" {
       user   = "1000:1000"
 
       config {
-        image        = "favonia/cloudflare-ddns:1.16.2"
+        image        = "favonia/cloudflare-ddns:1.17.0"
         network_mode = "host"
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
