@@ -33,7 +33,7 @@ job "pocket-id" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/pocket-id/pocket-id:v2.11.0"
+        image = "ghcr.io/pocket-id/pocket-id:v2.12.0"
 
         volumes = [
           "/clusterdata/pocket-id:/app/data:rw",
