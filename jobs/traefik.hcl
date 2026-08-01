@@ -80,7 +80,7 @@ job "traefik" {
       driver = "docker"
 
       config {
-        image = "traefik:v3.7.9"
+        image = "traefik:v3.7.10"
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
         ]
