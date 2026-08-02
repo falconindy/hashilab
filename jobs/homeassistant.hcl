@@ -32,6 +32,8 @@ job "homeassistant" {
     task "server" {
       driver = "docker"
 
+      kill_timeout = "30s"
+
       config {
         image = "homeassistant/home-assistant:2026.7.4"
         volumes = [
