@@ -98,7 +98,6 @@ job "deluge" {
 
       tags = [
         "traefik-ingress.enable=true",
-        "traefik-ingress.consulcatalog.connect=true",
         "traefik-ingress.tcp.routers.${NOMAD_JOB_NAME}.rule=HostSNI(`*`)",
         "traefik-ingress.tcp.routers.${NOMAD_JOB_NAME}.entrypoints=deluge",
       ]

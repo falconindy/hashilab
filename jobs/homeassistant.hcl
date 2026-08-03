@@ -79,7 +79,6 @@ job "homeassistant" {
         "traefik.consulcatalog.connect=true",
 
         "traefik-ingress.enable=true",
-        "traefik-ingress.consulcatalog.connect=true",
       ]
 
       connect {

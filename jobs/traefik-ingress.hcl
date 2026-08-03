@@ -200,6 +200,7 @@ job "traefik-ingress" {
             consulCatalog:
               prefix: traefik-ingress
               connectaware: true
+              connectByDefault: true
               watch: true
               exposedByDefault: false
               servicename: traefik-ingress

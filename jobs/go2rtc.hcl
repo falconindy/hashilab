@@ -111,6 +111,7 @@ job "go2rtc" {
 
       tags = [
         "traefik-ingress.enable=true",
+        "traefik-ingress.consulcatalog.connect=false",
         "traefik-ingress.udp.routers.${NOMAD_JOB_NAME}.entrypoints=webrtc",
       ]
 
@@ -123,7 +124,7 @@ job "go2rtc" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
+        "traefik-ingress.consulcatalog.connect=true",
       ]
 
       meta {
