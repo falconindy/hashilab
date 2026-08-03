@@ -100,6 +100,13 @@
         box-sizing: border-box;
       }
 
+      html {
+        /* Reserves the scrollbar's width unconditionally, so switching
+           tabs between content tall enough to scroll and content that
+           isn't doesn't shift the page horizontally. */
+        scrollbar-gutter: stable;
+      }
+
       body {
         font-family:
           "Roboto",
@@ -128,7 +135,18 @@
         pointer-events: none;
       }
 
-      /* ---- Top app bar ---- */
+      /* ---- Top app bar ----
+         Sticky so it (and the tab bar) never move: without this, switching
+         to/from a tab whose content is shorter than the current scroll
+         position forces the browser to clamp scrollY, which visibly yanks
+         the header back into view. */
+      .app-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--md-surface);
+      }
+
       .header {
         display: flex;
         justify-content: space-between;
@@ -229,6 +247,15 @@
         width: min(280px, 100%);
       }
 
+      /* Hides the search box outside the services tab without using
+         display: none — removing it from flex layout shrinks .header's row
+         height (it's taller than the icon buttons next to it), which shifts
+         the title/icons/tab bar above and below it on every tab switch. */
+      .search-hidden {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
       .search-icon {
         position: absolute;
         left: 12px;
@@ -327,6 +354,237 @@
       .alert-row.pending {
         background: transparent;
         border: 1px dashed var(--md-outline-variant);
+        color: var(--md-on-surface-variant);
+      }
+
+      /* ---- Tabs ---- */
+      .tabs {
+        max-width: 1280px;
+        margin: 0 auto 20px;
+        padding: 0 8px;
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--md-outline-variant);
+      }
+
+      .tab {
+        appearance: none;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--md-on-surface-variant);
+        padding: 12px 20px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .tab:hover {
+        color: var(--md-on-surface);
+      }
+
+      .tab.active {
+        color: var(--md-primary);
+        border-bottom-color: var(--md-primary);
+      }
+
+      /* ---- Infrastructure tab ----
+         Sections (uptime / cert expiration / PKI mounts) are columns in a
+         responsive grid: side by side when there's room, stacked on narrow
+         viewports. align-items: start keeps each column's height
+         independent, so one section growing (e.g. an expanded cert-type
+         breakout) never stretches its neighbors. */
+      .infra-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+        align-items: start;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+
+      .infra-section {
+        min-width: 0;
+      }
+
+      .infra-section h2 {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin: 0 0 12px;
+        padding: 0 8px;
+      }
+
+      .infra-loading {
+        color: var(--md-on-surface-variant);
+        font-size: 0.9rem;
+        padding: 0 8px;
+      }
+
+      .info-card {
+        background: var(--md-surface-container-low);
+        border: 1px solid var(--md-outline-variant);
+        border-radius: var(--radius-card);
+        box-shadow: var(--elev-1);
+      }
+
+      .uptime-list,
+      .pki-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+      }
+
+      /* A plain vertical stack, not a grid: cert-type-card is a <details>
+         whose height changes when expanded, and a grid row sizes to its
+         tallest cell, so all four chips would visibly grow together when
+         only one is actually expanded. Stacking lets each expand on its
+         own and push the ones below it down instead. */
+      .cert-type-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .uptime-row,
+      .pki-row {
+        padding: 14px 18px;
+        /* box-sizing is border-box, so this is the full row height (14px
+           padding + 1px border on each side + the 22px expiry-chip) —
+           keeps uptime-row (no chip) the same height as pki-row/
+           cert-type-card, which are sized by their chip's content box. */
+        min-height: 52px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .uptime-row .host {
+        font-weight: 500;
+      }
+
+      .uptime-row .uptime-value {
+        font-family: "Roboto Mono", monospace;
+        font-size: 0.85rem;
+        color: var(--md-on-surface-variant);
+      }
+
+      .pki-row .mount-name {
+        font-weight: 500;
+        font-family: "Roboto Mono", monospace;
+        font-size: 0.9rem;
+      }
+
+      .cert-type-card {
+        /* matches .uptime-row / .pki-row padding so all three row types in
+           the Infrastructure tab render at the same height */
+        padding: 14px 18px;
+      }
+
+      .cert-type-card summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        min-height: 22px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .cert-type-card summary::-webkit-details-marker {
+        display: none;
+      }
+
+      /* right-hand cluster of the summary row: chip + expand chevron,
+         grouped so justify-content: space-between on the summary still
+         only ever sees two flex children (name, this group). */
+      .cert-type-summary-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chevron {
+        flex-shrink: 0;
+        color: var(--md-on-surface-variant);
+        transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      .cert-type-card[open] .chevron {
+        transform: rotate(180deg);
+      }
+
+      .cert-type-name {
+        font-weight: 500;
+      }
+
+      .cert-breakout {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--md-outline-variant);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .cert-breakout-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+
+      .cert-breakout-row .host {
+        color: var(--md-on-surface-variant);
+      }
+
+      /* status/severity chip, shared by cert-type cards and pki mount rows.
+         height is pinned rather than left to padding + line-height, so a
+         chip's box never shifts with its text content (e.g. "no data" vs
+         "1.1y (400d)" vs "expired 2h ago"). */
+      .expiry-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 22px;
+        padding: 0 10px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
+        border-radius: var(--radius-full);
+      }
+
+      .expiry-chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+      }
+
+      .expiry-chip.passing {
+        background: var(--md-ok-container);
+        color: var(--md-on-ok-container);
+      }
+
+      .expiry-chip.warning {
+        background: var(--md-warn-container);
+        color: var(--md-on-warn-container);
+      }
+
+      .expiry-chip.critical {
+        background: var(--md-err-container);
+        color: var(--md-on-err-container);
+      }
+
+      .expiry-chip.unknown {
+        background: var(--md-surface-container-high);
         color: var(--md-on-surface-variant);
       }
 
@@ -527,74 +785,115 @@
   </head>
 
   <body>
-    <div class="header">
-      <div class="header-left">
-        <div class="brand">
-          <h1><span>HomelabDash</span></h1>
+    <div class="app-bar">
+      <div class="header">
+        <div class="header-left">
+          <div class="brand">
+            <h1><span>HomelabDash</span></h1>
+          </div>
+          <div class="top-links">
+            <a
+              href="https://nomad.service.home:4646"
+              title="Nomad"
+              target="_blank"
+              ><img src="nomad.svg" alt="Nomad"
+            /></a>
+            <a
+              href="https://vault.service.home:8200"
+              title="Vault"
+              target="_blank"
+              ><img src="vault.svg" alt="Vault"
+            /></a>
+            <a
+              href="https://consul.service.home:8501"
+              title="Consul"
+              target="_blank"
+              ><img src="consul.svg" alt="Consul"
+            /></a>
+          </div>
         </div>
-        <div class="top-links">
-          <a
-            href="https://nomad.service.home:4646"
-            title="Nomad"
-            target="_blank"
-            ><img src="nomad.svg" alt="Nomad"
-          /></a>
-          <a
-            href="https://vault.service.home:8200"
-            title="Vault"
-            target="_blank"
-            ><img src="vault.svg" alt="Vault"
-          /></a>
-          <a
-            href="https://consul.service.home:8501"
-            title="Consul"
-            target="_blank"
-            ><img src="consul.svg" alt="Consul"
-          /></a>
-        </div>
-      </div>
-      <div class="search-container">
-        <svg
-          class="search-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <input
-          type="text"
-          id="search"
-          placeholder="Filter services"
-          oninput="filter()"
-        />
-        <span
-          id="clear-search"
-          class="clear-btn hidden"
-          onclick="clearSearch()"
-          title="Clear"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <div id="search-container" class="search-container">
+          <svg
+            class="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
-              d="M18 6L6 18M6 6l12 12"
+              d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"
               stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
+              stroke-linejoin="round"
             />
           </svg>
-        </span>
+          <input
+            type="text"
+            id="search"
+            placeholder="Filter services"
+            oninput="filter()"
+          />
+          <span
+            id="clear-search"
+            class="clear-btn hidden"
+            onclick="clearSearch()"
+            title="Clear"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M18 6L6 18M6 6l12 12"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button
+          class="tab active"
+          data-tab="services"
+          role="tab"
+          aria-selected="true"
+        >
+          Services
+        </button>
+        <button class="tab" data-tab="infra" role="tab" aria-selected="false">
+          Infrastructure
+        </button>
       </div>
     </div>
 
-    <div id="loader">Loading…</div>
-    <div id="alerts" class="alerts hidden"></div>
-    <div id="dashboard" class="grid"></div>
+    <div id="tab-services">
+      <div id="loader">Loading…</div>
+      <div id="alerts" class="alerts hidden"></div>
+      <div id="dashboard" class="grid"></div>
+    </div>
+
+    <div id="tab-infra" class="infra-grid hidden">
+      <section class="infra-section">
+        <h2>Server Uptime</h2>
+        <div id="uptime-list" class="uptime-list">
+          <p class="infra-loading">Loading…</p>
+        </div>
+      </section>
+
+      <section class="infra-section">
+        <h2>Certificate Expiration</h2>
+        <div id="cert-types" class="cert-type-grid">
+          <p class="infra-loading">Loading…</p>
+        </div>
+      </section>
+
+      <section class="infra-section">
+        <h2>PKI Issuing Mounts</h2>
+        <div id="pki-mounts" class="pki-list">
+          <p class="infra-loading">Loading…</p>
+        </div>
+      </section>
+    </div>
 
     <script src="dashboard.js"></script>
   </body>

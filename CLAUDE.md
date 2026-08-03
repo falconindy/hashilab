@@ -107,7 +107,7 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 
 ### Dashboard
 
-`www/homelabdash/` is a static single-page app that polls the Consul HTTP API using blocking queries (long-poll on `x-consul-index`) to watch the service catalog and health state in real time. Deployed by running `bin/deploy-www`, which rsyncs to `/clusterdata/www/` (requires the mount to be present).
+`www/homelabdash/` is a static single-page app that polls the Consul HTTP API using blocking queries (long-poll on `x-consul-index`) to watch the service catalog and health state in real time. A second "Infrastructure" tab polls Prometheus (`/api/v1/query`, timer-based like the alert banner) for server uptime (`node_boot_time_seconds`) and TLS certificate expiration by cert type — Consul (`consul_agent_tls_cert_expiry`), Nomad (`nomad_agent_tls_cert_expiration_seconds`), Vault server/client (`x509_cert_not_after` filtered by filepath) — plus the CA expiry of each PKI issuing mount (`pki`, `pki_int`, `pki_int_internal`, `pki_int_connect`, also from `x509_cert_not_after`; see `jobs/x509-exporter.hcl`). Deployed by running `bin/deploy-www`, which rsyncs to `/clusterdata/www/` (requires the mount to be present).
 
 ### Utility scripts
 
