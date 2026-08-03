@@ -70,6 +70,7 @@ services {
   port = 5000
   tags = [
     "traefik.enable=true",
+    "traefik.consulcatalog.connect=false",
   ]
 
   check {
