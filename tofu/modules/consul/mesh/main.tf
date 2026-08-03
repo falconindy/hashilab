@@ -86,7 +86,6 @@ locals {
     ]
     "prometheus" = [
       { name = "grafana", action = "allow" },
-      { name = "homeassistant", action = "allow" },
     ]
     "victorialogs" = [
       { name = "vector", action = "allow" },

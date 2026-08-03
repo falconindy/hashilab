@@ -107,10 +107,6 @@ job "homeassistant" {
               destination_name = "zwave-ws"
               local_bind_port  = 3000
             }
-            upstreams {
-              destination_name = "prometheus"
-              local_bind_port  = 9090
-            }
           }
         }
 
