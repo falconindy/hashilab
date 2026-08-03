@@ -29,7 +29,7 @@ job "docker-registry" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -57,7 +57,7 @@ job "docker-registry" {
         data          = <<-EOF
           version: 0.1
           http:
-            addr: {{ env "NOMAD_ALLOC_ADDR_http" }}
+            addr: 0.0.0.0:5000
             host: https://docker-registry.service.home
             headers:
               X-Content-Type-Option: [nosniff]
@@ -82,19 +82,49 @@ job "docker-registry" {
 
     service {
       name = "docker-registry"
-      port = "http"
+      port = 5000
 
       tags = [
         "traefik.enable=true",
-        # No connect sidecar on this service; opt out of the mesh default.
-        "traefik.consulcatalog.connect=false",
+        "homelabdash.uri=/v2/_catalog",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            expose {
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 9102
+                listener_port   = "envoy_metrics"
+              }
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/v2/_catalog"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
@@ -111,7 +141,7 @@ job "docker-registry" {
         servers = ["172.17.0.1"]
       }
 
-      port "http" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -139,7 +169,7 @@ job "docker-registry" {
         data          = <<-EOF
           version: 0.1
           http:
-            addr: {{ env "NOMAD_ALLOC_ADDR_http" }}
+            addr: 0.0.0.0:5000
             host: https://docker-registry-cache.service.home
             headers:
               X-Content-Type-Option: [nosniff]
@@ -167,19 +197,49 @@ job "docker-registry" {
 
     service {
       name = "docker-registry-cache"
-      port = "http"
+      port = 5000
 
       tags = [
         "traefik.enable=true",
-        # No connect sidecar on this service; opt out of the mesh default.
-        "traefik.consulcatalog.connect=false",
+        "homelabdash.uri=/v2/_catalog",
       ]
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            expose {
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 9102
+                listener_port   = "envoy_metrics"
+              }
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
         path     = "/v2/_catalog"
         interval = "10s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
