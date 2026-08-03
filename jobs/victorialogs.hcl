@@ -67,7 +67,6 @@ job "victorialogs" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       connect {

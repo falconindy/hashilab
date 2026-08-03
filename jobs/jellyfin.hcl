@@ -77,7 +77,6 @@ job "jellyfin" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
         "traefik.http.routers.${NOMAD_JOB_NAME}.entrypoints=https,http",
       ]
 

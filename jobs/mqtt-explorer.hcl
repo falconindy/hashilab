@@ -52,7 +52,6 @@ job "mqtt-explorer" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       meta {

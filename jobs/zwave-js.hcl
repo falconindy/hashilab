@@ -80,7 +80,6 @@ job "zwave-js" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       meta {

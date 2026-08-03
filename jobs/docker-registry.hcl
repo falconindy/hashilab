@@ -86,6 +86,8 @@ job "docker-registry" {
 
       tags = [
         "traefik.enable=true",
+        # No connect sidecar on this service; opt out of the mesh default.
+        "traefik.consulcatalog.connect=false",
       ]
 
       check {
@@ -169,6 +171,8 @@ job "docker-registry" {
 
       tags = [
         "traefik.enable=true",
+        # No connect sidecar on this service; opt out of the mesh default.
+        "traefik.consulcatalog.connect=false",
       ]
 
       check {

@@ -58,6 +58,8 @@ job "esphome" {
 
       tags = [
         "traefik.enable=true",
+        # host network mode, no connect sidecar; opt out of the mesh default.
+        "traefik.consulcatalog.connect=false",
       ]
 
       check {

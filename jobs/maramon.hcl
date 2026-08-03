@@ -68,7 +68,6 @@ job "maramon" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       meta {

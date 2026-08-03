@@ -597,7 +597,6 @@ job "monitoring" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
         # Lets the browser (homelabdash) fetch /api/v1/alerts cross-origin
         # from d.service.home. Internal Traefik only, so this doesn't widen
         # public exposure.

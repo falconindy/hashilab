@@ -180,6 +180,7 @@ job "traefik" {
             consulCatalog:
               prefix: traefik
               connectaware: true
+              connectByDefault: true
               watch: true
               exposedByDefault: false
               servicename: traefik

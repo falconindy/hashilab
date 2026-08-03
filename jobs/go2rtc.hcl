@@ -124,7 +124,6 @@ job "go2rtc" {
 
       tags = [
         "traefik.enable=true",
-        "traefik-ingress.consulcatalog.connect=true",
       ]
 
       meta {

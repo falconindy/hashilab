@@ -59,7 +59,6 @@ job "deluge" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       meta {

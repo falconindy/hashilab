@@ -50,7 +50,6 @@ job "jackett" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
       ]
 
       meta {

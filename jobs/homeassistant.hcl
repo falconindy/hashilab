@@ -76,8 +76,6 @@ job "homeassistant" {
 
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
-
         "traefik-ingress.enable=true",
       ]
 

@@ -54,8 +54,6 @@ job "traefik-ingress" {
       # Expose the dashboard on the internal traefik instance.
       tags = [
         "traefik.enable=true",
-        "traefik.consulcatalog.connect=true",
-
         "homelabdash.uri=/dashboard/",
       ]
 
