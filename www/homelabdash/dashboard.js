@@ -52,6 +52,47 @@ function init() {
   watchCatalog();
   watchHealth();
   watchAlerts();
+  watchInfra();
+  initTabs();
+}
+
+function setActiveTab(tab) {
+  document.querySelectorAll(".tab").forEach((b) => {
+    const active = b.dataset.tab === tab;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document
+    .getElementById("tab-services")
+    .classList.toggle("hidden", tab !== "services");
+  document
+    .getElementById("tab-infra")
+    .classList.toggle("hidden", tab !== "infra");
+  // The search box filters service cards, which only exist on the services
+  // tab. visibility (not display) so hiding it doesn't change .header's row
+  // height and shift everything else in the app bar — see .search-hidden.
+  document
+    .getElementById("search-container")
+    .classList.toggle("search-hidden", tab !== "services");
+  if (location.hash.slice(1) !== tab) {
+    location.hash = tab;
+  }
+}
+
+function initTabs() {
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+  });
+
+  window.addEventListener("hashchange", () => {
+    const tab = location.hash.slice(1);
+    if (tab === "infra" || tab === "services") setActiveTab(tab);
+  });
+
+  const initialTab = location.hash.slice(1);
+  if (initialTab === "infra" || initialTab === "services") {
+    setActiveTab(initialTab);
+  }
 }
 
 // Prometheus's /api/v1/alerts has no blocking-query support (unlike Consul),
@@ -133,6 +174,242 @@ function renderAlerts() {
       return `<div class="alert-row ${cls}"><span class="alert-text">${text}</span>${suffix ? `<span class="alert-duration">${suffix}</span>` : ""}</div>`;
     })
     .join("");
+}
+
+// Cert types sourced from x509_cert_not_after (absolute unix timestamps,
+// watched by x509-exporter) vs. the consul/nomad agent metrics, which are
+// already seconds-remaining gauges. Both kinds get normalized to
+// seconds-remaining in loadInfra().
+// All four of these are issued by vault-agent with ttl=32d and renewed at
+// the global lease_renewal_threshold = 0.5 (os/etc/vault-agent.d/agent.hcl.j2),
+// i.e. vault-agent should renew each one while ~16d still remains. Less than
+// that means a renewal that should already have happened hasn't.
+const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 16 * 86400;
+
+const CERT_TYPES = [
+  {
+    key: "consul",
+    label: "Consul",
+    query: "consul_agent_tls_cert_expiry",
+    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
+  },
+  {
+    key: "nomad",
+    label: "Nomad",
+    query: "nomad_agent_tls_cert_expiration_seconds",
+    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
+  },
+  {
+    key: "vaultServer",
+    label: "Vault Server",
+    filepath: "/certs/vault/server.crt",
+    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
+  },
+  {
+    key: "vaultClient",
+    label: "Vault Client",
+    filepath: "/certs/vault/client.crt",
+    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
+  },
+];
+
+// The CA cert for each PKI issuing mount, rendered to disk once by
+// x509-exporter's own Vault template (see jobs/x509-exporter.hcl) and
+// watched under the same /certs/trust dir on every Vault node, so every
+// instance reports an identical not_after for a given mount.
+const PKI_MOUNTS = [
+  { key: "pki", label: "pki", filepath: "/certs/trust/pki.pem" },
+  { key: "pki_int", label: "pki_int", filepath: "/certs/trust/pki_int.pem" },
+  {
+    key: "pki_int_internal",
+    label: "pki_int_internal",
+    filepath: "/certs/trust/pki_int_internal.pem",
+  },
+  {
+    key: "pki_int_connect",
+    label: "pki_int_connect",
+    filepath: "/certs/trust/pki_int_connect.pem",
+  },
+];
+
+let infraData = { uptime: [], certs: {}, pki: {} };
+
+async function promQuery(query) {
+  const res = await fetch(
+    `${PROM_ADDR}/api/v1/query?query=${encodeURIComponent(query)}`,
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  return body.data?.result || [];
+}
+
+// Prometheus has no blocking-query support, same constraint as watchAlerts,
+// so this polls on a timer too.
+async function watchInfra() {
+  while (true) {
+    try {
+      await loadInfra();
+      renderInfra();
+    } catch (err) {
+      console.error("Infra watch error:", err);
+    }
+    await new Promise((r) => setTimeout(r, 20000));
+  }
+}
+
+async function loadInfra() {
+  const [boot, x509, ...certResults] = await Promise.all([
+    promQuery("node_boot_time_seconds"),
+    promQuery("x509_cert_not_after"),
+    ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
+  ]);
+  const now = Date.now() / 1000;
+
+  infraData.uptime = boot
+    .map((r) => ({
+      host: r.metric.instance,
+      uptimeSeconds: now - Number(r.value[1]),
+    }))
+    .sort((a, b) => a.host.localeCompare(b.host));
+
+  let queryResultIdx = 0;
+  for (const type of CERT_TYPES) {
+    let rows;
+    if (type.query) {
+      rows = certResults[queryResultIdx++].map((r) => ({
+        host: r.metric.host,
+        seconds: Number(r.value[1]),
+      }));
+    } else {
+      // vault-agent renders these as leaf+CA bundles (.Cert followed by .CA,
+      // see os/etc/vault-agent.d/vault-{server,client}.tpl), so x509-exporter
+      // reports one series per cert in the file. Keep only the soonest
+      // (the short-lived leaf) per host — the embedded CA duplicates what
+      // the pki_int_internal mount already reports.
+      const byHost = new Map();
+      for (const r of x509) {
+        if (r.metric.filepath !== type.filepath) continue;
+        const host = r.metric.instance;
+        const seconds = Number(r.value[1]) - now;
+        if (!byHost.has(host) || seconds < byHost.get(host)) {
+          byHost.set(host, seconds);
+        }
+      }
+      rows = [...byHost.entries()].map(([host, seconds]) => ({
+        host,
+        seconds,
+      }));
+    }
+    infraData.certs[type.key] = rows.sort((a, b) =>
+      a.host.localeCompare(b.host),
+    );
+  }
+
+  infraData.pki = {};
+  for (const mount of PKI_MOUNTS) {
+    const rows = x509.filter((r) => r.metric.filepath === mount.filepath);
+    infraData.pki[mount.key] = rows.length
+      ? Math.min(...rows.map((r) => Number(r.value[1]) - now))
+      : null;
+  }
+}
+
+// Default mirrors the 14d threshold used by the CertExpiringSoon/
+// *CertExpiringSoon Prometheus alerts (jobs/monitoring.hcl); cert types
+// renewed by vault-agent pass VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS instead,
+// so "warning" lines up with a renewal that should already have fired.
+// Below 3d is always critical regardless of type — no automatic renewal
+// leaves that much margin.
+function classifyExpiry(seconds, warnThresholdSeconds = 14 * 86400) {
+  if (seconds === null || seconds === undefined || Number.isNaN(seconds))
+    return "unknown";
+  if (seconds < 3 * 86400) return "critical";
+  if (seconds < warnThresholdSeconds) return "warning";
+  return "passing";
+}
+
+function formatExpiry(seconds) {
+  if (seconds === null || seconds === undefined || Number.isNaN(seconds))
+    return "no data";
+  if (seconds <= 0) return `expired ${formatDuration(-seconds * 1000)} ago`;
+  const days = seconds / 86400;
+  if (days >= 365) return `${(days / 365).toFixed(1)}y (${Math.round(days)}d)`;
+  if (days >= 1) return `${Math.round(days)}d`;
+  return formatDuration(seconds * 1000);
+}
+
+function expiryChip(seconds, warnThresholdSeconds) {
+  const cls = classifyExpiry(seconds, warnThresholdSeconds);
+  return `<span class="expiry-chip ${cls}"><span class="dot"></span>${formatExpiry(seconds)}</span>`;
+}
+
+function renderInfra() {
+  renderUptime();
+  renderCertTypes();
+  renderPkiMounts();
+}
+
+function renderUptime() {
+  const container = document.getElementById("uptime-list");
+  if (!infraData.uptime.length) {
+    container.innerHTML = `<p class="infra-loading">No uptime data</p>`;
+    return;
+  }
+  container.innerHTML = infraData.uptime
+    .map(
+      (row) => `
+        <div class="info-card uptime-row">
+          <span class="host">${row.host}</span>
+          <span class="uptime-value">${formatDuration(row.uptimeSeconds * 1000)}</span>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderCertTypes() {
+  const container = document.getElementById("cert-types");
+  container.innerHTML = CERT_TYPES.map((type) => {
+    // rows is sorted by hostname (for the breakout below), so the earliest
+    // (soonest-expiring) entry for the rollup chip has to be found by value
+    // rather than assumed to be rows[0].
+    const rows = infraData.certs[type.key] || [];
+    const earliest = rows.reduce(
+      (min, r) => (min === null || r.seconds < min.seconds ? r : min),
+      null,
+    );
+    const breakout = rows
+      .map(
+        (row) => `
+          <div class="cert-breakout-row">
+            <span class="host">${row.host}</span>
+            ${expiryChip(row.seconds, type.warnThresholdSeconds)}
+          </div>
+        `,
+      )
+      .join("");
+    return `
+      <details class="info-card cert-type-card">
+        <summary>
+          <span class="cert-type-name">${type.label}</span>
+          ${expiryChip(earliest?.seconds, type.warnThresholdSeconds)}
+        </summary>
+        <div class="cert-breakout">${breakout || `<p class="infra-loading">No hosts reporting</p>`}</div>
+      </details>
+    `;
+  }).join("");
+}
+
+function renderPkiMounts() {
+  const container = document.getElementById("pki-mounts");
+  container.innerHTML = PKI_MOUNTS.map(
+    (mount) => `
+      <div class="info-card pki-row">
+        <span class="mount-name">${mount.label}</span>
+        ${expiryChip(infraData.pki[mount.key])}
+      </div>
+    `,
+  ).join("");
 }
 
 async function watchCatalog() {
@@ -345,8 +622,11 @@ function clearSearch() {
 document.addEventListener("keydown", (e) => {
   const searchInput = document.getElementById("search");
   const isSearchFocused = document.activeElement === searchInput;
+  const isServicesTabActive = !document
+    .getElementById("tab-services")
+    .classList.contains("hidden");
 
-  if (e.key === "/" && !isSearchFocused) {
+  if (e.key === "/" && !isSearchFocused && isServicesTabActive) {
     e.preventDefault();
     searchInput.focus();
     return;

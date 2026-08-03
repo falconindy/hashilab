@@ -50,6 +50,7 @@ job "x509-exporter" {
           "local/pki.pem:/certs/trust/pki.pem:ro",
           "local/pki_int.pem:/certs/trust/pki_int.pem:ro",
           "local/pki_int_internal.pem:/certs/trust/pki_int_internal.pem:ro",
+          "local/pki_int_connect.pem:/certs/trust/pki_int_connect.pem:ro",
         ]
       }
 
@@ -80,6 +81,19 @@ job "x509-exporter" {
           {{ end }}
         EOF
         destination = "local/pki_int_internal.pem"
+      }
+
+      # pki_int_connect's intermediate is generated and rotated by Consul, not
+      # tofu, but the mount's cert/ca read is unauthenticated (built into the
+      # PKI secrets engine) same as the other three, so it needs no extra
+      # Vault policy grant.
+      template {
+        data        = <<-EOF
+          {{- with secret "pki_int_connect/cert/ca" }}
+            {{- .Data.certificate }}
+          {{ end }}
+        EOF
+        destination = "local/pki_int_connect.pem"
       }
 
       resources {
