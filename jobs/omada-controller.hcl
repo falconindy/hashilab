@@ -83,6 +83,18 @@ job "omada-controller" {
         name = "omada-controller"
         port = "manage_https"
 
+        # host network mode, no connect sidecar; opt out of the mesh default.
+        # Omada terminates its own TLS (self-signed, rotated by vault-agent
+        # above), so route by SNI and pass the raw TLS stream through rather
+        # than terminating at Traefik.
+        tags = [
+          "traefik.enable=true",
+          "traefik.consulcatalog.connect=false",
+          "traefik.tcp.routers.${NOMAD_JOB_NAME}.rule=HostSNI(`omada-controller.service.home`)",
+          "traefik.tcp.routers.${NOMAD_JOB_NAME}.entrypoints=https",
+          "traefik.tcp.routers.${NOMAD_JOB_NAME}.tls.passthrough=true",
+        ]
+
         check {
           type     = "http"
           protocol = "https"
