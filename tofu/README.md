@@ -145,7 +145,7 @@ The Consul ACL layer (Consul provider — needs a Consul **management** token):
     entry present Consul logs each miss as an `ERROR` on a loop. The entry turns
     those 404s into 200s to silence the noise — it tunes nothing. Real defaults
     (protocol, mesh-gateway mode, …) can go in its `config_json` later.
-  - The **service intentions** (`intentions.tf`) — the mesh's L4 authorization,
+  - The **service intentions** (`main.tf`) — the mesh's L4 authorization,
     previously applied out of band with `consul config write`. The mesh is
     default-deny (`*`/`*` deny at precedence 5); every allowed edge is an explicit
     higher-precedence source. Keyed by destination in the `intentions` local (one
@@ -426,7 +426,7 @@ tofu import 'module.consul_nomad_wi.consul_acl_role.nomad_tasks' \
 # ── Consul mesh config entries (consul_mesh) ──
 # proxy-defaults/global is created by tofu (nothing to import). The service
 # intentions were applied out of band, so import each by its destination name
-# (the map keys in modules/consul/mesh/intentions.tf — mirror them here):
+# (the map keys in modules/consul/mesh/main.tf — mirror them here):
 for d in '*' deluge deluge-inbound go2rtc homeassistant jackett mosquitto \
          nut pocket-id postgres prometheus victorialogs zwave-ws; do
   tofu import "module.consul_mesh.consul_config_entry_service_intentions.this[\"$d\"]" "$d"
