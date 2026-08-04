@@ -43,6 +43,13 @@ async function resolveNomadJob(allocId) {
 }
 
 let servicesData = {};
+// Same Consul catalog as servicesData, but keeping the traefik.enable=true
+// entries servicesData drops (sidecar-proxy services): Nomad Connect stamps
+// those with the parent's tags too, and Traefik's consulCatalog provider
+// (exposedByDefault: false, jobs/traefik.hcl) routes on that tag regardless
+// of the name shape, so this is the actual eligibility set to reconcile ACME
+// certs against — not the UI-filtered one.
+let acmeEligibleServices = {};
 let checksData = [];
 let alertsData = [];
 let isCatalogLoaded = false;
@@ -232,7 +239,80 @@ const PKI_MOUNTS = [
   },
 ];
 
-let infraData = { uptime: [], certs: {}, pki: {} };
+// ACME leaf certs Traefik issues per-domain off pki_int (jobs/traefik.hcl's
+// "vault" certificatesResolver). Unlike CERT_TYPES/PKI_MOUNTS this isn't a
+// fixed list, so it's reconciled against acmeEligibleServices instead of
+// alerting on whatever domains happen to still be in Traefik's ACME store —
+// a decommissioned service's cert lingers there (and keeps renewing) long
+// after nothing routes to it.
+const ACME_ROUTER_RULE_RE = /^traefik\.http\.routers\.[^.]+\.rule=(.*)$/;
+const HOST_RULE_DOMAIN_RE = /`([^`]+)`/g;
+
+// Mirrors jobs/traefik.hcl's consulCatalog defaultRule
+// (Host(`{{ .Name }}.service.home`)), with the same
+// "traefik.http.routers.<name>.rule=Host(...)" override tag documented in
+// CLAUDE.md for services that need a custom hostname.
+function expectedAcmeHostnames() {
+  const hosts = new Set();
+  for (const [name, tags] of Object.entries(acmeEligibleServices)) {
+    const ruleTag = tags.find((t) => ACME_ROUTER_RULE_RE.test(t));
+    const rule = ruleTag?.match(ACME_ROUTER_RULE_RE)?.[1];
+    if (rule) {
+      for (const m of rule.matchAll(HOST_RULE_DOMAIN_RE)) hosts.add(m[1]);
+    } else {
+      hosts.add(`${name}.${DOMAIN}`);
+    }
+  }
+  return hosts;
+}
+
+// Traefik keeps stale + freshly-renewed entries side by side during
+// rotation, and each of the two replicas (jobs/traefik.hcl) requests its own
+// copy independently, so a domain can have several series — keep the
+// soonest-expiring one, same as the vault-agent leaf selection above.
+// Returns one flat, sorted list with `orphaned` flagged per row (rather than
+// split live/orphaned buckets) so the caller can render them inline in the
+// same breakout, just visually muted.
+function buildAcmeCertData(rows) {
+  const now = Date.now() / 1000;
+  const byDomain = new Map();
+  for (const r of rows) {
+    const seconds = Number(r.value[1]) - now;
+    for (const domain of (r.metric.sans || "").split(",").filter(Boolean)) {
+      if (!byDomain.has(domain) || seconds < byDomain.get(domain)) {
+        byDomain.set(domain, seconds);
+      }
+    }
+  }
+
+  // Before the catalog's first load, acmeEligibleServices is still empty —
+  // treat everything as live rather than flashing every domain as orphaned.
+  const expected = isCatalogLoaded ? expectedAcmeHostnames() : null;
+  return [...byDomain.entries()]
+    .map(([host, seconds]) => ({
+      host,
+      seconds,
+      orphaned: expected ? !expected.has(host) : false,
+    }))
+    .sort((a, b) => a.host.localeCompare(b.host));
+}
+
+// Public-facing wildcard cert traefik-ingress requests via Let's Encrypt
+// (Cloudflare DNS-01, jobs/traefik-ingress.hcl's "letsencrypt" resolver) — a
+// single static cert covering *.falconindy.com for every publicly-exposed
+// service, not a per-service ACME resource like the internal
+// traefik.enable=true certs above, so there's no Consul catalog entry to
+// reconcile it against.
+const PUBLIC_WILDCARD_QUERY =
+  'traefik_tls_certs_not_after{job="traefik-ingress"} - time()';
+
+let infraData = {
+  uptime: [],
+  certs: {},
+  pki: {},
+  acme: [],
+  publicWildcard: null,
+};
 
 async function promQuery(query) {
   const res = await fetch(
@@ -258,12 +338,23 @@ async function watchInfra() {
 }
 
 async function loadInfra() {
-  const [boot, x509, ...certResults] = await Promise.all([
-    promQuery("node_boot_time_seconds"),
-    promQuery("x509_cert_not_after"),
-    ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
-  ]);
+  const [boot, x509, acmeCerts, publicWildcardRows, ...certResults] =
+    await Promise.all([
+      promQuery("node_boot_time_seconds"),
+      promQuery("x509_cert_not_after"),
+      // job="traefik" only: the internal instance's pki_int-issued certs.
+      // traefik-ingress's public wildcard (below) is a separate resolver
+      // with no relationship to the Consul catalog reconciliation here.
+      promQuery('traefik_tls_certs_not_after{job="traefik"}'),
+      promQuery(PUBLIC_WILDCARD_QUERY),
+      ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
+    ]);
   const now = Date.now() / 1000;
+
+  infraData.acme = buildAcmeCertData(acmeCerts);
+  infraData.publicWildcard = publicWildcardRows.length
+    ? Math.min(...publicWildcardRows.map((r) => Number(r.value[1])))
+    : null;
 
   infraData.uptime = boot
     .map((r) => ({
@@ -347,6 +438,7 @@ function renderInfra() {
   renderUptime();
   renderCertTypes();
   renderPkiMounts();
+  renderAcmeCerts();
 }
 
 function renderUptime() {
@@ -370,39 +462,40 @@ function renderUptime() {
 function renderCertTypes() {
   const container = document.getElementById("cert-types");
   container.innerHTML = CERT_TYPES.map((type) => {
-    // rows is sorted by hostname (for the breakout below), so the earliest
-    // (soonest-expiring) entry for the rollup chip has to be found by value
-    // rather than assumed to be rows[0].
     const rows = infraData.certs[type.key] || [];
-    const earliest = rows.reduce(
-      (min, r) => (min === null || r.seconds < min.seconds ? r : min),
-      null,
-    );
-    const breakout = rows
-      .map(
-        (row) => `
-          <div class="cert-breakout-row">
-            <span class="host">${row.host}</span>
-            ${expiryChip(row.seconds, type.warnThresholdSeconds)}
-          </div>
-        `,
-      )
-      .join("");
-    return `
-      <details class="info-card cert-type-card">
-        <summary>
-          <span class="cert-type-name">${type.label}</span>
-          <span class="cert-type-summary-right">
-            ${expiryChip(earliest?.seconds, type.warnThresholdSeconds)}
-            <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-            </svg>
-          </span>
-        </summary>
-        <div class="cert-breakout">${breakout || `<p class="infra-loading">No hosts reporting</p>`}</div>
-      </details>
-    `;
+    return certTypeCardHtml(type.label, rows, type.warnThresholdSeconds);
   }).join("");
+}
+
+// Shared by renderCertTypes (fixed, non-orphanable host lists) and
+// renderAcmeCerts (dynamic domain lists that can include orphaned rows,
+// which are excluded from the rollup chip below since they aren't
+// actionable). `name` is the fully-formatted summary label (callers add a
+// "(N)" count where it's meaningful).
+function certTypeCardHtml(name, rows, warnThresholdSeconds) {
+  // rows is sorted by hostname (for the breakout below), so the earliest
+  // (soonest-expiring) live entry for the rollup chip has to be found by
+  // value rather than assumed to be rows[0].
+  const earliest = rows.reduce(
+    (min, r) =>
+      r.orphaned ? min : min === null || r.seconds < min.seconds ? r : min,
+    null,
+  );
+  const breakout = certBreakoutRows(rows, warnThresholdSeconds);
+  return `
+    <details class="info-card cert-type-card">
+      <summary>
+        <span class="cert-type-name">${name}</span>
+        <span class="cert-type-summary-right">
+          ${expiryChip(earliest?.seconds, warnThresholdSeconds)}
+          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+          </svg>
+        </span>
+      </summary>
+      <div class="cert-breakout">${breakout || `<p class="infra-loading">No hosts reporting</p>`}</div>
+    </details>
+  `;
 }
 
 function renderPkiMounts() {
@@ -415,6 +508,38 @@ function renderPkiMounts() {
       </div>
     `,
   ).join("");
+}
+
+// row.orphaned (set by buildAcmeCertData) gets a muting class rather than
+// its own separate list — visually de-emphasized inline instead of split
+// into a second card, since these aren't backed by a live Consul service
+// (jobs/*.hcl has nothing registering them) and so aren't actionable.
+function certBreakoutRows(rows, warnThresholdSeconds) {
+  return rows
+    .map(
+      (row) => `
+        <div class="cert-breakout-row${row.orphaned ? " orphaned" : ""}">
+          <span class="host">${row.host}</span>
+          ${expiryChip(row.seconds, warnThresholdSeconds)}
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderAcmeCerts() {
+  const container = document.getElementById("acme-certs");
+  if (!container) return;
+
+  const wildcardRows =
+    infraData.publicWildcard === null
+      ? []
+      : [{ host: "falconindy.com", seconds: infraData.publicWildcard }];
+
+  container.innerHTML = [
+    certTypeCardHtml(`Vault (${infraData.acme.length})`, infraData.acme),
+    certTypeCardHtml(`Let's Encrypt (${wildcardRows.length})`, wildcardRows),
+  ].join("");
 }
 
 async function watchCatalog() {
@@ -434,15 +559,16 @@ async function watchCatalog() {
         const catalog = await res.json();
 
         const newServicesData = {};
+        const newAcmeEligibleServices = {};
         for (const name in catalog) {
-          if (
-            !name.endsWith("-sidecar-proxy") &&
-            catalog[name].includes("traefik.enable=true")
-          ) {
+          if (!catalog[name].includes("traefik.enable=true")) continue;
+          newAcmeEligibleServices[name] = catalog[name];
+          if (!name.endsWith("-sidecar-proxy")) {
             newServicesData[name] = catalog[name];
           }
         }
         servicesData = newServicesData;
+        acmeEligibleServices = newAcmeEligibleServices;
         isCatalogLoaded = true;
         checkAndRender();
       } else {
