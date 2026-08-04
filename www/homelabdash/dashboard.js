@@ -43,6 +43,13 @@ async function resolveNomadJob(allocId) {
 }
 
 let servicesData = {};
+// Same Consul catalog as servicesData, but keeping the traefik.enable=true
+// entries servicesData drops (sidecar-proxy services): Nomad Connect stamps
+// those with the parent's tags too, and Traefik's consulCatalog provider
+// (exposedByDefault: false, jobs/traefik.hcl) routes on that tag regardless
+// of the name shape, so this is the actual eligibility set to reconcile ACME
+// certs against — not the UI-filtered one.
+let acmeEligibleServices = {};
 let checksData = [];
 let alertsData = [];
 let isCatalogLoaded = false;
@@ -232,7 +239,69 @@ const PKI_MOUNTS = [
   },
 ];
 
-let infraData = { uptime: [], certs: {}, pki: {} };
+// ACME leaf certs Traefik issues per-domain off pki_int (jobs/traefik.hcl's
+// "vault" certificatesResolver). Unlike CERT_TYPES/PKI_MOUNTS this isn't a
+// fixed list, so it's reconciled against acmeEligibleServices instead of
+// alerting on whatever domains happen to still be in Traefik's ACME store —
+// a decommissioned service's cert lingers there (and keeps renewing) long
+// after nothing routes to it.
+const ACME_ROUTER_RULE_RE = /^traefik\.http\.routers\.[^.]+\.rule=(.*)$/;
+const HOST_RULE_DOMAIN_RE = /`([^`]+)`/g;
+
+// Mirrors jobs/traefik.hcl's consulCatalog defaultRule
+// (Host(`{{ .Name }}.service.home`)), with the same
+// "traefik.http.routers.<name>.rule=Host(...)" override tag documented in
+// CLAUDE.md for services that need a custom hostname.
+function expectedAcmeHostnames() {
+  const hosts = new Set();
+  for (const [name, tags] of Object.entries(acmeEligibleServices)) {
+    const ruleTag = tags.find((t) => ACME_ROUTER_RULE_RE.test(t));
+    const rule = ruleTag?.match(ACME_ROUTER_RULE_RE)?.[1];
+    if (rule) {
+      for (const m of rule.matchAll(HOST_RULE_DOMAIN_RE)) hosts.add(m[1]);
+    } else {
+      hosts.add(`${name}.${DOMAIN}`);
+    }
+  }
+  return hosts;
+}
+
+// Traefik keeps stale + freshly-renewed entries side by side during
+// rotation, and each of the two replicas (jobs/traefik.hcl) requests its own
+// copy independently, so a domain can have several series — keep the
+// soonest-expiring one, same as the vault-agent leaf selection above.
+function buildAcmeCertData(rows) {
+  const now = Date.now() / 1000;
+  const byDomain = new Map();
+  for (const r of rows) {
+    const seconds = Number(r.value[1]) - now;
+    for (const domain of (r.metric.sans || "").split(",").filter(Boolean)) {
+      if (!byDomain.has(domain) || seconds < byDomain.get(domain)) {
+        byDomain.set(domain, seconds);
+      }
+    }
+  }
+
+  // Before the catalog's first load, acmeEligibleServices is still empty —
+  // treat everything as live rather than flashing every domain as orphaned.
+  const expected = isCatalogLoaded ? expectedAcmeHostnames() : null;
+  const live = [];
+  const orphaned = [];
+  for (const [host, seconds] of byDomain) {
+    const bucket = !expected || expected.has(host) ? live : orphaned;
+    bucket.push({ host, seconds });
+  }
+  live.sort((a, b) => a.host.localeCompare(b.host));
+  orphaned.sort((a, b) => a.host.localeCompare(b.host));
+  return { live, orphaned };
+}
+
+let infraData = {
+  uptime: [],
+  certs: {},
+  pki: {},
+  acme: { live: [], orphaned: [] },
+};
 
 async function promQuery(query) {
   const res = await fetch(
@@ -258,12 +327,19 @@ async function watchInfra() {
 }
 
 async function loadInfra() {
-  const [boot, x509, ...certResults] = await Promise.all([
+  const [boot, x509, acmeCerts, ...certResults] = await Promise.all([
     promQuery("node_boot_time_seconds"),
     promQuery("x509_cert_not_after"),
+    // job="traefik" only: the internal instance's pki_int-issued certs.
+    // traefik-ingress's public certs (Let's Encrypt via Cloudflare DNS-01)
+    // are a separate resolver with no relationship to the Consul catalog
+    // reconciliation below.
+    promQuery('traefik_tls_certs_not_after{job="traefik"}'),
     ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
   ]);
   const now = Date.now() / 1000;
+
+  infraData.acme = buildAcmeCertData(acmeCerts);
 
   infraData.uptime = boot
     .map((r) => ({
@@ -347,6 +423,7 @@ function renderInfra() {
   renderUptime();
   renderCertTypes();
   renderPkiMounts();
+  renderAcmeCerts();
 }
 
 function renderUptime() {
@@ -378,16 +455,7 @@ function renderCertTypes() {
       (min, r) => (min === null || r.seconds < min.seconds ? r : min),
       null,
     );
-    const breakout = rows
-      .map(
-        (row) => `
-          <div class="cert-breakout-row">
-            <span class="host">${row.host}</span>
-            ${expiryChip(row.seconds, type.warnThresholdSeconds)}
-          </div>
-        `,
-      )
-      .join("");
+    const breakout = certBreakoutRows(rows, type.warnThresholdSeconds);
     return `
       <details class="info-card cert-type-card">
         <summary>
@@ -417,6 +485,67 @@ function renderPkiMounts() {
   ).join("");
 }
 
+function certBreakoutRows(rows, warnThresholdSeconds) {
+  return rows
+    .map(
+      (row) => `
+        <div class="cert-breakout-row">
+          <span class="host">${row.host}</span>
+          ${expiryChip(row.seconds, warnThresholdSeconds)}
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderAcmeCerts() {
+  const container = document.getElementById("acme-certs");
+  if (!container) return;
+  const { live, orphaned } = infraData.acme;
+
+  const earliest = live.reduce(
+    (min, r) => (min === null || r.seconds < min.seconds ? r : min),
+    null,
+  );
+
+  let html = `
+    <details class="info-card cert-type-card">
+      <summary>
+        <span class="cert-type-name">Traefik (${live.length})</span>
+        <span class="cert-type-summary-right">
+          ${expiryChip(earliest?.seconds)}
+          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+          </svg>
+        </span>
+      </summary>
+      <div class="cert-breakout">${certBreakoutRows(live) || `<p class="infra-loading">No certs reporting</p>`}</div>
+    </details>
+  `;
+
+  // No rollup chip here on purpose: these aren't backed by a live Consul
+  // service (jobs/*.hcl has nothing registering them), so there's nothing
+  // actionable about their expiry — they're surfaced for cleanup awareness,
+  // not urgency. Omitted entirely when there's nothing orphaned.
+  if (orphaned.length) {
+    html += `
+      <details class="info-card cert-type-card orphaned">
+        <summary>
+          <span class="cert-type-name">Orphaned (${orphaned.length})</span>
+          <span class="cert-type-summary-right">
+            <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+            </svg>
+          </span>
+        </summary>
+        <div class="cert-breakout">${certBreakoutRows(orphaned)}</div>
+      </details>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
 async function watchCatalog() {
   let index = 0;
   while (true) {
@@ -434,15 +563,16 @@ async function watchCatalog() {
         const catalog = await res.json();
 
         const newServicesData = {};
+        const newAcmeEligibleServices = {};
         for (const name in catalog) {
-          if (
-            !name.endsWith("-sidecar-proxy") &&
-            catalog[name].includes("traefik.enable=true")
-          ) {
+          if (!catalog[name].includes("traefik.enable=true")) continue;
+          newAcmeEligibleServices[name] = catalog[name];
+          if (!name.endsWith("-sidecar-proxy")) {
             newServicesData[name] = catalog[name];
           }
         }
         servicesData = newServicesData;
+        acmeEligibleServices = newAcmeEligibleServices;
         isCatalogLoaded = true;
         checkAndRender();
       } else {

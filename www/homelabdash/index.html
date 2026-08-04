@@ -519,6 +519,17 @@
         transform: rotate(180deg);
       }
 
+      /* Orphaned ACME certs (no matching Consul service) aren't actionable,
+         so the card is deliberately quieter than a live cert-type-card. */
+      .cert-type-card.orphaned {
+        opacity: 0.7;
+      }
+
+      .cert-type-card.orphaned .cert-type-name {
+        font-weight: 400;
+        color: var(--md-on-surface-variant);
+      }
+
       .cert-type-name {
         font-weight: 500;
       }
@@ -890,6 +901,13 @@
       <section class="infra-section">
         <h2>PKI Issuing Mounts</h2>
         <div id="pki-mounts" class="pki-list">
+          <p class="infra-loading">Loading…</p>
+        </div>
+      </section>
+
+      <section class="infra-section">
+        <h2>ACME Certificates</h2>
+        <div id="acme-certs" class="cert-type-grid">
           <p class="infra-loading">Loading…</p>
         </div>
       </section>
