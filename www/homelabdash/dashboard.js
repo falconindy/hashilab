@@ -296,11 +296,21 @@ function buildAcmeCertData(rows) {
   return { live, orphaned };
 }
 
+// Public-facing wildcard cert traefik-ingress requests via Let's Encrypt
+// (Cloudflare DNS-01, jobs/traefik-ingress.hcl's "letsencrypt" resolver) — a
+// single static cert covering *.falconindy.com for every publicly-exposed
+// service, not a per-service ACME resource like the internal
+// traefik.enable=true certs above, so there's no Consul catalog entry to
+// reconcile it against.
+const PUBLIC_WILDCARD_QUERY =
+  'traefik_tls_certs_not_after{job="traefik-ingress"} - time()';
+
 let infraData = {
   uptime: [],
   certs: {},
   pki: {},
   acme: { live: [], orphaned: [] },
+  publicWildcard: null,
 };
 
 async function promQuery(query) {
@@ -327,19 +337,23 @@ async function watchInfra() {
 }
 
 async function loadInfra() {
-  const [boot, x509, acmeCerts, ...certResults] = await Promise.all([
-    promQuery("node_boot_time_seconds"),
-    promQuery("x509_cert_not_after"),
-    // job="traefik" only: the internal instance's pki_int-issued certs.
-    // traefik-ingress's public certs (Let's Encrypt via Cloudflare DNS-01)
-    // are a separate resolver with no relationship to the Consul catalog
-    // reconciliation below.
-    promQuery('traefik_tls_certs_not_after{job="traefik"}'),
-    ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
-  ]);
+  const [boot, x509, acmeCerts, publicWildcardRows, ...certResults] =
+    await Promise.all([
+      promQuery("node_boot_time_seconds"),
+      promQuery("x509_cert_not_after"),
+      // job="traefik" only: the internal instance's pki_int-issued certs.
+      // traefik-ingress's public wildcard (below) is a separate resolver
+      // with no relationship to the Consul catalog reconciliation here.
+      promQuery('traefik_tls_certs_not_after{job="traefik"}'),
+      promQuery(PUBLIC_WILDCARD_QUERY),
+      ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
+    ]);
   const now = Date.now() / 1000;
 
   infraData.acme = buildAcmeCertData(acmeCerts);
+  infraData.publicWildcard = publicWildcardRows.length
+    ? Math.min(...publicWildcardRows.map((r) => Number(r.value[1])))
+    : null;
 
   infraData.uptime = boot
     .map((r) => ({
@@ -424,6 +438,7 @@ function renderInfra() {
   renderCertTypes();
   renderPkiMounts();
   renderAcmeCerts();
+  renderPublicWildcard();
 }
 
 function renderUptime() {
@@ -483,6 +498,17 @@ function renderPkiMounts() {
       </div>
     `,
   ).join("");
+}
+
+function renderPublicWildcard() {
+  const container = document.getElementById("public-wildcard");
+  if (!container) return;
+  container.innerHTML = `
+    <div class="info-card pki-row">
+      <span class="mount-name">falconindy.com</span>
+      ${expiryChip(infraData.publicWildcard)}
+    </div>
+  `;
 }
 
 function certBreakoutRows(rows, warnThresholdSeconds) {

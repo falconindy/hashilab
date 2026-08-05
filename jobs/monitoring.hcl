@@ -555,6 +555,20 @@ job "monitoring" {
                   annotations:
                     summary: "Watched x509 cert expiring soon: {{ $labels.filepath }} on {{ $labels.instance }}"
                     description: "Cert watched by x509-exporter (Vault raft client cert, root/intermediate CAs) expires in under 14 days."
+
+                # job="traefik" (internal, pki_int) deliberately excluded: its
+                # ACME store keeps entries for decommissioned services (see
+                # homelabdash's ACME Certificates/Orphaned reconciliation),
+                # which would make this noisy. traefik-ingress requests a
+                # single static wildcard (jobs/traefik-ingress.hcl), so
+                # there's no such ambiguity here.
+                - alert: PublicWildcardCertExpiringSoon
+                  expr: (traefik_tls_certs_not_after{job="traefik-ingress"} - time()) < 14 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Public wildcard TLS cert expiring soon: {{ $labels.sans }}"
+                    description: "The falconindy.com wildcard cert (Let's Encrypt via Cloudflare DNS-01) expires in under 14 days."
         EOF
 
         destination   = "local/alerts.yml"
