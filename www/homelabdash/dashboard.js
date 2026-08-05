@@ -270,6 +270,9 @@ function expectedAcmeHostnames() {
 // rotation, and each of the two replicas (jobs/traefik.hcl) requests its own
 // copy independently, so a domain can have several series — keep the
 // soonest-expiring one, same as the vault-agent leaf selection above.
+// Returns one flat, sorted list with `orphaned` flagged per row (rather than
+// split live/orphaned buckets) so the caller can render them inline in the
+// same breakout, just visually muted.
 function buildAcmeCertData(rows) {
   const now = Date.now() / 1000;
   const byDomain = new Map();
@@ -285,15 +288,13 @@ function buildAcmeCertData(rows) {
   // Before the catalog's first load, acmeEligibleServices is still empty —
   // treat everything as live rather than flashing every domain as orphaned.
   const expected = isCatalogLoaded ? expectedAcmeHostnames() : null;
-  const live = [];
-  const orphaned = [];
-  for (const [host, seconds] of byDomain) {
-    const bucket = !expected || expected.has(host) ? live : orphaned;
-    bucket.push({ host, seconds });
-  }
-  live.sort((a, b) => a.host.localeCompare(b.host));
-  orphaned.sort((a, b) => a.host.localeCompare(b.host));
-  return { live, orphaned };
+  return [...byDomain.entries()]
+    .map(([host, seconds]) => ({
+      host,
+      seconds,
+      orphaned: expected ? !expected.has(host) : false,
+    }))
+    .sort((a, b) => a.host.localeCompare(b.host));
 }
 
 // Public-facing wildcard cert traefik-ingress requests via Let's Encrypt
@@ -309,7 +310,7 @@ let infraData = {
   uptime: [],
   certs: {},
   pki: {},
-  acme: { live: [], orphaned: [] },
+  acme: [],
   publicWildcard: null,
 };
 
@@ -438,7 +439,6 @@ function renderInfra() {
   renderCertTypes();
   renderPkiMounts();
   renderAcmeCerts();
-  renderPublicWildcard();
 }
 
 function renderUptime() {
@@ -462,30 +462,40 @@ function renderUptime() {
 function renderCertTypes() {
   const container = document.getElementById("cert-types");
   container.innerHTML = CERT_TYPES.map((type) => {
-    // rows is sorted by hostname (for the breakout below), so the earliest
-    // (soonest-expiring) entry for the rollup chip has to be found by value
-    // rather than assumed to be rows[0].
     const rows = infraData.certs[type.key] || [];
-    const earliest = rows.reduce(
-      (min, r) => (min === null || r.seconds < min.seconds ? r : min),
-      null,
-    );
-    const breakout = certBreakoutRows(rows, type.warnThresholdSeconds);
-    return `
-      <details class="info-card cert-type-card">
-        <summary>
-          <span class="cert-type-name">${type.label}</span>
-          <span class="cert-type-summary-right">
-            ${expiryChip(earliest?.seconds, type.warnThresholdSeconds)}
-            <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-            </svg>
-          </span>
-        </summary>
-        <div class="cert-breakout">${breakout || `<p class="infra-loading">No hosts reporting</p>`}</div>
-      </details>
-    `;
+    return certTypeCardHtml(type.label, rows, type.warnThresholdSeconds);
   }).join("");
+}
+
+// Shared by renderCertTypes (fixed, non-orphanable host lists) and
+// renderAcmeCerts (dynamic domain lists that can include orphaned rows,
+// which are excluded from the rollup chip below since they aren't
+// actionable). `name` is the fully-formatted summary label (callers add a
+// "(N)" count where it's meaningful).
+function certTypeCardHtml(name, rows, warnThresholdSeconds) {
+  // rows is sorted by hostname (for the breakout below), so the earliest
+  // (soonest-expiring) live entry for the rollup chip has to be found by
+  // value rather than assumed to be rows[0].
+  const earliest = rows.reduce(
+    (min, r) =>
+      r.orphaned ? min : min === null || r.seconds < min.seconds ? r : min,
+    null,
+  );
+  const breakout = certBreakoutRows(rows, warnThresholdSeconds);
+  return `
+    <details class="info-card cert-type-card">
+      <summary>
+        <span class="cert-type-name">${name}</span>
+        <span class="cert-type-summary-right">
+          ${expiryChip(earliest?.seconds, warnThresholdSeconds)}
+          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+          </svg>
+        </span>
+      </summary>
+      <div class="cert-breakout">${breakout || `<p class="infra-loading">No hosts reporting</p>`}</div>
+    </details>
+  `;
 }
 
 function renderPkiMounts() {
@@ -500,22 +510,15 @@ function renderPkiMounts() {
   ).join("");
 }
 
-function renderPublicWildcard() {
-  const container = document.getElementById("public-wildcard");
-  if (!container) return;
-  container.innerHTML = `
-    <div class="info-card pki-row">
-      <span class="mount-name">falconindy.com</span>
-      ${expiryChip(infraData.publicWildcard)}
-    </div>
-  `;
-}
-
+// row.orphaned (set by buildAcmeCertData) gets a muting class rather than
+// its own separate list — visually de-emphasized inline instead of split
+// into a second card, since these aren't backed by a live Consul service
+// (jobs/*.hcl has nothing registering them) and so aren't actionable.
 function certBreakoutRows(rows, warnThresholdSeconds) {
   return rows
     .map(
       (row) => `
-        <div class="cert-breakout-row">
+        <div class="cert-breakout-row${row.orphaned ? " orphaned" : ""}">
           <span class="host">${row.host}</span>
           ${expiryChip(row.seconds, warnThresholdSeconds)}
         </div>
@@ -527,49 +530,16 @@ function certBreakoutRows(rows, warnThresholdSeconds) {
 function renderAcmeCerts() {
   const container = document.getElementById("acme-certs");
   if (!container) return;
-  const { live, orphaned } = infraData.acme;
 
-  const earliest = live.reduce(
-    (min, r) => (min === null || r.seconds < min.seconds ? r : min),
-    null,
-  );
+  const wildcardRows =
+    infraData.publicWildcard === null
+      ? []
+      : [{ host: "falconindy.com", seconds: infraData.publicWildcard }];
 
-  let html = `
-    <details class="info-card cert-type-card">
-      <summary>
-        <span class="cert-type-name">Traefik (${live.length})</span>
-        <span class="cert-type-summary-right">
-          ${expiryChip(earliest?.seconds)}
-          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-          </svg>
-        </span>
-      </summary>
-      <div class="cert-breakout">${certBreakoutRows(live) || `<p class="infra-loading">No certs reporting</p>`}</div>
-    </details>
-  `;
-
-  // No rollup chip here on purpose: these aren't backed by a live Consul
-  // service (jobs/*.hcl has nothing registering them), so there's nothing
-  // actionable about their expiry — they're surfaced for cleanup awareness,
-  // not urgency. Omitted entirely when there's nothing orphaned.
-  if (orphaned.length) {
-    html += `
-      <details class="info-card cert-type-card orphaned">
-        <summary>
-          <span class="cert-type-name">Orphaned (${orphaned.length})</span>
-          <span class="cert-type-summary-right">
-            <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-            </svg>
-          </span>
-        </summary>
-        <div class="cert-breakout">${certBreakoutRows(orphaned)}</div>
-      </details>
-    `;
-  }
-
-  container.innerHTML = html;
+  container.innerHTML = [
+    certTypeCardHtml(`Vault (${infraData.acme.length})`, infraData.acme),
+    certTypeCardHtml(`Let's Encrypt (${wildcardRows.length})`, wildcardRows),
+  ].join("");
 }
 
 async function watchCatalog() {

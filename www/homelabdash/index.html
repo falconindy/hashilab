@@ -519,17 +519,6 @@
         transform: rotate(180deg);
       }
 
-      /* Orphaned ACME certs (no matching Consul service) aren't actionable,
-         so the card is deliberately quieter than a live cert-type-card. */
-      .cert-type-card.orphaned {
-        opacity: 0.7;
-      }
-
-      .cert-type-card.orphaned .cert-type-name {
-        font-weight: 400;
-        color: var(--md-on-surface-variant);
-      }
-
       .cert-type-name {
         font-weight: 500;
       }
@@ -552,6 +541,17 @@
 
       .cert-breakout-row .host {
         color: var(--md-on-surface-variant);
+      }
+
+      /* Orphaned ACME certs (no matching Consul service) aren't actionable
+         — shown inline rather than split into a separate list, but muted so
+         they read as "not urgent" without being hidden entirely. */
+      .cert-breakout-row.orphaned {
+        opacity: 0.6;
+      }
+
+      .cert-breakout-row.orphaned .host {
+        font-style: italic;
       }
 
       /* status/severity chip, shared by cert-type cards and pki mount rows.
@@ -908,13 +908,6 @@
       <section class="infra-section">
         <h2>ACME Certificates</h2>
         <div id="acme-certs" class="cert-type-grid">
-          <p class="infra-loading">Loading…</p>
-        </div>
-      </section>
-
-      <section class="infra-section">
-        <h2>Public Ingress</h2>
-        <div id="public-wildcard" class="pki-list">
           <p class="infra-loading">Loading…</p>
         </div>
       </section>
