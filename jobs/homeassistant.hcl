@@ -43,18 +43,6 @@ job "homeassistant" {
         ]
       }
 
-      template {
-        destination = "local/http.yaml"
-        data        = <<-EOF
-          server_port: 8123
-          use_x_forwarded_for: true
-          trusted_proxies:
-            - 127.0.0.1/32
-            - 10.0.100.0/24
-            - 172.16.0.0/12
-        EOF
-      }
-
       env {
         TZ                 = "America/New_York"
         REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
