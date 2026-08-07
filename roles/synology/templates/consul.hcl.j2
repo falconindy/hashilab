@@ -81,6 +81,20 @@ services {
   }
 }
 
+services {
+  id   = "node-exporter"
+  name = "node-exporter"
+  port = 9100
+
+  check {
+    id       = "alive"
+    name     = "alive"
+    http     = "http://localhost:9100/"
+    interval = "10s"
+    timeout  = "2s"
+  }
+}
+
 telemetry {
   disable_hostname          = true
   prometheus_retention_time = "72h"

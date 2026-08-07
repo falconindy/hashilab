@@ -14,3 +14,7 @@
 service "nas" {
   policy = "write"
 }
+
+service "node-exporter" {
+  policy = "write"
+}
