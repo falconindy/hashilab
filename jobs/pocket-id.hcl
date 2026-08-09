@@ -29,6 +29,12 @@ job "pocket-id" {
       port "envoy_metrics" { to = 9102 }
     }
 
+    ephemeral_disk {
+      # Storage for GeoLite2-City.mmdb.
+      size    = 300 # MB
+      migrate = true
+    }
+
     task "server" {
       driver = "docker"
 
@@ -41,9 +47,10 @@ job "pocket-id" {
       }
 
       env {
-        TZ          = "America/New_York"
-        APP_URL     = "https://id.falconindy.com"
-        TRUST_PROXY = "true"
+        TZ              = "America/New_York"
+        APP_URL         = "https://id.falconindy.com"
+        TRUST_PROXY     = "true"
+        GEOLITE_DB_PATH = "/alloc/data/GeoLite2-City.mmdb"
       }
 
       vault {}
@@ -53,6 +60,7 @@ job "pocket-id" {
           {{ with secret "kv/data/default/pocket-id" }}
             ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
             DB_CONNECTION_STRING="postgres://pocketid:{{ .Data.data.postgres_password }}@postgres.virtual.home:80/pocketid?sslmode=disable"
+            MAXMIND_LICENSE_KEY="{{ .Data.data.maxmind_license_key }}"
           {{ end }}
         EOF
         destination = "secrets/pocket-id.env"
