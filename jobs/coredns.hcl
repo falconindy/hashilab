@@ -57,6 +57,11 @@ job "coredns" {
 
       template {
         data          = <<-EOF
+          (default) {
+            errors
+            prometheus :{$NOMAD_PORT_metrics}
+          }
+
           . {
             {{- with service "adguard-dns" -}}
             {{ if gt (len .) 0 }}
@@ -77,10 +82,9 @@ job "coredns" {
               serve_stale 1h immediate
             }
 
-            whoami
-            errors
-            prometheus :{$NOMAD_PORT_metrics}
             health :{$NOMAD_PORT_health}
+
+            import default
           }
 
           home.:53 consul.:53 {
@@ -95,9 +99,7 @@ job "coredns" {
 
             forward . {$NOMAD_HOST_IP_dns}:8600
 
-            whoami
-            errors
-            prometheus :{$NOMAD_PORT_metrics}
+            import default
           }
         EOF
         destination   = "local/corefile"
