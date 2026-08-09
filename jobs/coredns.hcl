@@ -99,6 +99,10 @@ job "coredns" {
 
             forward . {$NOMAD_HOST_IP_dns}:8600
 
+            header {
+              response set ra # set RecursionAvailable flag
+            }
+
             import default
           }
         EOF
