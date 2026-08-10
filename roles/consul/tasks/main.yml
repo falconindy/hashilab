@@ -46,7 +46,7 @@
 
 # consul.hcl holds the gossip key and the two ACL tokens, so it's owner consul +
 # 0600 — only the consul user (which the daemon runs as) can read it, matching how
-# the synology role deploys nasty's. consul.env carries no secret, so stays 0644.
+# the synology role deploys nasty's.
 - name: Deploy consul base config
   ansible.builtin.template:
     src: os/etc/consul.d/consul.hcl.j2
@@ -54,14 +54,6 @@
     owner: consul
     group: consul
     mode: "0600"
-  notify:
-    - Flag consul restart
-
-- name: Deploy consul env
-  ansible.builtin.template:
-    src: os/etc/consul.d/consul.env
-    dest: /etc/consul.d/consul.env
-    mode: "0644"
   notify:
     - Flag consul restart
 

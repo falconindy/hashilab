@@ -22,6 +22,8 @@ tls {
   key_file  = "/etc/nomad.d/server.key"
 
   verify_server_hostname = true
+
+  # Don't require client certificates just to use the web frontend.
   verify_https_client    = false
 }
 
@@ -31,11 +33,6 @@ consul {
   grpc_ca_file = "/etc/ssl/certs/home.pem"
   ssl          = true
 
-  # The Nomad agent's own Consul token (NOT the per-allocation workload-identity
-  # tokens — those come from the nomad-workloads auth method). Minted by tofu
-  # (module.consul_acl), stashed in Vault KV, read controller-side in the nomad
-  # role. Carries the nomad-agent policy: catalog read + write on "nomad*"
-  # services so the agent can register its own nomad/nomad-client services.
   token = "{{ nomad_agent_token }}"
 
   auto_advertise       = true
@@ -44,18 +41,7 @@ consul {
   server_auto_join = true
   client_auto_join = true
 
-  # Workload identity: Nomad mints a signed JWT per service/task that Consul's
-  # nomad-workloads auth method (tofu module.consul_nomad_wi) exchanges for a
-  # least-privilege Consul token — a per-service token for service-bearing
-  # allocs, the nomad-tasks role for serviceless ones. This is what lets
-  # workloads reach Consul WITHOUT the anonymous token; the agent `token` above
-  # only covers the agent's own nomad/nomad-client services.
-  # aud must match the method's BoundAudiences. The ttl below is the login JWT's
-  # lifetime ONLY — it is NOT the Consul token's lifetime and must not be
-  # confused with the auth method's max_token_ttl (which is deliberately unset so
-  # the derived token lives as long as the alloc; see module.consul_nomad_wi).
-  # The auth method must already exist (tofu applied) before this deploys, and
-  # this must be verified before Consul flips to default_policy = "deny".
+  # Workload Identities for Consul ACLs
   service_identity {
     aud = ["consul.io"]
     ttl = "1h"
@@ -75,6 +61,7 @@ vault {
   enabled = true
   address = "{{ vault_addr }}"
 
+  # Workload Identities for Vault
   default_identity {
     aud  = ["vault.io"]
     env  = false
