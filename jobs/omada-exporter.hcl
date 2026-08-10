@@ -51,10 +51,10 @@ job "omada-exporter" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/omada-exporter" }}
-            OMADA_PASS="{{ .Data.data.omada_password }}"
-            OMADA_CLIENT_ID="{{ .Data.data.openapi_client_id }}"
-            OMADA_SECRET_ID="{{ .Data.data.openapi_secret_id }}"
+          {{ with (secret "kv/data/default/omada-exporter").Data.data }}
+            OMADA_PASS="{{ .omada_password }}"
+            OMADA_CLIENT_ID="{{ .openapi_client_id }}"
+            OMADA_SECRET_ID="{{ .openapi_secret_id }}"
           {{ end }}
         EOF
         destination = "secrets/env"

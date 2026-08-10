@@ -40,10 +40,10 @@ job "teslamate" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/teslamate" }}
-            ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
-            DATABASE_PASS="{{ .Data.data.postgres_password }}" 
-            MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
+          {{ with (secret "kv/data/default/teslamate").Data.data }}
+            ENCRYPTION_KEY="{{ .encryption_key }}"
+            DATABASE_PASS="{{ .postgres_password }}"
+            MQTT_PASSWORD="{{ .mqtt_password }}"
           {{ end }}
         EOF
         destination = "secrets/env"

@@ -44,8 +44,8 @@ job "postgres" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/postgres" }}
-            POSTGRES_PASSWORD="{{ .Data.data.postgres_password }}"
+          {{ with (secret "kv/data/default/postgres").Data.data }}
+            POSTGRES_PASSWORD="{{ .postgres_password }}"
           {{ end }}
         EOF
         destination = "secrets/env"

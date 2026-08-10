@@ -313,8 +313,8 @@ job "traefik-ingress" {
       template {
         data        = <<EOF
           CF_API_EMAIL="d@falconindy.com"
-          {{ with secret "kv/data/default/traefik-ingress" }}
-            CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
+          {{ with (secret "kv/data/default/traefik-ingress").Data.data }}
+            CF_DNS_API_TOKEN="{{ .cloudflare_api_token }}"
           {{ end }}
         EOF
         destination = "secrets/env"

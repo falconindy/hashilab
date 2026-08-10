@@ -81,13 +81,13 @@ job "go2rtc" {
             filters:
               networks: [udp4]
 
-          {{ with secret "kv/data/default/go2rtc" }}
+          {{ with (secret "kv/data/default/go2rtc").Data.data }}
           streams:
             reolink_9527000KL3GD157J_0_main:
-              - rtsp://{{ .Data.data.nursery_connection }}/Preview_01_main
+              - rtsp://{{ .nursery_connection }}/Preview_01_main
               - ffmpeg:reolink_9527000KL3GD157J_0_main#audio=opus#query=log_level=debug
             tapo_control_a8_42_a1_29_7b_69_hd_tapo_control:
-              - rtsp://{{ .Data.data.livingroom_connection }}/stream1
+              - rtsp://{{ .livingroom_connection }}/stream1
               - ffmpeg:tapo_control_a8_42_a1_29_7b_69_hd_tapo_control#audio=opus#query=log_level=debug
           {{ end }}
 

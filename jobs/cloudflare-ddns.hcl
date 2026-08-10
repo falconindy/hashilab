@@ -36,8 +36,8 @@ job "cloudflare-ddns" {
 
       template {
         data        = <<-EOF
-          {{ with secret "kv/data/default/cloudflare-ddns" }}
-            CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
+          {{ with (secret "kv/data/default/cloudflare-ddns").Data.data }}
+            CLOUDFLARE_API_TOKEN="{{ .api_token }}"
           {{ end }}
         EOF
         destination = "secrets/env"

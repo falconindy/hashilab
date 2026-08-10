@@ -50,8 +50,8 @@ job "tailscale" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/tailscale" }}
-            TS_AUTHKEY="{{ .Data.data.auth_key }}"
+          {{ with (secret "kv/data/default/tailscale").Data.data }}
+            TS_AUTHKEY="{{ .auth_key }}"
           {{ end }}
 
           TS_USERSPACE="true"

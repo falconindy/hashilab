@@ -65,8 +65,8 @@ job "zwave-js" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/zwave-js" }}
-            SESSION_SECRET="{{ .Data.data.session_secret }}"
+          {{ with (secret "kv/data/default/zwave-js").Data.data }}
+            SESSION_SECRET="{{ .session_secret }}"
           {{ end }}
         EOF
         destination = "secrets/env"

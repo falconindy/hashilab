@@ -57,10 +57,10 @@ job "pocket-id" {
 
       template {
         data        = <<-EOF
-          {{ with secret "kv/data/default/pocket-id" }}
-            ENCRYPTION_KEY="{{ .Data.data.encryption_key }}"
-            DB_CONNECTION_STRING="postgres://pocketid:{{ .Data.data.postgres_password }}@postgres.virtual.home:80/pocketid?sslmode=disable"
-            MAXMIND_LICENSE_KEY="{{ .Data.data.maxmind_license_key }}"
+          {{ with (secret "kv/data/default/pocket-id").Data.data }}
+            ENCRYPTION_KEY="{{ .encryption_key }}"
+            DB_CONNECTION_STRING="postgres://pocketid:{{ .postgres_password }}@postgres.virtual.home:80/pocketid?sslmode=disable"
+            MAXMIND_LICENSE_KEY="{{ .maxmind_license_key }}"
           {{ end }}
         EOF
         destination = "secrets/env"

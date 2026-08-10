@@ -38,11 +38,11 @@ job "maramon" {
 
       template {
         data        = <<EOF
-          {{ with secret "kv/data/default/maramon" }}
-            HUCKLEBERRY_EMAIL    = "{{ .Data.data.huckleberry_email }}"
-            HUCKLEBERRY_PASSWORD = "{{ .Data.data.huckleberry_password }}"
-            STREAM_URL           = "{{ .Data.data.stream_url }}"
-            MQTT_PASSWORD        = "{{ .Data.data.mqtt_password }}"
+          {{ with (secret "kv/data/default/maramon").Data.data }}
+            HUCKLEBERRY_EMAIL    = "{{ .huckleberry_email }}"
+            HUCKLEBERRY_PASSWORD = "{{ .huckleberry_password }}"
+            STREAM_URL           = "{{ .stream_url }}"
+            MQTT_PASSWORD        = "{{ .mqtt_password }}"
           {{ end }}
         EOF
         destination = "secrets/env"
