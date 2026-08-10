@@ -58,6 +58,7 @@ locals {
     ]
     "go2rtc" = [
       { name = "homeassistant", action = "allow" },
+      { name = "maramon", action = "allow" },
     ]
     "homeassistant" = [
       { name = "traefik-ingress", action = "allow" },
