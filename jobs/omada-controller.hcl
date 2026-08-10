@@ -101,6 +101,24 @@ job "omada-controller" {
         SSL_CERT_NAME     = "tls.crt"
         SSL_KEY_NAME      = "tls.key"
         TZ                = "America/New_York"
+
+        # Tuning suggested by upstream (mbentley).
+        JAVA_MIN_HEAP_SIZE = "128m"
+        JAVA_MAX_HEAP_SIZE = "512m"
+        MONGOD_EXTRA_ARGS  = "--wiredTigerCacheSizeGB 0.25"
+
+        # TODO: Enable after 6.3.x
+        # APPLICATION_PROPERTIES = <<-EOF
+        #   server.tomcat.threads.max=50
+        #   server.tomcat.threads.min-spare=5
+        #   server.tomcat.accept-count=50
+        #   spring.task.execution.pool.core-size=5
+        #   spring.task.execution.pool.max-size=20
+        #   spring.task.execution.pool.queue-capacity=100
+        #   spring.task.scheduling.pool.size=2
+        #   logging.level.root=WARN
+        #   logging.level.com.tplink=INFO
+        #   EOF
       }
 
       resources {
