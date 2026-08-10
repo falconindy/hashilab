@@ -57,7 +57,7 @@ job "omada-exporter" {
             OMADA_SECRET_ID="{{ .Data.data.openapi_secret_id }}"
           {{ end }}
         EOF
-        destination = "secrets/auth.env"
+        destination = "secrets/env"
         env         = true
       }
     }

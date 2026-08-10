@@ -46,7 +46,7 @@ job "teslamate" {
             MQTT_PASSWORD="{{ .Data.data.mqtt_password }}"
           {{ end }}
         EOF
-        destination = "secrets/auth.env"
+        destination = "secrets/env"
         env         = true
       }
 

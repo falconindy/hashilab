@@ -63,7 +63,7 @@ job "pocket-id" {
             MAXMIND_LICENSE_KEY="{{ .Data.data.maxmind_license_key }}"
           {{ end }}
         EOF
-        destination = "secrets/pocket-id.env"
+        destination = "secrets/env"
         env         = true
       }
 

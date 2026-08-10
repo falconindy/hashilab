@@ -40,7 +40,7 @@ job "cloudflare-ddns" {
             CLOUDFLARE_API_TOKEN="{{ .Data.data.api_token }}"
           {{ end }}
         EOF
-        destination = "secrets/auth.env"
+        destination = "secrets/env"
         env         = true
       }
 

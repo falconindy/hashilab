@@ -317,7 +317,7 @@ job "traefik-ingress" {
             CF_DNS_API_TOKEN="{{ .Data.data.cloudflare_api_token }}"
           {{ end }}
         EOF
-        destination = "secrets/cloudflare.env"
+        destination = "secrets/env"
         env         = true
       }
 

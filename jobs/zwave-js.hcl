@@ -69,7 +69,7 @@ job "zwave-js" {
             SESSION_SECRET="{{ .Data.data.session_secret }}"
           {{ end }}
         EOF
-        destination = "secrets/auth.env"
+        destination = "secrets/env"
         env         = true
       }
     }

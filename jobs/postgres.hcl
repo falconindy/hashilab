@@ -48,7 +48,7 @@ job "postgres" {
             POSTGRES_PASSWORD="{{ .Data.data.postgres_password }}"
           {{ end }}
         EOF
-        destination = "secrets/auth.env"
+        destination = "secrets/env"
         env         = true
       }
 

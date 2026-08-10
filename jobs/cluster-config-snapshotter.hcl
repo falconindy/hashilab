@@ -70,7 +70,7 @@ job "cluster-config-snapshotter" {
             CONSUL_HTTP_TOKEN="{{ .Data.token }}"
           {{ end }}
         EOF
-        destination = "secrets/consul.env"
+        destination = "secrets/env"
         env         = true
       }
 
@@ -111,7 +111,7 @@ job "cluster-config-snapshotter" {
             NOMAD_TOKEN="{{ .Data.secret_id }}"
           {{ end }}
         EOF
-        destination = "secrets/nomad.env"
+        destination = "secrets/env"
         env         = true
       }
 
