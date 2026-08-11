@@ -18,7 +18,7 @@
     },
     {
       "matchPackageNames": ["linuxserver/deluge"],
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["minor", "patch", "release"]
     },
     {
       "matchPackageNames": ["linuxserver/deluge"],
