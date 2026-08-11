@@ -339,6 +339,14 @@ job "monitoring" {
                   scheme: https
                   services: [omada-exporter]
               relabel_configs:
+                # Scrape the exporter's own metrics via the sidecar-exposed port.
+                - source_labels: [__meta_consul_service_metadata_omada_metrics_port]
+                  action: keep
+                  regex: (.+)
+                - source_labels: [__address__, __meta_consul_service_metadata_omada_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
                 - source_labels: [__meta_consul_dc]
                   target_label:  dc
                 - source_labels: [__meta_consul_node]

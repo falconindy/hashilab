@@ -22,7 +22,8 @@ job "omada-exporter" {
         servers = ["172.17.0.1"]
       }
 
-      port "metrics" {}
+      port "omada_metrics" {}
+      port "envoy_metrics" { to = 9102 }
     }
 
     task "server" {
@@ -31,7 +32,6 @@ job "omada-exporter" {
 
       config {
         image = "rcooler/omada_exporter:2.4.0"
-        ports = ["metrics"]
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
@@ -42,9 +42,11 @@ job "omada-exporter" {
       }
 
       env {
+        LOG_LEVEL = "warn"
+
         OMADA_HOST = "https://omada-controller.service.home:8043"
         OMADA_USER = "exporter"
-        OMADA_PORT = "${NOMAD_PORT_metrics}"
+        OMADA_PORT = "9202"
       }
 
       vault {}
@@ -64,7 +66,48 @@ job "omada-exporter" {
 
     service {
       name = "omada-exporter"
-      port = "metrics"
+      port = 9202
+
+      meta {
+        envoy_metrics_port = "${NOMAD_HOST_PORT_envoy_metrics}"
+        omada_metrics_port = "${NOMAD_HOST_PORT_omada_metrics}"
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            transparent_proxy {
+              no_dns = true
+            }
+
+            config {
+              envoy_prometheus_bind_addr = "0.0.0.0:9102"
+            }
+
+            expose {
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 9102
+                listener_port   = "envoy_metrics"
+              }
+              path {
+                path            = "/metrics"
+                protocol        = "http"
+                local_path_port = 9202
+                listener_port   = "omada_metrics"
+              }
+            }
+          }
+        }
+
+        sidecar_task {
+          resources {
+            cpu    = 50
+            memory = 48
+          }
+        }
+      }
 
       check {
         type     = "http"
@@ -72,6 +115,7 @@ job "omada-exporter" {
         name     = "http"
         interval = "5s"
         timeout  = "2s"
+        expose   = true
       }
     }
   }
