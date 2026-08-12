@@ -486,6 +486,47 @@ job "monitoring" {
                     summary: "Allocations restarting frequently on {{ $labels.host }}"
                     description: "More than 3 allocation restarts on this Nomad client in the last 10 minutes."
 
+                # --- Backups ---
+                - alert: PostgresBackupJobFailing
+                  # NomadJobHardDown deliberately stays quiet for a
+                  # periodic/batch job idling between runs, so a failed
+                  # backup run needs its own rule. exported_job may carry
+                  # either the bare parent id or the timestamped periodic
+                  # child id depending on Nomad version, hence the regex.
+                  expr: max(nomad_nomad_job_summary_failed{exported_job=~"cluster-config-snapshotter.*", task_group="postgres"}) > 0
+                  for: 10m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Nightly postgres logical backup failed"
+                    description: "The postgres group of cluster-config-snapshotter has a failed allocation. Check `nomad job status cluster-config-snapshotter`."
+
+                - alert: PostgresBackupStale
+                  # Written by the backup action into the NFS textfile
+                  # collector dir (jobs/postgres.hcl, jobs/node-exporter.hcl),
+                  # so every node's node-exporter reports the same value —
+                  # max() dedupes. Threshold is 1.5x the daily schedule so
+                  # one missed run alerts without a single slow run flapping.
+                  expr: time() - max(postgres_backup_last_success_timestamp_seconds) > 36 * 3600
+                  for: 15m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "No successful postgres backup in over 36 hours"
+                    description: "Check the postgres group of cluster-config-snapshotter and the postgres job's backup action."
+
+                - alert: PostgresBackupMetricMissing
+                  # Catches the collector path itself breaking (NFS
+                  # unmounted, dir renamed, flag dropped), which would
+                  # otherwise silently mask PostgresBackupStale.
+                  expr: absent(postgres_backup_last_success_timestamp_seconds)
+                  for: 2h
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "postgres backup freshness metric has disappeared"
+                    description: "node-exporter's textfile collector is no longer reporting postgres_backup_last_success_timestamp_seconds."
+
                 # --- Consul health checks ---
                 - alert: ConsulCheckCritical
                   expr: consul_health_service_status{status="critical"} == 1

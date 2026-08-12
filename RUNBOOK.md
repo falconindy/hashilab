@@ -430,3 +430,103 @@ plane.
 Vault root (it drops out once its leaf certs have rotated away). Only then `tofu
 destroy` the module — deleting the mount while its certs are still in the trust
 bundle turns a clean rollback into an outage.
+
+## Restore Postgres from a logical backup
+
+Backups are daily `pg_dump`/`pg_dumpall` sets produced by the `action "backup"`
+on the `postgres` job's `server` task (`jobs/postgres.hcl`), triggered by the
+`postgres` group of `cluster-config-snapshotter`. They are **logical**, not
+physical: point-in-time as of the dump, no WAL, so worst-case loss is one day.
+They're the portable backup — survive a major-version jump, restore one
+database without touching the others — not a substitute for `/clusterdata`
+itself being backed up off the NAS, which nothing in this repo currently does.
+
+Each set lives at `/clusterdata/postgres-backups/<UTC timestamp>/`, also
+visible inside the running server task at `/appdata/backups/<timestamp>` — so
+a restore needs no copying, just `nomad alloc exec`. A set holds
+`globals.sql` (roles + grants, from `pg_dumpall --globals-only`), one
+`<db>.dump` per database (`pg_dump -Fc`, restore with `pg_restore`), and
+`SHA256SUMS` + `MANIFEST`. `latest` symlinks the newest complete set.
+Retention is 14 days with a floor of 7 sets.
+
+**Preflight — always verify integrity before trusting a set:**
+
+```bash
+ts=$(nomad alloc exec -job -group postgres -task server postgres \
+  readlink /appdata/backups/latest)          # or pick an older set by name
+
+nomad alloc exec -job -group postgres -task server postgres \
+  sh -c "cd /appdata/backups/$ts && sha256sum -c SHA256SUMS && cat MANIFEST"
+
+# GATE: every line says OK, and MANIFEST says status=ok, before going further.
+```
+
+### Case A — roll back one database (the common case: a bad migration, a `DROP`)
+
+```bash
+# 1. Stop the consumer first. Restoring under a live connection gives an
+#    inconsistent result and pg_restore will fight open sessions.
+nomad job stop teslamate            # or pocket-id
+
+# 2. Confirm the owning role still exists — pg_restore recreates objects
+#    owned by roles named in the dump, and a missing role fails the restore.
+nomad alloc exec -job -group postgres -task server postgres \
+  psql -U postgres -c '\du'
+#    If it's gone, restore globals.sql first (Case B step 3) — that's the
+#    only thing that recreates the role and its password.
+
+# 3. Evict stragglers and recreate the database empty.
+nomad alloc exec -job -group postgres -task server postgres \
+  psql -U postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname='teslamate'"
+nomad alloc exec -job -group postgres -task server postgres \
+  dropdb -U postgres --if-exists teslamate
+nomad alloc exec -job -group postgres -task server postgres \
+  createdb -U postgres -O teslamate teslamate
+
+# 4. Restore.
+nomad alloc exec -job -group postgres -task server postgres \
+  pg_restore -U postgres -d teslamate --exit-on-error -v "/appdata/backups/$ts/teslamate.dump"
+
+# GATE: spot-check row counts against what you expect before restarting the app.
+
+# 5. Bring the consumer back.
+nomad job run jobs/teslamate.hcl
+```
+
+### Case B — full cluster rebuild (lost `/clusterdata/postgres`)
+
+```bash
+# 1. Stop every consumer first — they'll reconnect the instant postgres is
+#    healthy again, straight into a half-restored cluster otherwise.
+nomad job stop teslamate pocket-id
+
+# 2. Redeploy postgres onto empty PGDATA and wait for the pg_isready check to
+#    go green — the entrypoint runs initdb and seeds POSTGRES_PASSWORD from
+#    Vault on its own.
+nomad job run jobs/postgres.hcl
+
+# 3. Globals FIRST — recreates teslamate/pocketid and their password hashes.
+#    Don't use ON_ERROR_STOP: initdb already created the postgres superuser,
+#    so its CREATE ROLE is expected to fail. Read the errors; anything other
+#    than "role already exists" for postgres is a real problem.
+nomad alloc exec -job -group postgres -task server postgres \
+  sh -c "psql -U postgres -f /appdata/backups/$ts/globals.sql"
+
+# GATE: \du lists teslamate and pocketid with their LOGIN attribute.
+
+# 4. Then each database (skip "postgres" — initdb already made it).
+for db in teslamate pocketid; do
+  nomad alloc exec -job -group postgres -task server postgres \
+    createdb -U postgres -O "$db" "$db"
+  nomad alloc exec -job -group postgres -task server postgres \
+    pg_restore -U postgres -d "$db" --exit-on-error -v "/appdata/backups/$ts/$db.dump"
+done
+
+# 5. Restart consumers and confirm each reconnects.
+nomad job run jobs/teslamate.hcl
+nomad job run jobs/pocket-id.hcl
+```
+
+Grafana holds an `allow` intention to `postgres` but has no Postgres
+configuration in `jobs/grafana.hcl` — no database of its own is provisioned
+from this repo, so it needs no stopping and nothing to restore.

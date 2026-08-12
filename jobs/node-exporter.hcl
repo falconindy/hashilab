@@ -37,7 +37,13 @@ job "node-exporter" {
         args = [
           "--web.listen-address=:${NOMAD_PORT_metrics}",
           "--path.rootfs=/host",
-          "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($|/)"
+          "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($|/)",
+          # postgres's backup action (jobs/postgres.hcl) writes a freshness
+          # metric here on every successful run, for staleness alerting
+          # (jobs/monitoring.hcl). /clusterdata is a separate NFS mount, but
+          # the / bind below uses rslave propagation so it's visible under
+          # /host too.
+          "--collector.textfile.directory=/host/clusterdata/postgres-backups/textfile",
         ]
 
         # Mount the host filesystem so node_exporter can "see" outside the container
