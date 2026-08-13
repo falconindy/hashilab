@@ -217,7 +217,10 @@ job "traefik-ingress" {
           certificatesResolvers:
             letsencrypt:
               acme:
+                email: d@falconindy.com
                 storage: /certs/letsencrypt.json
+                profile: tlsserver
+                certificatesDuration: 1080 # 45d
                 dnsChallenge:
                   provider: cloudflare
                   propagation:
