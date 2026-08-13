@@ -204,6 +204,7 @@ job "traefik" {
                 caCertificates:
                   - [[ env "NOMAD_TASK_DIR" ]]/home.pem
                 caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
+                certificatesDuration: 1080 # 45d
                 httpChallenge:
                   entryPoint: http
 
