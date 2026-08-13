@@ -13,7 +13,7 @@ resource "vault_mount" "pki_int_internal" {
   path                      = "pki_int_internal"
   type                      = "pki"
   description               = "Intermediate CA for internal client certs (no ACME, no storage)."
-  max_lease_ttl_seconds     = 157680000 # 43800h
+  max_lease_ttl_seconds     = 157680000 # 5y
   default_lease_ttl_seconds = 0
 }
 
@@ -66,7 +66,7 @@ resource "vault_pki_secret_backend_role" "intermediate" {
   backend        = vault_mount.pki_int_internal.path
   name           = "intermediate"
   allow_any_name = true
-  max_ttl        = 15768000 # 4380h
+  max_ttl        = 3888000 # 45d
   no_store       = true
 
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]

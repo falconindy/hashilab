@@ -14,7 +14,7 @@ resource "vault_mount" "pki_int" {
   path                      = "pki_int"
   type                      = "pki"
   description               = "Intermediate CA with ACME enabled; issues *.service.home certs for Traefik."
-  max_lease_ttl_seconds     = 157680000 # 43800h
+  max_lease_ttl_seconds     = 157680000 # 5y
   default_lease_ttl_seconds = 0
 
   # ACME needs these headers to pass through the mount barrier.
@@ -81,7 +81,7 @@ resource "vault_pki_secret_backend_role" "intermediate" {
   backend        = vault_mount.pki_int.path
   name           = "intermediate"
   allow_any_name = true
-  max_ttl        = 2764800 # 768h
+  max_ttl        = 3888000 # 45d
   no_store       = false
 
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
