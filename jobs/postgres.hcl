@@ -29,6 +29,10 @@ job "postgres" {
       driver = "docker"
       user   = "999:999"
 
+      # Use postgres's recommended "fast" shutdown via SIGINT.
+      kill_signal  = "SIGINT"
+      kill_timeout = "30s"
+
       config {
         image = "postgres:17.10"
 
