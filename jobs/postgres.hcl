@@ -149,7 +149,10 @@ job "postgres" {
 
             # Retention: 14 days, floor of 7 sets so a stretch of failed runs
             # can't prune its way down to nothing to restore from.
-            ls -1 "$root" | grep -E '^[0-9]{8}T[0-9]{6}Z$' | sort -r | tail -n +8 |
+            find "$root" -mindepth 1 -maxdepth 1 -type d \
+                -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z' \
+                -printf '%f\n' |
+              sort -r | tail -n +8 |
               while read -r d; do
                 find "$root/$d" -maxdepth 0 -mtime +14 -exec rm -rf {} +
               done
