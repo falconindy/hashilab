@@ -295,12 +295,14 @@ tofu import 'module.vault_pki_int.vault_mount.pki_int' pki_int
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_cluster.this' pki_int/config/cluster
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_urls.this'    pki_int/config/urls
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_acme.this'    pki_int/config/acme
+tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_auto_tidy.this' pki_int/config/auto-tidy
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_role.intermediate'   pki_int/roles/intermediate
 
 # ── internal intermediate (pki_int_internal) ──
 tofu import 'module.vault_pki_int_internal.vault_mount.pki_int_internal' pki_int_internal
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_config_cluster.this' pki_int_internal/config/cluster
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_config_urls.this'    pki_int_internal/config/urls
+tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_config_auto_tidy.this' pki_int_internal/config/auto-tidy
 tofu import 'module.vault_pki_int_internal.vault_pki_secret_backend_role.intermediate'   pki_int_internal/roles/intermediate
 
 # ── Connect CA (pki_int_connect) ──
@@ -463,14 +465,14 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 - `vault_mount.pki_int` — the mount, with ACME `passthrough_request_headers` / `allowed_response_headers`
 - `vault_pki_secret_backend_intermediate_cert_request` → `vault_pki_secret_backend_root_sign_intermediate` → `vault_pki_secret_backend_intermediate_set_signed` — the sign chain (_bootstrap_)
-- `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_acme`
+- `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_acme` / `..._config_auto_tidy`
 - `vault_pki_secret_backend_role` — the `intermediate` role
 
 ### modules/vault/pki_int_internal
 
 - `vault_mount.pki_int_internal` — the mount (no ACME)
 - the same three-resource sign chain (_bootstrap_)
-- `vault_pki_secret_backend_config_cluster` / `..._config_urls`
+- `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_auto_tidy`
 - `vault_pki_secret_backend_role` — the `intermediate` role, `no_store=true`
 
 ### modules/vault/ssh
