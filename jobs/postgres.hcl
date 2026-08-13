@@ -34,7 +34,7 @@ job "postgres" {
       kill_timeout = "30s"
 
       config {
-        image = "postgres:17.10"
+        image = "postgres:17.11"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
