@@ -8,7 +8,7 @@
        omada-push-kv.sh (the template's exec) then pushes both files into Vault KV;
        the omada-controller Nomad job reads them back and restarts on change. */ -}}
 {{- $privateIp := sockaddr "GetPrivateIP" -}}
-{{- $ttl := "ttl=720h" -}}
+{{- $ttl := "ttl=45d" -}}
 {{- $commonName := "common_name=omada-controller.service.home" -}}
 {{- $ipSans := printf "ip_sans=%s" $privateIp -}}
 {{- with pkiCert "pki_int_internal/issue/intermediate" $ttl $commonName $ipSans -}}

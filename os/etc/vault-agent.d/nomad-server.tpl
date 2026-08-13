@@ -4,7 +4,7 @@
 {{- $ipSans := printf "ip_sans=127.0.0.1,%s" $privateIp -}}
 {{- $nomadRole := mustEnv "NOMAD_ROLE" -}}
 {{- $altNames := printf "alt_names=%s.global.nomad,localhost" $nomadRole -}}
-{{- $ttl := printf "%s" "ttl=32d" -}}
+{{- $ttl := "ttl=45d" -}}
 {{- $keyfile := printf "/etc/%s.d/server.key" $prog -}}
 {{- with pkiCert "pki_int_internal/issue/intermediate" $ttl $commonName $ipSans $altNames -}}
 {{- .Cert -}}
