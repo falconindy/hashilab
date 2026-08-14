@@ -92,6 +92,10 @@ job "homeassistant" {
               destination_name = "zwave-ws"
               local_bind_port  = 3000
             }
+            upstreams {
+              destination_name = "postgres"
+              local_bind_port  = 5432
+            }
           }
         }
 
