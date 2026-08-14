@@ -35,7 +35,7 @@ job "homeassistant" {
       kill_timeout = "30s"
 
       config {
-        image = "homeassistant/home-assistant:2026.8.1"
+        image = "homeassistant/home-assistant:2026.8.2"
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
