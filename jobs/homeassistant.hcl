@@ -44,8 +44,9 @@ job "homeassistant" {
       }
 
       env {
-        TZ                 = "America/New_York"
-        REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
+        TZ                    = "America/New_York"
+        REQUESTS_CA_BUNDLE    = "/etc/ssl/certs/ca-certificates.crt"
+        S6_SERVICES_GRACETIME = "30000"
       }
 
       resources {
