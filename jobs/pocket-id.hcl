@@ -47,7 +47,10 @@ job "pocket-id" {
       }
 
       env {
-        TZ              = "America/New_York"
+        TZ = "America/New_York"
+
+        HOST            = "127.0.0.1"
+        PORT            = "1411"
         APP_URL         = "https://id.falconindy.com"
         TRUST_PROXY     = "true"
         GEOLITE_DB_PATH = "/alloc/data/GeoLite2-City.mmdb"
