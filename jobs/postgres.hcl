@@ -36,6 +36,16 @@ job "postgres" {
       config {
         image = "postgres:17.11"
 
+        args = [
+          "-c", "listen_addresses=127.0.0.1",
+          "-c", "shared_buffers=128MB",
+          "-c", "effective_cache_size=384MB",
+          "-c", "max_connections=40",
+          "-c", "autovacuum_vacuum_scale_factor=0.1",
+          "-c", "log_min_duration_statement=250ms",
+        ]
+
+        shm_size     = 134217728 # 128MiB
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
 
