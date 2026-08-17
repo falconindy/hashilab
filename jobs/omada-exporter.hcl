@@ -52,7 +52,7 @@ job "omada-exporter" {
       vault {}
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with (secret "kv/data/default/omada-exporter").Data.data }}
             OMADA_PASS="{{ .omada_password }}"
             OMADA_CLIENT_ID="{{ .openapi_client_id }}"

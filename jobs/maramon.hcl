@@ -37,7 +37,7 @@ job "maramon" {
       }
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with (secret "kv/data/default/maramon").Data.data }}
             HUCKLEBERRY_EMAIL    = "{{ .huckleberry_email }}"
             HUCKLEBERRY_PASSWORD = "{{ .huckleberry_password }}"

@@ -49,7 +49,7 @@ job "tailscale" {
       vault {}
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with (secret "kv/data/default/tailscale").Data.data }}
             TS_AUTHKEY="{{ .auth_key }}"
           {{ end }}
