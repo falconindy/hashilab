@@ -24,10 +24,6 @@
       "matchPackageNames": ["linuxserver/deluge"],
       "matchUpdateTypes": ["major"],
       "enabled": false
-    },
-    {
-      "versioning": "regex:^(?<compatibility>.*?)-(?<major>v?\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)[\\.-]*r?(?<build>\\d+)*-*r?(?<release>\\w+)*",
-      "matchPackageNames": ["/^ghcr.io\\/linuxserver\\//"]
     }
   ],
   "customManagers": [
