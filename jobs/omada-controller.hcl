@@ -42,7 +42,7 @@ job "omada-controller" {
     task "omada-controller" {
       driver = "docker"
 
-      vault {}
+      kill_timeout = "30s"
 
       config {
         image        = "mbentley/omada-controller:6.2.14.11-openj9"
@@ -55,6 +55,8 @@ job "omada-controller" {
           "secrets/cert:/cert:ro",
         ]
       }
+
+      vault {}
 
       # The cert is issued and rotated by the omada host's vault-agent, which
       # pushes it into KV (see os/etc/vault-agent.d/omada-controller.tpl). Both
