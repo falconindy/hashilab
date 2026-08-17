@@ -314,7 +314,7 @@ job "traefik-ingress" {
       }
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           CF_API_EMAIL="d@falconindy.com"
           {{ with (secret "kv/data/default/traefik-ingress").Data.data }}
             CF_DNS_API_TOKEN="{{ .cloudflare_api_token }}"

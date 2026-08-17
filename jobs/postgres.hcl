@@ -57,7 +57,7 @@ job "postgres" {
       vault {}
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with (secret "kv/data/default/postgres").Data.data }}
             POSTGRES_PASSWORD="{{ .postgres_password }}"
           {{ end }}

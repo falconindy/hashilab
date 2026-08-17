@@ -15,7 +15,7 @@ job "weekly-maintenance" {
       config {
         command = "/bin/sh"
         # add additional weekly maintenance actions as desired
-        args = ["-c", <<EOF
+        args = ["-c", <<-EOF
             echo "running weekly maintenance on ${node.unique.name}.home"
             apt autopurge -y
             apt autoclean

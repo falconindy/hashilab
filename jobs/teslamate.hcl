@@ -39,7 +39,7 @@ job "teslamate" {
       vault {}
 
       template {
-        data        = <<EOF
+        data        = <<-EOF
           {{ with (secret "kv/data/default/teslamate").Data.data }}
             ENCRYPTION_KEY="{{ .encryption_key }}"
             DATABASE_PASS="{{ .postgres_password }}"
