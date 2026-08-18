@@ -58,13 +58,7 @@ job "traefik-ingress" {
       ]
 
       connect {
-        sidecar_service {
-          proxy {
-            config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-          }
-        }
+        sidecar_service {}
 
         sidecar_task {
           resources {

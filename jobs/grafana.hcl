@@ -123,10 +123,6 @@ job "grafana" {
               no_dns = true
             }
 
-            config {
-              envoy_prometheus_bind_addr = "0.0.0.0:9102"
-            }
-
             expose {
               path {
                 path            = "/metrics"
