@@ -1,14 +1,17 @@
 # ── Global proxy defaults ────────────────────────────────────────────────────
-# An empty proxy-defaults/global config entry. Nothing here tunes the mesh; its
-# only job is to exist. The Connect/Envoy bootstrap path fetches
-# GET /v1/config/proxy-defaults/global on every sidecar setup, and with no entry
-# present Consul logs that miss as an ERROR ("Config entry not found for
-# proxy-defaults / global") on a loop. Creating the entry turns those 404s into
-# 200s and silences the noise — it does not change any proxy behaviour.
+# Besides silencing the 404 noise described below, this sets
+# envoy_prometheus_bind_addr so every sidecar exposes its metrics on 9102
+# without each job repeating that in its own proxy.config block. Jobs that run
+# a second sidecar on a non-default port (deluge, zwave-js) still set their own
+# override locally.
+#
+# The entry's mere existence also matters: the Connect/Envoy bootstrap path
+# fetches GET /v1/config/proxy-defaults/global on every sidecar setup, and with
+# no entry present Consul logs that miss as an ERROR ("Config entry not found
+# for proxy-defaults / global") on a loop. Creating the entry turns those 404s
+# into 200s and silences the noise.
 #
 # This is a mesh config entry, the same category as the intentions alongside it.
-# Add real defaults (protocol, mesh-gateway mode, envoy prometheus bind addr, …)
-# to config_json alongside the empty maps below if the mesh ever needs them.
 resource "consul_config_entry" "proxy_defaults" {
   kind = "proxy-defaults"
   name = "global"
@@ -22,6 +25,9 @@ resource "consul_config_entry" "proxy_defaults" {
     Expose           = {}
     MeshGateway      = {}
     TransparentProxy = {}
+    Config = {
+      envoy_prometheus_bind_addr = "0.0.0.0:9102"
+    }
   })
 }
 
