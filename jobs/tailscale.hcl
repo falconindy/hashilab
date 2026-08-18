@@ -48,22 +48,24 @@ job "tailscale" {
 
       vault {}
 
+      env {
+        TS_USERSPACE  = "true"
+        TS_STATE_DIR  = "/var/lib/tailscale/tailscaled.state"
+        TS_EXTRA_ARGS = "--advertise-exit-node  --advertise-tags=tag:homelab"
+
+        TS_HOSTNAME = "homelab"
+        TS_ROUTES   = "10.0.1.0/24,10.0.20.0/24,10.0.100.0/24"
+
+        TS_LOCAL_ADDR_PORT     = "${NOMAD_ADDR_http}"
+        TS_ENABLE_HEALTH_CHECK = "true"
+        TS_ENABLE_METRICS      = "true"
+      }
+
       template {
         data        = <<-EOF
           {{ with (secret "kv/data/default/tailscale").Data.data }}
             TS_AUTHKEY="{{ .auth_key }}"
           {{ end }}
-
-          TS_USERSPACE="true"
-          TS_STATE_DIR="/var/lib/tailscale/tailscaled.state"
-          TS_EXTRA_ARGS="--reset --advertise-exit-node --advertise-tags=tag:homelab"
-
-          TS_HOSTNAME="homelab"
-          TS_ROUTES="10.0.1.0/24,10.0.20.0/24,10.0.100.0/24"
-
-          TS_LOCAL_ADDR_PORT="{{ env "NOMAD_ADDR_http" }}"
-          TS_ENABLE_HEALTH_CHECK="true"
-          TS_ENABLE_METRICS="true"
         EOF
         destination = "secrets/env"
         env         = true
