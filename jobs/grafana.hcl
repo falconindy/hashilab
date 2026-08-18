@@ -33,7 +33,7 @@ job "grafana" {
       driver = "docker"
       user   = "1000:1000"
       config {
-        image       = "grafana/grafana:13.1.3"
+        image       = "grafana/grafana:13.2.0"
         userns_mode = "host"
 
         cap_drop     = ["all"]
