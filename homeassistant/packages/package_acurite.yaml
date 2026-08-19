@@ -2,13 +2,14 @@ mqtt:
   - sensor:
       name: nursery_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/14279
       state_class: measurement
       unique_id: acurite_temperature_14279
-      device: &nursery
-        identifiers: [acurite_14279]
+      device: &id001
+        identifiers:
+          - acurite_14279
         manufacturer: Acurite
         model: 06044M
         name: Nursery Temperature and Humidity
@@ -19,27 +20,26 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/14279
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/14279
       unique_id: acurite_humidity_14279
-      device: *nursery
+      device: *id001
   - binary_sensor:
       name: nursery_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/14279
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_14279
-      device: *nursery
-
+      device: *id001
   - sensor:
       name: mainbath_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/12057
       state_class: measurement
       unique_id: acurite_temperature_12057
-      device: &mainbath
-        identifiers: [acurite_12057]
+      device: &id002
+        identifiers:
+          - acurite_12057
         manufacturer: Acurite
         model: 06044M
         name: Main Bathroom Temperature and Humidity
@@ -50,27 +50,26 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/12057
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/12057
       unique_id: acurite_humidity_12057
-      device: *mainbath
+      device: *id002
   - binary_sensor:
       name: mainbath_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/12057
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_12057
-      device: *mainbath
-
+      device: *id002
   - sensor:
       name: mainbed_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/6652
       state_class: measurement
       unique_id: acurite_temperature_6652
-      device: &mainbed
-        identifiers: [acurite_6652]
+      device: &id003
+        identifiers:
+          - acurite_6652
         manufacturer: Acurite
         model: 06044M
         name: Main Bedroom Temperature and Humidity
@@ -81,27 +80,26 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/6652
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/6652
       unique_id: acurite_humidity_6652
-      device: *mainbed
+      device: *id003
   - binary_sensor:
       name: mainbed_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/6652
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_6652
-      device: *mainbed
-
+      device: *id003
   - sensor:
       name: livingroom_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/2153
       state_class: measurement
       unique_id: acurite_temperature_2153
-      device: &livingroom
-        identifiers: [acurite_2153]
+      device: &id004
+        identifiers:
+          - acurite_2153
         manufacturer: Acurite
         model: 06044M
         name: Living Room Temperature and Humidity
@@ -112,27 +110,26 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/2153
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/2153
       unique_id: acurite_humidity_2153
-      device: *livingroom
+      device: *id004
   - binary_sensor:
       name: livingroom_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/2153
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_2153
-      device: *livingroom
-
+      device: *id004
   - sensor:
       name: office_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/6640
       state_class: measurement
       unique_id: acurite_temperature_6640
-      device: &office
-        identifiers: [acurite_6640]
+      device: &id005
+        identifiers:
+          - acurite_6640
         manufacturer: Acurite
         model: 06044M
         name: Office Temperature and Humidity
@@ -143,27 +140,26 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/6640
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/6640
       unique_id: acurite_humidity_6640
-      device: *office
+      device: *id005
   - binary_sensor:
       name: office_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/6640
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_6640
-      device: *office
-
+      device: *id005
   - sensor:
       name: basement_temperature
       device_class: temperature
-      unit_of_measurement: "°C"
+      unit_of_measurement: °C
       value_template: "{{ value_json.temperature_C | round(1) }}"
       state_topic: rtl_433/Acurite-Tower/9106
       state_class: measurement
       unique_id: acurite_temperature_9106
-      device: &basement
-        identifiers: [acurite_9106]
+      device: &id006
+        identifiers:
+          - acurite_9106
         manufacturer: Acurite
         model: 06044M
         name: Basement Temperature and Humidity
@@ -174,13 +170,12 @@ mqtt:
       value_template: "{{ value_json.humidity }}"
       state_topic: rtl_433/Acurite-Tower/9106
       state_class: measurement
-      json_attributes_topic: rtl_433/Acurite-Tower/9106
       unique_id: acurite_humidity_9106
-      device: *basement
+      device: *id006
   - binary_sensor:
       name: basement_battery
       device_class: battery
       state_topic: rtl_433/Acurite-Tower/9106
       value_template: "{{ 'OFF' if value_json.battery_ok else 'ON' }}"
       unique_id: acurite_battery_9106
-      device: *basement
+      device: *id006
