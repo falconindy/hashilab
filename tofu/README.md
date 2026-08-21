@@ -192,11 +192,13 @@ client and the Nomad client are **separate** Pocket-ID clients). The client IDs
 aren't secret, so they're plain literals in `locals.tf`
 (`vault_oidc_client_id` / `nomad_oidc_client_id`). The client **secrets** live
 in Vault KV instead of a hand-edited tfvars file — `modules/vault/oidc` and
-`modules/nomad/oidc` each read their own path at plan/apply time:
+`modules/nomad/oidc` each read their own path (`kv/pocket-id/vault` and
+`kv/pocket-id/nomad`, each holding an `oidc_client_secret` key) at plan/apply
+time:
 
 ```bash
-vault kv put kv/tofu/oidc/vault client_secret=<Vault client's secret>
-vault kv put kv/tofu/oidc/nomad client_secret=<Nomad client's secret>
+vault kv put kv/pocket-id/vault oidc_client_secret=<Vault client's secret>
+vault kv put kv/pocket-id/nomad oidc_client_secret=<Nomad client's secret>
 ```
 
 `modules/vault/oidc` reads its copy as an _ephemeral_ value and writes it to
@@ -244,15 +246,15 @@ token can be retired.
 
 tofu configures the _consumer_ side of OIDC (Vault/Nomad reading the client
 secret); it cannot mint the secret — Pocket-ID issues it and shows it once, and
-Vault KV (`kv/tofu/oidc/{vault,nomad}`) is just where tofu reads it from, not
+Vault KV (`kv/pocket-id/{vault,nomad}`) is just where tofu reads it from, not
 where it originates. So if the current secret is lost, seeding the
 tofu-managed config means rotating in Pocket-ID. The flow, for each of the
 "Vault" and "Nomad" clients:
 
 1. In the Pocket-ID admin UI, open the client and **regenerate its secret**. Copy
    the new value.
-2. `vault kv put kv/tofu/oidc/<vault|nomad> client_secret=<new value>` (and your
-   password manager).
+2. `vault kv put kv/pocket-id/<vault|nomad> oidc_client_secret=<new value>` (and
+   your password manager).
 3. For the Vault client: bump `oidc_client_secret_wo_version` in
    `modules/vault/oidc/main.tf` (e.g. `1` → `2`) and commit it. This step is
    `vault_jwt_auth_backend`-specific: a write-only attribute has nothing in
@@ -347,7 +349,7 @@ tofu import 'module.vault_ssh.vault_ssh_secret_backend_role.admin' ssh-client-si
 tofu import 'module.vault_oidc.vault_jwt_auth_backend.oidc'      oidc
 tofu import 'module.vault_oidc.vault_jwt_auth_backend_role.role' auth/oidc/role/admin
 # Vault never returns the client secret on read, so right after import the next
-# plan shows the backend wanting to (re)write it from kv/tofu/oidc/vault — that's
+# plan shows the backend wanting to (re)write it from kv/pocket-id/vault — that's
 # expected and harmless, it just re-asserts the value already seeded there (see
 # "OIDC credentials" above).
 

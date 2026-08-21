@@ -8,13 +8,13 @@ locals {
   ]
 }
 
-# The OIDC client secret lives in Vault KV (seeded once via `vault kv put`, see
-# tofu/README.md) instead of a hand-edited tfvars file. Read as an ephemeral
-# value so it never lands in the plan or state file — only the write-only
-# resource attribute below may consume it.
+# The OIDC client secret lives in Vault KV (pre-existing: kv/pocket-id/vault)
+# instead of a hand-edited tfvars file. Read as an ephemeral value so it never
+# lands in the plan or state file — only the write-only resource attribute
+# below may consume it.
 ephemeral "vault_kv_secret_v2" "oidc" {
   mount = "kv"
-  name  = "tofu/oidc/vault"
+  name  = "pocket-id/vault"
 }
 
 # ── The auth method ──────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ resource "vault_jwt_auth_backend" "oidc" {
   # _wo_version whenever the secret is rotated in Vault KV (see the OIDC
   # credentials section of tofu/README.md) — with nothing in state to diff
   # against, that's the only way tofu knows to resend it.
-  oidc_client_secret_wo         = tostring(ephemeral.vault_kv_secret_v2.oidc.data.client_secret)
+  oidc_client_secret_wo         = tostring(ephemeral.vault_kv_secret_v2.oidc.data.oidc_client_secret)
   oidc_client_secret_wo_version = 1
 
   # Lets `vault login -method=oidc` work without naming a role.
