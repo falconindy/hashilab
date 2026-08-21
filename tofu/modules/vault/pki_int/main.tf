@@ -81,6 +81,7 @@ resource "vault_pki_secret_backend_role" "intermediate" {
   backend        = vault_mount.pki_int.path
   name           = "intermediate"
   allow_any_name = true
+  ttl            = 3888000 # 45d
   max_ttl        = 3888000 # 45d
   no_store       = false
 
