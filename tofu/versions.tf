@@ -1,5 +1,7 @@
 terraform {
-  required_version = ">= 1.7"
+  # >= 1.10 for ephemeral resources (modules/vault/oidc reads its OIDC client
+  # secret from Vault KV as an ephemeral value, never persisted to state).
+  required_version = ">= 1.10"
 
   required_providers {
     vault = {

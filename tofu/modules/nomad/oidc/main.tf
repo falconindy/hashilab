@@ -5,6 +5,21 @@ locals {
   ]
 }
 
+# The OIDC client secret lives in Vault KV (seeded once via `vault kv put`,
+# see tofu/README.md) instead of a hand-edited tfvars file. Unlike
+# vault_jwt_auth_backend in modules/vault/oidc, the hashicorp/nomad provider's
+# nomad_acl_auth_method has no oidc_client_secret_wo counterpart yet, so this
+# has to be a normal (non-ephemeral) data source — the secret still lands in
+# tofu state here, same as it did when it came from a var. `tofu validate`
+# nags that this data source is deprecated in favor of the ephemeral
+# resource — that's the provider itself confirming the gap; it's expected
+# until nomad_acl_auth_method grows a write-only attribute. Switch this to an
+# ephemeral read + write-only attribute once the provider adds one.
+data "vault_kv_secret_v2" "oidc" {
+  mount = "kv"
+  name  = "tofu/oidc/nomad"
+}
+
 # ── The OIDC auth method ─────────────────────────────────────────────────────
 # Equivalent to `nomad acl auth-method create/update -type=OIDC ... pocket-id`.
 # No key material — pure config, so no bootstrap gate (like the Vault OIDC
@@ -20,7 +35,7 @@ resource "nomad_acl_auth_method" "pocket_id" {
   config {
     oidc_discovery_url    = var.oidc_discovery_url
     oidc_client_id        = var.oidc_client_id
-    oidc_client_secret    = var.oidc_client_secret
+    oidc_client_secret    = data.vault_kv_secret_v2.oidc.data["client_secret"]
     oidc_scopes           = ["openid", "profile"]
     oidc_enable_pkce      = true
     bound_audiences       = [var.oidc_client_id]

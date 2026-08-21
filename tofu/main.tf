@@ -9,28 +9,6 @@ variable "bootstrap" {
   default     = false
 }
 
-variable "vault_oidc_client_id" {
-  description = "Pocket-ID \"Vault\" client ID. Supply in secrets.auto.tfvars (or TF_VAR_vault_oidc_client_id)."
-  type        = string
-}
-
-variable "vault_oidc_client_secret" {
-  description = "Pocket-ID \"Vault\" client secret. Supply in secrets.auto.tfvars (gitignored)."
-  type        = string
-  sensitive   = true
-}
-
-variable "nomad_oidc_client_id" {
-  description = "Pocket-ID \"Nomad\" client ID (a DIFFERENT client from Vault's). Supply in secrets.auto.tfvars."
-  type        = string
-}
-
-variable "nomad_oidc_client_secret" {
-  description = "Pocket-ID \"Nomad\" client secret. Supply in secrets.auto.tfvars (gitignored)."
-  type        = string
-  sensitive   = true
-}
-
 module "vault_pki" {
   source = "./modules/vault/pki"
 
@@ -87,8 +65,7 @@ module "vault_oidc" {
 
   vault_address      = local.vault_address
   oidc_discovery_url = local.oidc_discovery_url
-  oidc_client_id     = var.vault_oidc_client_id
-  oidc_client_secret = var.vault_oidc_client_secret
+  oidc_client_id     = local.vault_oidc_client_id
 }
 
 module "vault_approle" {
@@ -144,8 +121,7 @@ module "nomad_oidc" {
 
   nomad_address      = local.nomad_address
   oidc_discovery_url = local.oidc_discovery_url
-  oidc_client_id     = var.nomad_oidc_client_id
-  oidc_client_secret = var.nomad_oidc_client_secret
+  oidc_client_id     = local.nomad_oidc_client_id
 }
 
 # The Vault Consul secrets engine — mints break-glass Consul management tokens

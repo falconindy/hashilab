@@ -9,12 +9,6 @@ variable "oidc_discovery_url" {
 }
 
 variable "oidc_client_id" {
-  description = "OIDC client ID from the Pocket-ID \"Nomad\" client (distinct from the Vault client). Provide via TF_VAR_nomad_oidc_client_id."
+  description = "OIDC client ID from the Pocket-ID \"Nomad\" client (distinct from the Vault client). Wired from the root local.nomad_oidc_client_id."
   type        = string
-}
-
-variable "oidc_client_secret" {
-  description = "OIDC client secret from the Pocket-ID \"Nomad\" client. Provide via TF_VAR_nomad_oidc_client_secret."
-  type        = string
-  sensitive   = true
 }

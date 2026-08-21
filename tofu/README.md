@@ -55,8 +55,10 @@ Vault OIDC login:
 - `modules/vault/oidc` — the `oidc` auth method (Pocket-ID discovery + client
   creds + `default_role`) and its `admin` role. This is an auth method, not a
   secrets engine: **no key material, so no `bootstrap` gate** — it's pure,
-  idempotent config and always managed. The Pocket-ID client id/secret are the
-  only inputs, passed in as sensitive variables (below).
+  idempotent config and always managed. The Pocket-ID client ID is the only
+  input; the client secret is read from Vault KV as an ephemeral value and
+  written via a write-only attribute, so it never touches state (see **Auth**
+  below).
 
 Vault-agent AppRole:
 
@@ -186,20 +188,29 @@ export VAULT_ADDR=https://vault.service.home:8200
 ```
 
 The two OIDC modules each need their own Pocket-ID client credentials (the Vault
-client and the Nomad client are **separate** Pocket-ID clients). Rather than
-retyping them, put them in a gitignored `secrets.auto.tfvars` — tofu auto-loads
-it every run:
+client and the Nomad client are **separate** Pocket-ID clients). The client IDs
+aren't secret, so they're plain literals in `locals.tf`
+(`vault_oidc_client_id` / `nomad_oidc_client_id`). The client **secrets** live
+in Vault KV instead of a hand-edited tfvars file — `modules/vault/oidc` and
+`modules/nomad/oidc` each read their own path at plan/apply time:
 
 ```bash
-cp secrets.auto.tfvars.example secrets.auto.tfvars
-chmod 600 secrets.auto.tfvars
-$EDITOR secrets.auto.tfvars        # fill in the four values
+vault kv put kv/tofu/oidc/vault client_secret=<Vault client's secret>
+vault kv put kv/tofu/oidc/nomad client_secret=<Nomad client's secret>
 ```
 
-Keep the canonical copy in your password manager — Pocket-ID shows a client
-secret only once. The values also live in tofu state, so this file is no new
-exposure; it's just a convenience + backup-of-record. See **OIDC credentials**
-below for seeding/rotation.
+`modules/vault/oidc` reads its copy as an _ephemeral_ value and writes it to
+`vault_jwt_auth_backend` through the write-only `oidc_client_secret_wo`
+attribute, so it's never persisted to a plan file or to tofu state.
+`modules/nomad/oidc` can't do the same yet — `nomad_acl_auth_method` in the
+hashicorp/nomad provider has no write-only counterpart for
+`config.oidc_client_secret` — so that one still reads Vault KV via a normal
+data source and the secret still lands in state, same as when it came from a
+var. Revisit that module once the provider grows one.
+
+Keep the canonical copy of both secrets in your password manager too —
+Pocket-ID shows a client secret only once, and Vault KV is a mirror, not a
+backup. See **OIDC credentials** below for seeding/rotation.
 
 The Nomad-provider modules (`vault_nomad` and `nomad_oidc`) need the Nomad
 provider pointed at a **management** token — creating ACL tokens / auth methods
@@ -232,21 +243,31 @@ token can be retired.
 ## OIDC credentials (seed once, rotate in Pocket-ID)
 
 tofu configures the _consumer_ side of OIDC (Vault/Nomad reading the client
-secret); it cannot mint the secret — Pocket-ID issues it and shows it once. So
-if the current secret is lost, seeding the tofu-managed config means rotating in
-Pocket-ID. The flow, for each of the "Vault" and "Nomad" clients:
+secret); it cannot mint the secret — Pocket-ID issues it and shows it once, and
+Vault KV (`kv/tofu/oidc/{vault,nomad}`) is just where tofu reads it from, not
+where it originates. So if the current secret is lost, seeding the
+tofu-managed config means rotating in Pocket-ID. The flow, for each of the
+"Vault" and "Nomad" clients:
 
 1. In the Pocket-ID admin UI, open the client and **regenerate its secret**. Copy
    the new value.
-2. Put it in `secrets.auto.tfvars` (and your password manager).
-3. `tofu apply` — writes the new secret into the Vault/Nomad OIDC config, so both
+2. `vault kv put kv/tofu/oidc/<vault|nomad> client_secret=<new value>` (and your
+   password manager).
+3. For the Vault client: bump `oidc_client_secret_wo_version` in
+   `modules/vault/oidc/main.tf` (e.g. `1` → `2`) and commit it. This step is
+   `vault_jwt_auth_backend`-specific: a write-only attribute has nothing in
+   state to diff against, so without a version bump `tofu apply` has no signal
+   that the secret changed and won't resend it. The Nomad client needs no such
+   bump — `modules/nomad/oidc` reads Vault KV through a normal data source, so
+   a changed value is picked up on the next plan like any other input.
+4. `tofu apply` — writes the new secret into the Vault/Nomad OIDC config, so both
    sides match again.
-4. Verify the login still works (`vault login -method=oidc`,
+5. Verify the login still works (`vault login -method=oidc`,
    `nomad login -method=pocket-id`).
 
-Neither Vault nor Nomad returns the client secret on read, so after an import the
-first plan always shows the OIDC config wanting to (re)write the secret from your
-tfvars — that's expected; it's how the value gets asserted.
+Neither Vault nor Nomad returns the client secret on read, so after an import
+the first plan always shows the OIDC config wanting to (re)write the secret —
+that's expected; it's how the value gets asserted.
 
 ## The `bootstrap` flag (the safety gate)
 
@@ -325,9 +346,10 @@ tofu import 'module.vault_ssh.vault_ssh_secret_backend_role.admin' ssh-client-si
 # ── OIDC auth method (oidc) ──
 tofu import 'module.vault_oidc.vault_jwt_auth_backend.oidc'      oidc
 tofu import 'module.vault_oidc.vault_jwt_auth_backend_role.role' auth/oidc/role/admin
-# Vault never returns oidc_client_secret on read, so right after import the next
-# plan shows the backend wanting to (re)write the secret from your TF_VAR — that's
-# expected and harmless, it just re-asserts the value you already supplied.
+# Vault never returns the client secret on read, so right after import the next
+# plan shows the backend wanting to (re)write it from kv/tofu/oidc/vault — that's
+# expected and harmless, it just re-asserts the value already seeded there (see
+# "OIDC credentials" above).
 
 # ── AppRole auth (vault-agent) ──
 tofu import 'module.vault_approle.vault_auth_backend.approle' approle

@@ -11,6 +11,12 @@ locals {
   nomad_address      = "https://nomad.service.home:4646"
   oidc_discovery_url = "https://id.falconindy.com"
 
+  # Pocket-ID OIDC client IDs — two separate clients, one per consumer. Not
+  # secret (the client *secrets* live in Vault KV and are read at plan/apply
+  # time — see modules/vault/oidc, modules/nomad/oidc, and tofu/README.md).
+  vault_oidc_client_id = "9531992a-e09e-4b48-bc10-887b89790692"
+  nomad_oidc_client_id = "4b0f71ba-1833-4bfe-b2e7-a2d90f3ac1dc"
+
   # Consul HTTP API as host:port (no scheme) — the Vault Consul secrets engine
   # wants address + scheme split (see module.vault_consul).
   consul_address = "consul.service.home:8501"
