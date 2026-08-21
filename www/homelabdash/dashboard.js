@@ -187,11 +187,12 @@ function renderAlerts() {
 // watched by x509-exporter) vs. the consul/nomad agent metrics, which are
 // already seconds-remaining gauges. Both kinds get normalized to
 // seconds-remaining in loadInfra().
-// All four of these are issued by vault-agent with ttl=32d and renewed at
-// the global lease_renewal_threshold = 0.5 (os/etc/vault-agent.d/agent.hcl.j2),
-// i.e. vault-agent should renew each one while ~16d still remains. Less than
-// that means a renewal that should already have happened hasn't.
-const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 16 * 86400;
+// All four of these are issued by vault-agent with ttl=45d and renewed at
+// the global lease_renewal_threshold = 0.667 (os/etc/vault-agent.d/agent.hcl.j2),
+// i.e. vault-agent should renew each one while ~1/3 of the 45d ttl (~15d)
+// still remains. Less than that means a renewal that should already have
+// happened hasn't.
+const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 45 * 86400 * (1 - 0.667);
 
 const CERT_TYPES = [
   {
