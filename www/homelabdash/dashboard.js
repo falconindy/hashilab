@@ -459,20 +459,49 @@ function renderUptime() {
     .join("");
 }
 
+// Periodic re-render replaces these <details> wholesale, which would reset
+// every expanded dropdown to closed on each 20s poll — capture which keys
+// are open beforehand and reapply after, so an admin mid-triage doesn't get
+// the breakout yanked shut under them.
+function preserveOpenDetails(container) {
+  const open = new Set();
+  container.querySelectorAll("details[open]").forEach((d) => {
+    if (d.dataset.certKey) open.add(d.dataset.certKey);
+  });
+  return open;
+}
+
+function restoreOpenDetails(container, openKeys) {
+  container.querySelectorAll("details").forEach((d) => {
+    if (d.dataset.certKey && openKeys.has(d.dataset.certKey)) {
+      d.open = true;
+    }
+  });
+}
+
 function renderCertTypes() {
   const container = document.getElementById("cert-types");
+  const openKeys = preserveOpenDetails(container);
   container.innerHTML = CERT_TYPES.map((type) => {
     const rows = infraData.certs[type.key] || [];
-    return certTypeCardHtml(type.label, rows, type.warnThresholdSeconds);
+    return certTypeCardHtml(
+      type.key,
+      type.label,
+      rows,
+      type.warnThresholdSeconds,
+    );
   }).join("");
+  restoreOpenDetails(container, openKeys);
 }
 
 // Shared by renderCertTypes (fixed, non-orphanable host lists) and
 // renderAcmeCerts (dynamic domain lists that can include orphaned rows,
 // which are excluded from the rollup chip below since they aren't
-// actionable). `name` is the fully-formatted summary label (callers add a
-// "(N)" count where it's meaningful).
-function certTypeCardHtml(name, rows, warnThresholdSeconds) {
+// actionable). `key` is a stable identifier for open-state tracking across
+// re-renders; `name` is the fully-formatted summary label (callers add a
+// "(N)" count where it's meaningful, which is why it can't double as the
+// key).
+function certTypeCardHtml(key, name, rows, warnThresholdSeconds) {
   // rows is sorted by hostname (for the breakout below), so the earliest
   // (soonest-expiring) live entry for the rollup chip has to be found by
   // value rather than assumed to be rows[0].
@@ -483,7 +512,7 @@ function certTypeCardHtml(name, rows, warnThresholdSeconds) {
   );
   const breakout = certBreakoutRows(rows, warnThresholdSeconds);
   return `
-    <details class="info-card cert-type-card">
+    <details class="info-card cert-type-card" data-cert-key="${key}">
       <summary>
         <span class="cert-type-name">${name}</span>
         <span class="cert-type-summary-right">
@@ -531,15 +560,25 @@ function renderAcmeCerts() {
   const container = document.getElementById("acme-certs");
   if (!container) return;
 
+  const openKeys = preserveOpenDetails(container);
   const wildcardRows =
     infraData.publicWildcard === null
       ? []
       : [{ host: "falconindy.com", seconds: infraData.publicWildcard }];
 
   container.innerHTML = [
-    certTypeCardHtml(`Vault (${infraData.acme.length})`, infraData.acme),
-    certTypeCardHtml(`Let's Encrypt (${wildcardRows.length})`, wildcardRows),
+    certTypeCardHtml(
+      "vault",
+      `Vault (${infraData.acme.length})`,
+      infraData.acme,
+    ),
+    certTypeCardHtml(
+      "letsencrypt",
+      `Let's Encrypt (${wildcardRows.length})`,
+      wildcardRows,
+    ),
   ].join("");
+  restoreOpenDetails(container, openKeys);
 }
 
 async function watchCatalog() {
