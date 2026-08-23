@@ -1,6 +1,5 @@
-server             = true
-bootstrap_expect   = {{ groups["consul_servers"] | length }}
-leave_on_terminate = true
+server           = true
+bootstrap_expect = {{ groups["consul_servers"] | length }}
 
 # Scales all Raft timeouts. Default is 5 (HashiCorp's conservative setting for
 # cloud/high-latency networks); 1 is the documented low-latency setting for
