@@ -219,6 +219,18 @@ const CERT_TYPES = [
     filepath: "/certs/vault/client.crt",
     warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
   },
+  {
+    // Same vault-agent ttl=45d/0.667 lease as the four types above (see
+    // os/etc/vault-agent.d/omada-controller.tpl), but omada-controller lives
+    // on the bastion (dc2) and reads its cert from a Vault KV push rather
+    // than a local file x509-exporter can watch, so this is sourced from
+    // the blackbox tls_connect probe instead (jobs/monitoring.hcl's
+    // tls-expiration job).
+    key: "omadaController",
+    label: "Omada Controller",
+    probeJob: "omada-controller",
+    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
+  },
 ];
 
 // The CA cert for each PKI issuing mount, rendered to disk once by
@@ -339,17 +351,24 @@ async function watchInfra() {
 }
 
 async function loadInfra() {
-  const [boot, x509, acmeCerts, publicWildcardRows, ...certResults] =
-    await Promise.all([
-      promQuery("node_boot_time_seconds"),
-      promQuery("x509_cert_not_after"),
-      // job="traefik" only: the internal instance's pki_int-issued certs.
-      // traefik-ingress's public wildcard (below) is a separate resolver
-      // with no relationship to the Consul catalog reconciliation here.
-      promQuery('traefik_tls_certs_not_after{job="traefik"}'),
-      promQuery(PUBLIC_WILDCARD_QUERY),
-      ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
-    ]);
+  const [
+    boot,
+    x509,
+    probeCerts,
+    acmeCerts,
+    publicWildcardRows,
+    ...certResults
+  ] = await Promise.all([
+    promQuery("node_boot_time_seconds"),
+    promQuery("x509_cert_not_after"),
+    promQuery("probe_ssl_earliest_cert_expiry"),
+    // job="traefik" only: the internal instance's pki_int-issued certs.
+    // traefik-ingress's public wildcard (below) is a separate resolver
+    // with no relationship to the Consul catalog reconciliation here.
+    promQuery('traefik_tls_certs_not_after{job="traefik"}'),
+    promQuery(PUBLIC_WILDCARD_QUERY),
+    ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
+  ]);
   const now = Date.now() / 1000;
 
   infraData.acme = buildAcmeCertData(acmeCerts);
@@ -372,6 +391,16 @@ async function loadInfra() {
         host: r.metric.host,
         seconds: Number(r.value[1]),
       }));
+    } else if (type.probeJob) {
+      // Blackbox target label (jobs/monitoring.hcl's tls-expiration job) is
+      // ip:port, not a hostname -- there's no Consul node to attach a nicer
+      // label to, since the probe target is the service address, not an agent.
+      rows = probeCerts
+        .filter((r) => r.metric.job === type.probeJob)
+        .map((r) => ({
+          host: r.metric.instance,
+          seconds: Number(r.value[1]) - now,
+        }));
     } else {
       // vault-agent renders these as leaf+CA bundles (.Cert followed by .CA,
       // see os/etc/vault-agent.d/vault-{server,client}.tpl), so x509-exporter

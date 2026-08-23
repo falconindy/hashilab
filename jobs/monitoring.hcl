@@ -228,7 +228,7 @@ job "monitoring" {
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
-                  services: [vault, omada-controller]
+                  services: [omada-controller]
               # A relabeling config that lets us scrape target through the Blackbox Exporter,
               # while labeling the resulting metrics with the probed target's URL.
               relabel_configs:
@@ -532,12 +532,12 @@ job "monitoring" {
                     summary: "Vault node sealed: {{ $labels.host }}"
                     description: "A Vault node has been sealed for more than 2 minutes."
 
-                - alert: CertExpiringSoon
+                - alert: OmadaCertExpiringSoon
                   expr: (probe_ssl_earliest_cert_expiry - time()) < 14 * 86400
                   labels:
                     severity: warning
                   annotations:
-                    summary: "TLS cert expiring soon: {{ $labels.instance }}"
+                    summary: "Omada controller TLS cert expiring soon: {{ $labels.instance }}"
                     description: "Certificate probed via blackbox_exporter expires in under 14 days."
 
                 - alert: ConsulAgentCertExpiringSoon
