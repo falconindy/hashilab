@@ -47,6 +47,8 @@ tls {
     verify_incoming = false
   }
   grpc {
+    # Consul does not support incoming TLS verification of Envoy sidecars,
+    # ref: https://github.com/hashicorp/consul/issues/13088
     verify_incoming = false
   }
 }
