@@ -61,6 +61,9 @@ job "teslamate" {
         MQTT_HOST     = "mosquitto.virtual.home"
         MQTT_PORT     = "80"
         MQTT_USERNAME = "teslamate"
+
+        MQTT_HOME_ASSISTANT_DISCOVERY     = "true"
+        MQTT_HOME_ASSISTANT_DISCOVERY_URL = "https://teslamate.service.home"
       }
 
       resources {
