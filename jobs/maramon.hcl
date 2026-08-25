@@ -32,7 +32,6 @@ job "maramon" {
         TZ   = "America/New_York"
 
         MQTT_HOST     = "mosquitto.virtual.home"
-        MQTT_PORT     = 80
         MQTT_USERNAME = "rtl_433"
       }
 

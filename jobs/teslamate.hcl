@@ -54,12 +54,10 @@ job "teslamate" {
         PORT = 8080
 
         DATABASE_HOST = "postgres.virtual.home"
-        DATABASE_PORT = "80"
         DATABASE_USER = "teslamate"
         DATABASE_NAME = "teslamate"
 
         MQTT_HOST     = "mosquitto.virtual.home"
-        MQTT_PORT     = "80"
         MQTT_USERNAME = "teslamate"
 
         MQTT_HOME_ASSISTANT_DISCOVERY     = "true"

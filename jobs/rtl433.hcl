@@ -52,7 +52,7 @@ job "rtl433" {
       template {
         data        = <<-EOF
           {{ with (secret "kv/data/default/rtl433").Data.data }}
-            output mqtt://mosquitto.virtual.home:80,user=rtl_433,pass={{ .mqtt_password }},events=rtl_433[/model][/id]
+            output mqtt://mosquitto.virtual.home,user=rtl_433,pass={{ .mqtt_password }},events=rtl_433[/model][/id]
           {{ end }}
         EOF
         destination = "local/rtl_433.conf"
