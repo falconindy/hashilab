@@ -36,10 +36,7 @@ job "coredns" {
         static = 53
       }
 
-      port "metrics" {
-        static = 9153
-      }
-
+      port "metrics" {}
       port "health" {}
     }
 
@@ -49,7 +46,8 @@ job "coredns" {
       config {
         image = "coredns/coredns:1.14.7"
         ports = ["dns", "metrics", "health"]
-        args  = ["-conf", "/local/corefile"]
+
+        args = ["-conf", "/local/corefile"]
       }
 
       # An explicit consul identity is needed to render the config.
@@ -120,6 +118,10 @@ job "coredns" {
     service {
       name = "coredns"
       port = "health"
+
+      meta {
+        coredns_metrics_port = "${NOMAD_HOST_PORT_metrics}"
+      }
 
       check {
         type     = "http"

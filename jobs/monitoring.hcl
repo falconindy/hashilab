@@ -323,10 +323,9 @@ job "monitoring" {
                   target_label:  dc
                 - source_labels: [__meta_consul_node]
                   target_label:  host
-                - source_labels: [__address__]
-                  action: replace
-                  regex: ([^:]+):.*
-                  replacement: $1:9153
+                - source_labels: [__address__, __meta_consul_service_metadata_coredns_metrics_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
                   target_label: __address__
 
             - job_name: omada
