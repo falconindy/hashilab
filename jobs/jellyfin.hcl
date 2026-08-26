@@ -46,6 +46,9 @@ job "jellyfin" {
         image = "jellyfin/jellyfin:10.11.11"
         ports = ["discovery"]
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/clusterdata/jellyfin:/config:rw",
           "/clusterdata/media:/media:rw",
