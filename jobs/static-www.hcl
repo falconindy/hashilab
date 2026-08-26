@@ -30,6 +30,11 @@ job "static-www" {
 
       config {
         image = "nginx:1.31.4-alpine"
+
+        cap_add      = ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETUID", "SETGID"]
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "local/nginx.conf:/etc/nginx/conf.d/default.conf",
           "/clusterdata/www:/srv/www:ro",
