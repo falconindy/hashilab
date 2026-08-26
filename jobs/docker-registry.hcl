@@ -37,6 +37,10 @@ job "docker-registry" {
 
       config {
         image = "registry:3.1.1"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "local/config.yml:/etc/distribution/config.yml:ro",
           "/clusterdata/docker-registry:/var/lib/registry:rw",
@@ -145,6 +149,10 @@ job "docker-registry" {
 
       config {
         image = "registry:3.1.1"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "local/config.yml:/etc/distribution/config.yml:ro",
           "/clusterdata/docker-registry-cache:/var/lib/registry:rw",
