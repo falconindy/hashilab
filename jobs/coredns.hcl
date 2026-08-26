@@ -47,6 +47,10 @@ job "coredns" {
         image = "coredns/coredns:1.14.7"
         ports = ["dns", "metrics", "health"]
 
+        cap_add      = ["NET_BIND_SERVICE"]
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = ["-conf", "/local/corefile"]
       }
 
