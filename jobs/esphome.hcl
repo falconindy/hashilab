@@ -35,6 +35,10 @@ job "esphome" {
         image        = "esphome/esphome:2026.8.1"
         network_mode = "host"
         ports        = ["http"]
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/clusterdata/esphome/cache:/cache:rw",
           "/clusterdata/esphome/config:/config:rw",
