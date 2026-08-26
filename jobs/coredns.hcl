@@ -54,6 +54,7 @@ job "coredns" {
       consul {}
 
       template {
+        # render with: consul-template -once -dry -template jobs/coredns.hcl
         data          = <<-EOF
           (default) {
             errors
@@ -61,16 +62,12 @@ job "coredns" {
           }
 
           . {
-            {{- with service "adguard-dns" -}}
-            {{ if gt (len .) 0 }}
+            {{- with service "adguard-dns" }}
             forward . {{ range . }}{{ .Address }}:{{ .Port }} {{ end }}{
               policy round_robin
               health_check 5s
             }
-            {{- else -}}
-            forward . 1.1.1.1 8.8.8.8
-            {{- end -}}
-            {{ else }}
+            {{- else }}
             forward . 1.1.1.1 8.8.8.8
             {{- end }}
 
