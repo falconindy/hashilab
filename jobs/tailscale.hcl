@@ -33,7 +33,11 @@ job "tailscale" {
       config {
         image        = "tailscale/tailscale:v1.102.3"
         network_mode = "host"
+
         cap_add      = ["NET_ADMIN", "NET_RAW"]
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/clusterdata/tailscale:/var/lib/tailscale:rw"
         ]
