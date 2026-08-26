@@ -48,6 +48,9 @@ job "zwave-js" {
           "/clusterdata/zwave-js:/usr/src/app/store:rw",
         ]
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         devices = [
           {
             host_path      = "/dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00",
