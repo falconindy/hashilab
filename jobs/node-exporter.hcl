@@ -34,6 +34,9 @@ job "node-exporter" {
         network_mode = "host"
         pid_mode     = "host"
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         args = [
           "--web.listen-address=:${NOMAD_PORT_metrics}",
           "--path.rootfs=/host",
