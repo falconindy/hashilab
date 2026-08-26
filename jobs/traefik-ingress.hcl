@@ -74,6 +74,10 @@ job "traefik-ingress" {
 
       config {
         image = "traefik:v3.7.11"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml:ro",
           "/clusterdata/traefik-ingress/acme:/certs:rw",
