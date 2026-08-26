@@ -247,7 +247,7 @@ output "vault_ssh_role" {
 }
 
 output "vault_approle_role_id" {
-  description = "Confirm this equals os/etc/vault-agent.d/agent.roleid after import."
+  description = "The vault-agent AppRole role_id, for cross-checking against `vault read auth/approle/role/vault-agent/role-id` after import."
   value       = module.vault_approle.role_id
 }
 

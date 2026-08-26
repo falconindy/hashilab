@@ -9,6 +9,6 @@ output "role_name" {
 }
 
 output "role_id" {
-  description = "The role's role_id — after import, confirm this equals os/etc/vault-agent.d/agent.roleid."
+  description = "The role's role_id, rendered live to /etc/vault-agent.d/agent.roleid by the vault_agent Ansible role — not a static file to diff against."
   value       = vault_approle_auth_backend_role.this.role_id
 }

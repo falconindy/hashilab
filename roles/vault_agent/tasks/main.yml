@@ -15,12 +15,31 @@
   ansible.builtin.template:
     src: "os/etc/vault-agent.d/{{ item.src }}"
     dest: "/etc/vault-agent.d/{{ item.dest | default(item.src) }}"
-    # 0640: this loop includes agent.roleid (the AppRole role_id credential).
     mode: '{{ item.mode | default("0644") }}'
   loop:
     - { src: agent.hcl.j2, dest: agent.hcl }
     - { src: agent.env.j2, dest: agent.env }
-    - { src: agent.roleid, mode: "0640" }
+  notify: Restart vault-agent
+
+# bind_secret_id=false on this role (see tofu/modules/vault/approle/main.tf), so
+# the role_id alone is the AppRole login credential — not safe to hold as a
+# static file in git. Minted by tofu and read live instead of committed, same
+# controller-side lookup rationale as the Consul/Nomad tokens above (the "Deploy
+# All" play is become:true, which sudo-scrubs VAULT_TOKEN from delegated tasks;
+# lookups evaluate in the ansible-playbook process, where the OIDC login token
+# (~/.vault-token) is still available).
+- name: Read the vault-agent role_id from Vault
+  ansible.builtin.set_fact:
+    vault_agent_role_id: >-
+      {{ lookup('community.hashi_vault.vault_read', 'auth/approle/role/vault-agent/role-id',
+                url=vault_addr).data.role_id }}
+  no_log: true
+
+- name: Deploy vault-agent role_id
+  ansible.builtin.copy:
+    content: "{{ vault_agent_role_id }}\n"
+    dest: /etc/vault-agent.d/agent.roleid
+    mode: "0640"
   notify: Restart vault-agent
 
 - name: Deploy consul vault-agent config

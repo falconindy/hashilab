@@ -335,7 +335,8 @@ tofu import 'module.vault_approle.vault_approle_auth_backend_role.this' auth/app
 # internal-server-certs is module-owned (policies/internal-server-certs.hcl):
 tofu import 'module.vault_approle.vault_policy.owned["internal-server-certs.hcl"]' internal-server-certs
 # Verify tofu adopted the existing role rather than a new one:
-#   tofu output vault_approle_role_id   # must equal os/etc/vault-agent.d/agent.roleid
+#   tofu output vault_approle_role_id
+#   vault read auth/approle/role/vault-agent/role-id   # must match
 # The module is pinned to the live role (token_type=batch, token_ttl=20m,
 # token_bound_cidrs, token_policies=[internal-server-certs] via owned_policy_files),
 # so plan should be a no-op. If it shows a token_policies change, add the extra
