@@ -39,6 +39,9 @@ job "rtl433" {
           "-F", "log",
         ]
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         devices = [
           {
             host_path      = "/dev/bus/usb",
