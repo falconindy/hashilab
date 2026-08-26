@@ -34,6 +34,9 @@ job "teslamate" {
 
       config {
         image = "teslamate/teslamate:4.2.0"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
       }
 
       vault {}
