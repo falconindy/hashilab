@@ -36,6 +36,11 @@ job "homeassistant" {
 
       config {
         image = "homeassistant/home-assistant:2026.8.3"
+
+        cap_add      = ["NET_RAW"]
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "/run/dbus:/run/dbus",
           "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro",
