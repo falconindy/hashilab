@@ -43,6 +43,9 @@ job "go2rtc" {
         image = "alexxit/go2rtc:1.9.14"
         ports = ["rtsp", "webrtc"]
 
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
+
         volumes = [
           "local/go2rtc.yaml:/config/go2rtc.yaml"
         ]
