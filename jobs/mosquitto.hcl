@@ -27,9 +27,14 @@ job "mosquitto" {
 
     task "server" {
       driver = "docker"
+      # Setting this prevents the need for CAP_CHOWN, CAP_SETUID, CAP_SETGID
+      user = "1883:1883"
 
       config {
         image = "eclipse-mosquitto:2.1.2-alpine"
+
+        cap_drop     = ["all"]
+        security_opt = ["no-new-privileges=true"]
 
         volumes = [
           "/clusterdata/mosquitto:/mosquitto:rw",
