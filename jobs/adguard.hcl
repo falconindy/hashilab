@@ -29,9 +29,14 @@ job "adguard" {
 
     task "server" {
       driver = "docker"
+      user   = "65534:65534"
 
       config {
         image = "adguard/adguardhome:v0.107.79"
+
+        cap_drop     = ["all"]
+        cap_add      = ["NET_BIND_SERVICE"]
+        security_opt = ["no-new-privileges=true"]
 
         volumes = [
           "/clusterdata/adguard:/opt/adguardhome/conf:rw",
