@@ -135,6 +135,7 @@ job "traefik" {
                 insecure: false
                 trustedIPs: *trustedIPs
               http:
+                aliasHeadersStrategy: reject
                 middlewares:
                   - internal-only@file
                   - securedheaders@file

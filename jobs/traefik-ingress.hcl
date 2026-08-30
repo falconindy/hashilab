@@ -122,6 +122,7 @@ job "traefik-ingress" {
               forwardedHeaders:
                 insecure: false
               http:
+                aliasHeadersStrategy: reject
                 middlewares:
                   - securedheaders@file
                   - geoblock-us@file
