@@ -37,7 +37,9 @@ job "mosquitto" {
         security_opt = ["no-new-privileges=true"]
 
         volumes = [
-          "/clusterdata/mosquitto:/mosquitto:rw",
+          "/clusterdata/mosquitto/config:/mosquitto/config:rw",
+          "/clusterdata/mosquitto/data:/mosquitto/data:rw",
+          "/clusterdata/mosquitto/log:/mosquitto/log:rw",
         ]
       }
 
