@@ -49,8 +49,9 @@ job "maramon" {
       }
 
       resources {
-        cpu    = 100
-        memory = 128
+        cpu        = 100
+        memory     = 128
+        memory_max = 1024
       }
 
       restart {
