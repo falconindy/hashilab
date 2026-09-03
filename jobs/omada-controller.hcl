@@ -64,18 +64,14 @@ job "omada-controller" {
       # read — always a matched pair. change_mode restart re-imports the keystore
       # (omada only reads /cert at boot) when vault-agent rolls the cert.
       template {
-        data        = <<-EOF
-          {{- with secret "kv/data/default/omada-controller/cert" }}{{ .Data.data.tls_crt }}{{ end }}
-        EOF
+        data        = "{{- (secret \"kv/data/default/omada-controller/cert\").Data.data.tls_crt }}"
         destination = "secrets/cert/tls.crt"
         perms       = "0644"
         change_mode = "restart"
       }
 
       template {
-        data        = <<-EOF
-          {{- with secret "kv/data/default/omada-controller/cert" }}{{ .Data.data.tls_key }}{{ end }}
-        EOF
+        data        = "{{- (secret \"kv/data/default/omada-controller/cert\").Data.data.tls_key }}"
         destination = "secrets/cert/tls.key"
         perms       = "0640"
         change_mode = "restart"
