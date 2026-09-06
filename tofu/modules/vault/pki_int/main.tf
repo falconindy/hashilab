@@ -93,6 +93,10 @@ resource "vault_pki_secret_backend_config_acme" "this" {
   backend = vault_mount.pki_int.path
   enabled = true
 
+  # Without this, ACME issuance uses the mount's sign-verbatim defaults
+  # ignoring the intermediate role's overrides.
+  default_directory_policy = "role:${vault_pki_secret_backend_role.intermediate.name}"
+
   depends_on = [
     vault_pki_secret_backend_config_cluster.this,
     vault_pki_secret_backend_config_urls.this,
