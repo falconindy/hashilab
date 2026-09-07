@@ -83,6 +83,9 @@ locals {
     "nut" = [
       { name = "homeassistant", action = "allow" },
     ]
+    "immich" = [
+      { name = "traefik-ingress", action = "allow" },
+    ]
     "pocket-id" = [
       { name = "traefik-ingress", action = "allow" },
     ]
