@@ -1,0 +1,5 @@
+#!/bin/bash
+
+d=${1##*/}
+
+pv <"$1" | ssh nasty.node.home "cat >'$d'; sudo /usr/syno/bin/synopkg install '$d'"
