@@ -16,8 +16,8 @@ EnvironmentFile=-/etc/vault-agent.d/agent.env
 # the other hosts. The agent renders the omada-controller/ subdir itself.
 RuntimeDirectory=vault-agent
 RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=restart
 ExecStart=/usr/bin/vault agent -config=/etc/vault-agent.d
-ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGINT
 Restart=on-failure
