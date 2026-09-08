@@ -32,10 +32,6 @@ job "jellyfin" {
         servers = ["172.17.0.1"]
       }
 
-      port "discovery" {
-        static = 7359
-      }
-
       port "envoy_metrics" { to = 9102 }
     }
 
@@ -43,8 +39,7 @@ job "jellyfin" {
       driver = "docker"
 
       config {
-        image = "jellyfin/jellyfin:10.11.11"
-        ports = ["discovery"]
+        image = "jellyfin/jellyfin:12.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
