@@ -194,6 +194,16 @@ function renderAlerts() {
 // happened hasn't.
 const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 45 * 86400 * (1 - 0.667);
 
+// Both ACME resolvers (jobs/traefik.hcl, jobs/traefik-ingress.hcl) request
+// certificatesDuration = 1080 (45d). On Traefik v3.7's
+// getCertificateRenewDurations (pkg/provider/acme/provider.go), a 45d cert
+// falls in the ">= 30 days" bucket: Traefik doesn't even attempt renewal
+// until 10 days remain, retrying every 12h. The 14d default below would
+// flag "warning" 4 days before Traefik has tried anything — mirror
+// VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS above and only warn once Traefik's
+// own renewal window has opened.
+const TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS = 10 * 86400;
+
 const CERT_TYPES = [
   {
     key: "consul",
@@ -601,11 +611,13 @@ function renderAcmeCerts() {
       "vault",
       `Vault (${infraData.acme.length})`,
       infraData.acme,
+      TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS,
     ),
     certTypeCardHtml(
       "letsencrypt",
       `Let's Encrypt (${wildcardRows.length})`,
       wildcardRows,
+      TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS,
     ),
   ].join("");
   restoreOpenDetails(container, openKeys);
