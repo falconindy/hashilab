@@ -36,7 +36,7 @@ job "docker-registry" {
       driver = "docker"
 
       config {
-        image = "registry:3.1.1"
+        image = "registry:3.1.2"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
@@ -148,7 +148,7 @@ job "docker-registry" {
       driver = "docker"
 
       config {
-        image = "registry:3.1.1"
+        image = "registry:3.1.2"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
