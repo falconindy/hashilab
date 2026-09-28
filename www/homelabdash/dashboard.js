@@ -289,24 +289,35 @@ function expectedAcmeHostnames() {
   return hosts;
 }
 
-// Traefik keeps stale + freshly-renewed entries side by side during
-// rotation, and each of the two replicas (jobs/traefik.hcl) requests its own
-// copy independently, so a domain can have several series — keep the
-// soonest-expiring one, same as the vault-agent leaf selection above.
+// A domain can have several series: each of the two replicas
+// (jobs/traefik.hcl) requests its own copy independently, and Traefik never
+// deletes a replaced cert's series (one per serial), so after an in-process
+// renewal the old serial keeps exporting its old expiry until restart. Take
+// the newest serial per instance, then the soonest-expiring instance.
 // Returns one flat, sorted list with `orphaned` flagged per row (rather than
 // split live/orphaned buckets) so the caller can render them inline in the
 // same breakout, just visually muted.
 function buildAcmeCertData(rows) {
   const now = Date.now() / 1000;
-  const byDomain = new Map();
+  const byDomainInstance = new Map();
   for (const r of rows) {
     const seconds = Number(r.value[1]) - now;
     for (const domain of (r.metric.sans || "").split(",").filter(Boolean)) {
-      if (!byDomain.has(domain) || seconds < byDomain.get(domain)) {
-        byDomain.set(domain, seconds);
+      if (!byDomainInstance.has(domain))
+        byDomainInstance.set(domain, new Map());
+      const byInstance = byDomainInstance.get(domain);
+      const key = r.metric.instance;
+      if (!byInstance.has(key) || seconds > byInstance.get(key)) {
+        byInstance.set(key, seconds);
       }
     }
   }
+  const byDomain = new Map(
+    [...byDomainInstance].map(([domain, byInstance]) => [
+      domain,
+      Math.min(...byInstance.values()),
+    ]),
+  );
 
   // Before the catalog's first load, acmeEligibleServices is still empty —
   // treat everything as live rather than flashing every domain as orphaned.
@@ -326,8 +337,12 @@ function buildAcmeCertData(rows) {
 // service, not a per-service ACME resource like the internal
 // traefik.enable=true certs above, so there's no Consul catalog entry to
 // reconcile it against.
+// Traefik never deletes a replaced cert's tls_certs_not_after series (one per
+// serial), so after an in-process renewal the old serial keeps exporting its
+// old expiry until restart. Take the newest serial per instance; the
+// Math.min in loadInfra() then picks the worst instance.
 const PUBLIC_WILDCARD_QUERY =
-  'traefik_tls_certs_not_after{job="traefik-ingress"} - time()';
+  'max by (instance) (traefik_tls_certs_not_after{job="traefik-ingress"}) - time()';
 
 let infraData = {
   uptime: [],

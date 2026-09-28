@@ -569,13 +569,21 @@ job "monitoring" {
                 # which would make this noisy. traefik-ingress requests a
                 # single static wildcard (jobs/traefik-ingress.hcl), so
                 # there's no such ambiguity here.
+                #
+                # Traefik never deletes a replaced cert's series (labelled by
+                # serial), so after an in-process renewal the old serial keeps
+                # exporting its old expiry until restart — take the newest
+                # serial per instance. The 10d threshold matches when Traefik
+                # itself starts renewing a 45d cert (see homelabdash's
+                # TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS); 14d fired 4 days
+                # before any renewal attempt.
                 - alert: PublicWildcardCertExpiringSoon
-                  expr: (traefik_tls_certs_not_after{job="traefik-ingress"} - time()) < 14 * 86400
+                  expr: (max by (instance, host, sans) (traefik_tls_certs_not_after{job="traefik-ingress"}) - time()) < 10 * 86400
                   labels:
                     severity: warning
                   annotations:
                     summary: "Public wildcard TLS cert expiring soon: {{ $labels.sans }}"
-                    description: "The falconindy.com wildcard cert (Let's Encrypt via Cloudflare DNS-01) expires in under 14 days."
+                    description: "The falconindy.com wildcard cert (Let's Encrypt via Cloudflare DNS-01) expires in under 10 days, i.e. Traefik's renewal window has opened and it hasn't renewed."
         EOF
 
         destination   = "local/alerts.yml"
