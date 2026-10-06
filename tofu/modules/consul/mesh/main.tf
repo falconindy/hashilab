@@ -68,6 +68,7 @@ locals {
     ]
     "homeassistant" = [
       { name = "traefik-ingress", action = "allow" },
+      { name = "homeassistant-mcp", action = "allow" },
     ]
     "jackett" = [
       { name = "sonarr", action = "allow" },
