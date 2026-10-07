@@ -34,7 +34,7 @@ job "vector" {
       driver = "docker"
 
       config {
-        image = "timberio/vector:0.58.0-debian"
+        image = "timberio/vector:0.59.0-debian"
         args  = ["--config-yaml", "/etc/vector/vector.yml"]
 
         volumes = [
