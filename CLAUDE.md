@@ -118,6 +118,7 @@ Prometheus (in `jobs/monitoring.hcl`) scrapes all targets via Consul service dis
 | `bin/supercow`                  | Break-glass into a subshell holding **both** Consul and Nomad **management** tokens, minted from the Vault Consul/Nomad secrets engines (`{consul,nomad}/creds/mgmt`), renewed to a shared TTL, and revoked on exit. Needed for Consul/Nomad ACL administration and to seed `CONSUL_HTTP_TOKEN` for the `tofu` Consul modules |
 | `bin/deploy-www`                | Rsync `www/` to `/clusterdata/www/`                                                                                                                                                                                                                                                                                           |
 | `bin/deploy-grafana-dashboards` | Rsync `grafana/dashboards/*.json` to `/clusterdata/grafana/dashboards/`; Grafana file-provisions and hot-reloads them                                                                                                                                                                                                         |
+| `bin/renovate-rebase-all`       | Tick the "rebase all open PRs" checkbox on Renovate's Dependency Dashboard issue via `gh`, so Renovate rebases every open PR it owns                                                                                                                                                                                          |
 
 ### Renovate
 

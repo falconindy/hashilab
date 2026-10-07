@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Tick the "rebase all open PRs" checkbox on Renovate's Dependency Dashboard
+# issue. Renovate picks up the issue edit and rebases every open PR it owns.
+
+set -euo pipefail
+
+repo=falconindy/hashilab
+unchecked='- [ ] <!-- rebase-all-open-prs -->'
+checked='- [x] <!-- rebase-all-open-prs -->'
+
+issue=$(gh issue list --repo "$repo" --author app/renovate --state open \
+  --search 'in:title "Dependency Dashboard"' --json number --jq '.[0].number')
+if [[ -z $issue ]]; then
+  echo "FATAL: no open Dependency Dashboard issue found in $repo" >&2
+  exit 1
+fi
+
+body=$(gh issue view "$issue" --repo "$repo" --json body --jq .body)
+
+if [[ $body == *"$checked"* ]]; then
+  echo "rebase-all already requested on #$issue; waiting on Renovate"
+  exit 0
+fi
+
+if [[ $body != *"$unchecked"* ]]; then
+  echo "FATAL: no rebase-all checkbox on #$issue (no open Renovate PRs?)" >&2
+  exit 1
+fi
+
+gh issue edit "$issue" --repo "$repo" --body-file - <<<"${body/"$unchecked"/"$checked"}"
+echo "requested rebase of all open Renovate PRs via #$issue"
