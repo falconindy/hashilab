@@ -35,7 +35,7 @@ job "monitoring" {
       driver = "docker"
 
       config {
-        image = "prom/blackbox-exporter:v0.28.0"
+        image = "prom/blackbox-exporter:v0.29.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
