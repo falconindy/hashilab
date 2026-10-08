@@ -7,6 +7,10 @@ rtl_433/Acurite-Tower/<id> over MQTT; this renders the matching temperature/
 humidity/battery-low mqtt entities and writes the package file. Add a device
 by adding a tuple to DEVICES and re-running.
 
+Entity IDs are pinned via default_entity_id to <slug>_acurite_<kind>. HA only
+applies it when an entity is first registered, so changing a slug here does not
+rename an existing entity -- rename it in the entity registry to match.
+
 Usage:
   bin/gen-ha-acurite
 """
@@ -16,13 +20,13 @@ from pathlib import Path
 import yaml
 
 DEVICES = [
-    # (id, slug, friendly_name)
-    (14279, "nursery", "Nursery"),
-    (12057, "mainbath", "Main Bathroom"),
-    (6652, "mainbed", "Main Bedroom"),
-    (2153, "livingroom", "Living Room"),
-    (6640, "office", "Office"),
-    (9106, "basement", "Basement"),
+    # (id, slug)
+    (14279, "marasroom"),
+    (12057, "mainbath"),
+    (6652, "mainbed"),
+    (2153, "livingroom"),
+    (6640, "office"),
+    (9106, "basement"),
 ]
 
 OUT_PATH = (
@@ -35,18 +39,19 @@ OUT_PATH = (
 
 def build_entries():
     entries = []
-    for device_id, slug, name in DEVICES:
+    for device_id, slug in DEVICES:
         topic = f"rtl_433/Acurite-Tower/{device_id}"
         device = {  # shared object -> pyyaml emits &anchor / *alias automatically
             "identifiers": [f"acurite_{device_id}"],
             "manufacturer": "Acurite",
             "model": "06044M",
-            "name": f"{name} Temperature and Humidity",
+            "name": "Acurite",
         }
         entries += [
             {
                 "sensor": {
-                    "name": f"{slug}_temperature",
+                    "name": "Temperature",
+                    "default_entity_id": f"sensor.{slug}_acurite_temperature",
                     "device_class": "temperature",
                     "unit_of_measurement": "°C",
                     "value_template": "{{ value_json.temperature_C | round(1) }}",
@@ -58,7 +63,8 @@ def build_entries():
             },
             {
                 "sensor": {
-                    "name": f"{slug}_humidity",
+                    "name": "Humidity",
+                    "default_entity_id": f"sensor.{slug}_acurite_humidity",
                     "device_class": "humidity",
                     "unit_of_measurement": "%",
                     "value_template": "{{ value_json.humidity }}",
@@ -70,7 +76,8 @@ def build_entries():
             },
             {
                 "binary_sensor": {
-                    "name": f"{slug}_battery",
+                    "name": "Battery",
+                    "default_entity_id": f"binary_sensor.{slug}_acurite_battery",
                     "device_class": "battery",
                     "state_topic": topic,
                     "value_template": "{{ 'OFF' if value_json.battery_ok else 'ON' }}",
