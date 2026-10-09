@@ -24,6 +24,11 @@
       "matchPackageNames": ["linuxserver/deluge"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "Jackett releases daily; batch to one PR per week",
+      "matchPackageNames": ["linuxserver/jackett"],
+      "schedule": ["* 0-3 * * 1"]
     }
   ],
   "customManagers": [
