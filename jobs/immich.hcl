@@ -42,7 +42,7 @@ job "immich" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/immich-app/immich-server:v3.3.0"
+        image = "ghcr.io/immich-app/immich-server:v3.3.1"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
@@ -93,7 +93,7 @@ job "immich" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/immich-app/immich-machine-learning:v3.3.0-openvino"
+        image = "ghcr.io/immich-app/immich-machine-learning:v3.3.1-openvino"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
