@@ -35,7 +35,7 @@ job "homeassistant" {
       kill_timeout = "30s"
 
       config {
-        image = "homeassistant/home-assistant:2026.10.0"
+        image = "homeassistant/home-assistant:2026.10.1"
 
         cap_add      = ["NET_RAW"]
         cap_drop     = ["all"]
