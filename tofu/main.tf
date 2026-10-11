@@ -43,13 +43,11 @@ module "vault_pki" {
 module "vault_pki_int" {
   source = "./modules/vault/pki_int"
 
-  # ACME mount: the cluster path is the ACME directory, so it must be the
-  # https/DNS endpoint. (Traefik no longer uses ACME — it issues from the
-  # module's `traefik` role via pkiCert — but the endpoint stays enabled.)
-  # aia_base defaults to cluster_base, so the *.service.home leaf certs carry
-  # https/DNS AIA (current behavior). Set aia_base = local.vault_plaintext_base
-  # if you'd rather their AIA/CRL be loop-free http — at the cost of off-node
-  # CRL fetches not resolving.
+  # Kept on the https/DNS endpoint from when the cluster path was also the ACME
+  # directory (now disabled); it backs OCSP. aia_base defaults to cluster_base,
+  # so the *.service.home leaf certs carry https/DNS AIA (current behavior).
+  # Set aia_base = local.vault_plaintext_base if you'd rather their AIA/CRL be
+  # loop-free http — at the cost of off-node CRL fetches not resolving.
   cluster_base = local.vault_address
   root_backend = module.vault_pki.backend
   # Chain the intermediate's signing issuer to the root the pki module owns.

@@ -4,8 +4,8 @@ output "backend" {
 }
 
 output "role_name" {
-  description = "Name of the issuing role (destination for issue/sign requests)."
-  value       = vault_pki_secret_backend_role.intermediate.name
+  description = "Name of the issuing role (the traefik job's pkiCert template issues from it)."
+  value       = vault_pki_secret_backend_role.traefik.name
 }
 
 output "issuing_ca" {
@@ -16,9 +16,4 @@ output "issuing_ca" {
 output "ca_chain" {
   description = "Full CA chain (intermediate + root) as returned by the root signer (null unless bootstrap=true)."
   value       = var.bootstrap ? vault_pki_secret_backend_root_sign_intermediate.signed[0].ca_chain : null
-}
-
-output "traefik_role_name" {
-  description = "Name of the direct-issue role the traefik job's pkiCert template uses."
-  value       = vault_pki_secret_backend_role.traefik.name
 }

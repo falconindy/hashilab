@@ -9,22 +9,13 @@ locals {
 }
 
 # ── The mount ────────────────────────────────────────────────────────────────
-# Equivalent to: `vault secrets enable -path=pki_int pki` + the ACME header `tune`.
+# Equivalent to: `vault secrets enable -path=pki_int pki`.
 resource "vault_mount" "pki_int" {
   path                      = "pki_int"
   type                      = "pki"
-  description               = "Intermediate CA with ACME enabled; issues *.service.home certs for Traefik."
+  description               = "Intermediate CA; issues the *.service.home wildcard for Traefik."
   max_lease_ttl_seconds     = 157680000 # 5y
   default_lease_ttl_seconds = 0
-
-  # ACME needs these headers to pass through the mount barrier.
-  passthrough_request_headers = ["If-Modified-Since"]
-  allowed_response_headers = [
-    "Last-Modified",
-    "Location",
-    "Replay-Nonce",
-    "Link",
-  ]
 }
 
 # ── Intermediate CSR → root signs it → import the signed cert ────────────────
@@ -75,25 +66,12 @@ resource "vault_pki_secret_backend_config_urls" "this" {
 }
 
 # ── Issuing role ─────────────────────────────────────────────────────────────
-# issuer_ref is left at the backend default, which is the intermediate we just
-# imported (equivalent to `vault read -field=default .../config/issuers`).
-resource "vault_pki_secret_backend_role" "intermediate" {
-  backend        = vault_mount.pki_int.path
-  name           = "intermediate"
-  allow_any_name = true
-  ttl            = 3888000 # 45d
-  max_ttl        = 3888000 # 45d
-  no_store       = false
-
-  depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
-}
-
-# ── Traefik's direct-issue role ──────────────────────────────────────────────
-# The internal Traefik job issues its own *.service.home wildcard via pkiCert
-# (Nomad WI role `traefik`) rather than through ACME: two instances behind one
-# round-robin name can't reliably answer each other's http-01 challenges.
-# Narrower than `intermediate` (allow_any_name), since a workload token — not a
-# challenge — is all that gates issuance here. no_store because every alloc
+# The mount's only role. The internal Traefik job issues its own
+# *.service.home wildcard via pkiCert (Nomad WI role `traefik`) rather than
+# through ACME: two instances behind one round-robin name can't reliably
+# answer each other's http-01 challenges. Scoped to service.home since a
+# workload token is all that gates issuance. issuer_ref is left at the
+# backend default (the imported intermediate). no_store because every alloc
 # start and every renewal mints a fresh cert; nothing ever revokes them.
 # 100d because Nomad's pkiCert re-issues at a fixed 90% of lifetime: this
 # puts renewal ~10d before expiry (45d would leave only ~4.5d to fix a
@@ -122,19 +100,15 @@ resource "vault_pki_secret_backend_role" "traefik" {
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
 }
 
-# ── ACME ─────────────────────────────────────────────────────────────────────
+# ── ACME (disabled) ──────────────────────────────────────────────────────────
+# Traefik used to issue through ACME here; nothing does now. Kept as a resource
+# rather than deleted because the provider's Delete is a no-op — dropping it
+# would leave ACME enabled in Vault and merely forget it. forbid as a second
+# lock in case it's ever re-enabled without a deliberate policy.
 resource "vault_pki_secret_backend_config_acme" "this" {
-  backend = vault_mount.pki_int.path
-  enabled = true
-
-  # Without this, ACME issuance uses the mount's sign-verbatim defaults
-  # ignoring the intermediate role's overrides.
-  default_directory_policy = "role:${vault_pki_secret_backend_role.intermediate.name}"
-
-  depends_on = [
-    vault_pki_secret_backend_config_cluster.this,
-    vault_pki_secret_backend_config_urls.this,
-  ]
+  backend                  = vault_mount.pki_int.path
+  enabled                  = false
+  default_directory_policy = "forbid"
 }
 
 # ── Auto-tidy ────────────────────────────────────────────────────────────────
@@ -146,7 +120,7 @@ resource "vault_pki_secret_backend_config_auto_tidy" "this" {
 
   tidy_cert_store                       = true
   tidy_revoked_certs                    = true
-  tidy_acme                             = true
+  tidy_acme                             = true # reaps leftover ACME accounts/orders
   tidy_revoked_cert_issuer_associations = true
 
   # No-ops on OSS/non-replicated Vault, but part of HashiCorp's recommended

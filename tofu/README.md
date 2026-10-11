@@ -23,11 +23,12 @@ Four PKI engines:
 
 - `modules/vault/pki` — the self-signed root CA (`home`, 10y): the `pki` mount,
   the self-signed root, `config/cluster`, `config/urls`, and the `servers` role.
-- `modules/vault/pki_int` — the ACME intermediate: the `pki_int` mount (+ ACME
-  header tuning), the CSR → root-sign → import chain, `config/cluster`,
-  `config/urls`, the `intermediate` role, `config/acme`, and the `traefik` role
-  (the `*.service.home`-only, `no_store` role the traefik job's `pkiCert`
-  template issues its wildcard from).
+- `modules/vault/pki_int` — the `*.service.home` intermediate: the `pki_int`
+  mount, the CSR → root-sign → import chain, `config/cluster`, `config/urls`,
+  and its one role, `traefik` (`*.service.home`-only, `no_store`), which the
+  traefik job's `pkiCert` template issues its wildcard from. `config/acme` is
+  kept only to hold ACME **disabled** — the provider's delete is a no-op, so
+  removing the resource would leave ACME on in Vault.
 - `modules/vault/pki_int_internal` — the internal-client-cert intermediate: same
   shape as `pki_int` but no ACME, and its `intermediate` role sets
   `no_store=true` with a longer `max_ttl` (4380h).
@@ -300,7 +301,7 @@ tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_cluster.this' 
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_urls.this'    pki_int/config/urls
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_acme.this'    pki_int/config/acme
 tofu import 'module.vault_pki_int.vault_pki_secret_backend_config_auto_tidy.this' pki_int/config/auto-tidy
-tofu import 'module.vault_pki_int.vault_pki_secret_backend_role.intermediate'   pki_int/roles/intermediate
+tofu import 'module.vault_pki_int.vault_pki_secret_backend_role.traefik'        pki_int/roles/traefik
 
 # ── internal intermediate (pki_int_internal) ──
 tofu import 'module.vault_pki_int_internal.vault_mount.pki_int_internal' pki_int_internal
@@ -468,10 +469,10 @@ What each module manages. Resources marked _bootstrap_ only exist when
 
 ### modules/vault/pki_int
 
-- `vault_mount.pki_int` — the mount, with ACME `passthrough_request_headers` / `allowed_response_headers`
+- `vault_mount.pki_int` — the mount
 - `vault_pki_secret_backend_intermediate_cert_request` → `vault_pki_secret_backend_root_sign_intermediate` → `vault_pki_secret_backend_intermediate_set_signed` — the sign chain (_bootstrap_)
-- `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_acme` / `..._config_auto_tidy`
-- `vault_pki_secret_backend_role` — the `intermediate` role, and the `traefik` role (new; created, not imported)
+- `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_acme` (disabled) / `..._config_auto_tidy`
+- `vault_pki_secret_backend_role` — the `traefik` role
 
 ### modules/vault/pki_int_internal
 
