@@ -88,6 +88,40 @@ resource "vault_pki_secret_backend_role" "intermediate" {
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
 }
 
+# ── Traefik's direct-issue role ──────────────────────────────────────────────
+# The internal Traefik job issues its own *.service.home wildcard via pkiCert
+# (Nomad WI role `traefik`) rather than through ACME: two instances behind one
+# round-robin name can't reliably answer each other's http-01 challenges.
+# Narrower than `intermediate` (allow_any_name), since a workload token — not a
+# challenge — is all that gates issuance here. no_store because every alloc
+# start and every renewal mints a fresh cert; nothing ever revokes them.
+# 100d because Nomad's pkiCert re-issues at a fixed 90% of lifetime: this
+# puts renewal ~10d before expiry (45d would leave only ~4.5d to fix a
+# broken renewal).
+resource "vault_pki_secret_backend_role" "traefik" {
+  backend = vault_mount.pki_int.path
+  name    = "traefik"
+
+  allowed_domains             = ["service.home"]
+  allow_subdomains            = true
+  allow_wildcard_certificates = true
+  allow_bare_domains          = false
+  allow_localhost             = false
+  allow_ip_sans               = false
+  server_flag                 = true
+  client_flag                 = false
+
+  # Matches what Traefik's ACME client generated.
+  key_type = "rsa"
+  key_bits = 4096
+
+  ttl      = 8640000 # 100d
+  max_ttl  = 8640000 # 100d
+  no_store = true
+
+  depends_on = [vault_pki_secret_backend_intermediate_set_signed.import]
+}
+
 # ── ACME ─────────────────────────────────────────────────────────────────────
 resource "vault_pki_secret_backend_config_acme" "this" {
   backend = vault_mount.pki_int.path

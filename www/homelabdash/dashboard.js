@@ -43,13 +43,6 @@ async function resolveNomadJob(allocId) {
 }
 
 let servicesData = {};
-// Same Consul catalog as servicesData, but keeping the traefik.enable=true
-// entries servicesData drops (sidecar-proxy services): Nomad Connect stamps
-// those with the parent's tags too, and Traefik's consulCatalog provider
-// (exposedByDefault: false, jobs/traefik.hcl) routes on that tag regardless
-// of the name shape, so this is the actual eligibility set to reconcile ACME
-// certs against — not the UI-filtered one.
-let acmeEligibleServices = {};
 let checksData = [];
 let alertsData = [];
 let isCatalogLoaded = false;
@@ -194,8 +187,8 @@ function renderAlerts() {
 // happened hasn't.
 const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 45 * 86400 * (1 - 0.667);
 
-// Both ACME resolvers (jobs/traefik.hcl, jobs/traefik-ingress.hcl) request
-// certificatesDuration = 1080 (45d). On Traefik v3.7's
+// traefik-ingress's Let's Encrypt resolver (jobs/traefik-ingress.hcl)
+// requests certificatesDuration = 1080 (45d). On Traefik v3.7's
 // getCertificateRenewDurations (pkg/provider/acme/provider.go), a 45d cert
 // falls in the ">= 30 days" bucket: Traefik doesn't even attempt renewal
 // until 10 days remain, retrying every 12h. The 14d default below would
@@ -203,6 +196,12 @@ const VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS = 45 * 86400 * (1 - 0.667);
 // VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS above and only warn once Traefik's
 // own renewal window has opened.
 const TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS = 10 * 86400;
+
+// The internal Traefik's *.service.home wildcard (jobs/traefik.hcl) is a
+// ttl=2400h (100d) pkiCert rendered by Nomad's template runner, which
+// re-issues at consul-template's default VaultLeaseRenewalThreshold of 0.9
+// (Nomad doesn't expose it) — i.e. with ~10d left.
+const NOMAD_PKICERT_RENEWAL_THRESHOLD_SECONDS = 100 * 86400 * (1 - 0.9);
 
 const CERT_TYPES = [
   {
@@ -262,85 +261,19 @@ const PKI_MOUNTS = [
   },
 ];
 
-// ACME leaf certs Traefik issues per-domain off pki_int (jobs/traefik.hcl's
-// "vault" certificatesResolver). Unlike CERT_TYPES/PKI_MOUNTS this isn't a
-// fixed list, so it's reconciled against acmeEligibleServices instead of
-// alerting on whatever domains happen to still be in Traefik's ACME store —
-// a decommissioned service's cert lingers there (and keeps renewing) long
-// after nothing routes to it.
-const ACME_ROUTER_RULE_RE = /^traefik\.http\.routers\.[^.]+\.rule=(.*)$/;
-const HOST_RULE_DOMAIN_RE = /`([^`]+)`/g;
-
-// Mirrors jobs/traefik.hcl's consulCatalog defaultRule
-// (Host(`{{ .Name }}.service.home`)), with the same
-// "traefik.http.routers.<name>.rule=Host(...)" override tag documented in
-// CLAUDE.md for services that need a custom hostname.
-function expectedAcmeHostnames() {
-  const hosts = new Set();
-  for (const [name, tags] of Object.entries(acmeEligibleServices)) {
-    const ruleTag = tags.find((t) => ACME_ROUTER_RULE_RE.test(t));
-    const rule = ruleTag?.match(ACME_ROUTER_RULE_RE)?.[1];
-    if (rule) {
-      for (const m of rule.matchAll(HOST_RULE_DOMAIN_RE)) hosts.add(m[1]);
-    } else {
-      hosts.add(`${name}.${DOMAIN}`);
-    }
-  }
-  return hosts;
-}
-
-// A domain can have several series: each of the two replicas
-// (jobs/traefik.hcl) requests its own copy independently, and Traefik never
-// deletes a replaced cert's series (one per serial), so after an in-process
-// renewal the old serial keeps exporting its old expiry until restart. Take
-// the newest serial per instance, then the soonest-expiring instance.
-// Returns one flat, sorted list with `orphaned` flagged per row (rather than
-// split live/orphaned buckets) so the caller can render them inline in the
-// same breakout, just visually muted.
-function buildAcmeCertData(rows) {
-  const now = Date.now() / 1000;
-  const byDomainInstance = new Map();
-  for (const r of rows) {
-    const seconds = Number(r.value[1]) - now;
-    for (const domain of (r.metric.sans || "").split(",").filter(Boolean)) {
-      if (!byDomainInstance.has(domain))
-        byDomainInstance.set(domain, new Map());
-      const byInstance = byDomainInstance.get(domain);
-      const key = r.metric.instance;
-      if (!byInstance.has(key) || seconds > byInstance.get(key)) {
-        byInstance.set(key, seconds);
-      }
-    }
-  }
-  const byDomain = new Map(
-    [...byDomainInstance].map(([domain, byInstance]) => [
-      domain,
-      Math.min(...byInstance.values()),
-    ]),
-  );
-
-  // Before the catalog's first load, acmeEligibleServices is still empty —
-  // treat everything as live rather than flashing every domain as orphaned.
-  const expected = isCatalogLoaded ? expectedAcmeHostnames() : null;
-  return [...byDomain.entries()]
-    .map(([host, seconds]) => ({
-      host,
-      seconds,
-      orphaned: expected ? !expected.has(host) : false,
-    }))
-    .sort((a, b) => a.host.localeCompare(b.host));
-}
-
-// Public-facing wildcard cert traefik-ingress requests via Let's Encrypt
-// (Cloudflare DNS-01, jobs/traefik-ingress.hcl's "letsencrypt" resolver) — a
-// single static cert covering *.falconindy.com for every publicly-exposed
-// service, not a per-service ACME resource like the internal
-// traefik.enable=true certs above, so there's no Consul catalog entry to
-// reconcile it against.
+// Traefik's two wildcard certs, both read off its own
+// traefik_tls_certs_not_after metric:
+//  - internal: *.service.home, which each jobs/traefik.hcl instance issues
+//    for itself straight from pki_int, so it's broken out per instance —
+//    one instance failing to renew is exactly what this is here to catch.
+//  - public: *.falconindy.com, traefik-ingress's Let's Encrypt wildcard
+//    (Cloudflare DNS-01, jobs/traefik-ingress.hcl's "letsencrypt" resolver).
 // Traefik never deletes a replaced cert's tls_certs_not_after series (one per
 // serial), so after an in-process renewal the old serial keeps exporting its
-// old expiry until restart. Take the newest serial per instance; the
-// Math.min in loadInfra() then picks the worst instance.
+// old expiry until restart. Take the newest serial per instance; for the
+// public cert, the Math.min in loadInfra() then picks the worst instance.
+const INTERNAL_WILDCARD_QUERY =
+  'max by (instance, host) (traefik_tls_certs_not_after{job="traefik", cn="*.service.home"}) - time()';
 const PUBLIC_WILDCARD_QUERY =
   'max by (instance) (traefik_tls_certs_not_after{job="traefik-ingress"}) - time()';
 
@@ -348,7 +281,7 @@ let infraData = {
   uptime: [],
   certs: {},
   pki: {},
-  acme: [],
+  internalWildcard: [],
   publicWildcard: null,
 };
 
@@ -380,23 +313,22 @@ async function loadInfra() {
     boot,
     x509,
     probeCerts,
-    acmeCerts,
+    internalWildcardRows,
     publicWildcardRows,
     ...certResults
   ] = await Promise.all([
     promQuery("node_boot_time_seconds"),
     promQuery("x509_cert_not_after"),
     promQuery("probe_ssl_earliest_cert_expiry"),
-    // job="traefik" only: the internal instance's pki_int-issued certs.
-    // traefik-ingress's public wildcard (below) is a separate resolver
-    // with no relationship to the Consul catalog reconciliation here.
-    promQuery('traefik_tls_certs_not_after{job="traefik"}'),
+    promQuery(INTERNAL_WILDCARD_QUERY),
     promQuery(PUBLIC_WILDCARD_QUERY),
     ...CERT_TYPES.filter((t) => t.query).map((t) => promQuery(t.query)),
   ]);
   const now = Date.now() / 1000;
 
-  infraData.acme = buildAcmeCertData(acmeCerts);
+  infraData.internalWildcard = internalWildcardRows
+    .map((r) => ({ host: r.metric.host, seconds: Number(r.value[1]) }))
+    .sort((a, b) => a.host.localeCompare(b.host));
   infraData.publicWildcard = publicWildcardRows.length
     ? Math.min(...publicWildcardRows.map((r) => Number(r.value[1])))
     : null;
@@ -493,7 +425,7 @@ function renderInfra() {
   renderUptime();
   renderCertTypes();
   renderPkiMounts();
-  renderAcmeCerts();
+  renderTraefikCerts();
 }
 
 function renderUptime() {
@@ -549,20 +481,15 @@ function renderCertTypes() {
   restoreOpenDetails(container, openKeys);
 }
 
-// Shared by renderCertTypes (fixed, non-orphanable host lists) and
-// renderAcmeCerts (dynamic domain lists that can include orphaned rows,
-// which are excluded from the rollup chip below since they aren't
-// actionable). `key` is a stable identifier for open-state tracking across
-// re-renders; `name` is the fully-formatted summary label (callers add a
-// "(N)" count where it's meaningful, which is why it can't double as the
-// key).
+// Shared by renderCertTypes and renderTraefikCerts. `key` is a stable
+// identifier for open-state tracking across re-renders; `name` is the
+// fully-formatted summary label.
 function certTypeCardHtml(key, name, rows, warnThresholdSeconds) {
   // rows is sorted by hostname (for the breakout below), so the earliest
   // (soonest-expiring) live entry for the rollup chip has to be found by
   // value rather than assumed to be rows[0].
   const earliest = rows.reduce(
-    (min, r) =>
-      r.orphaned ? min : min === null || r.seconds < min.seconds ? r : min,
+    (min, r) => (min === null || r.seconds < min.seconds ? r : min),
     null,
   );
   const breakout = certBreakoutRows(rows, warnThresholdSeconds);
@@ -594,15 +521,11 @@ function renderPkiMounts() {
   ).join("");
 }
 
-// row.orphaned (set by buildAcmeCertData) gets a muting class rather than
-// its own separate list — visually de-emphasized inline instead of split
-// into a second card, since these aren't backed by a live Consul service
-// (jobs/*.hcl has nothing registering them) and so aren't actionable.
 function certBreakoutRows(rows, warnThresholdSeconds) {
   return rows
     .map(
       (row) => `
-        <div class="cert-breakout-row${row.orphaned ? " orphaned" : ""}">
+        <div class="cert-breakout-row">
           <span class="host">${row.host}</span>
           ${expiryChip(row.seconds, warnThresholdSeconds)}
         </div>
@@ -611,8 +534,8 @@ function certBreakoutRows(rows, warnThresholdSeconds) {
     .join("");
 }
 
-function renderAcmeCerts() {
-  const container = document.getElementById("acme-certs");
+function renderTraefikCerts() {
+  const container = document.getElementById("traefik-certs");
   if (!container) return;
 
   const openKeys = preserveOpenDetails(container);
@@ -623,14 +546,14 @@ function renderAcmeCerts() {
 
   container.innerHTML = [
     certTypeCardHtml(
-      "vault",
-      `Vault (${infraData.acme.length})`,
-      infraData.acme,
-      TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS,
+      "internalWildcard",
+      "*.service.home",
+      infraData.internalWildcard,
+      NOMAD_PKICERT_RENEWAL_THRESHOLD_SECONDS,
     ),
     certTypeCardHtml(
-      "letsencrypt",
-      `Let's Encrypt (${wildcardRows.length})`,
+      "publicWildcard",
+      "*.falconindy.com",
       wildcardRows,
       TRAEFIK_ACME_RENEWAL_THRESHOLD_SECONDS,
     ),
@@ -655,16 +578,13 @@ async function watchCatalog() {
         const catalog = await res.json();
 
         const newServicesData = {};
-        const newAcmeEligibleServices = {};
         for (const name in catalog) {
           if (!catalog[name].includes("traefik.enable=true")) continue;
-          newAcmeEligibleServices[name] = catalog[name];
           if (!name.endsWith("-sidecar-proxy")) {
             newServicesData[name] = catalog[name];
           }
         }
         servicesData = newServicesData;
-        acmeEligibleServices = newAcmeEligibleServices;
         isCatalogLoaded = true;
         checkAndRender();
       } else {

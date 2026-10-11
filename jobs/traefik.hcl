@@ -40,11 +40,6 @@ job "traefik" {
       port "envoy_metrics" { to = 9102 }
     }
 
-    ephemeral_disk {
-      size    = 300 # MB
-      migrate = true
-    }
-
     service {
       name = "traefik"
       port = "https"
@@ -85,7 +80,11 @@ job "traefik" {
         ]
       }
 
-      vault {}
+      # The traefik JWT role (tofu module.vault_nomad_wi) is pinned to this job
+      # and may issue from pki_int/issue/traefik, which signs only *.service.home.
+      vault {
+        role = "traefik"
+      }
 
       # Provisions a Consul token from this task's workload identity (injected as
       # CONSUL_TOKEN, used for the endpoint.token below). Under default_policy =
@@ -101,6 +100,30 @@ job "traefik" {
           {{ end }}
         EOF
         destination = "local/home.pem"
+      }
+
+      # One wildcard cert per alloc, issued straight from pki_int. Each instance
+      # mints its own, so nothing has to be shared between them and there's no
+      # ACME challenge to route to the right instance. Leaf + issuing CA are
+      # inlined into a file-provider config; Traefik hot-reloads it when
+      # pkiCert re-renders it ahead of expiry. pkiCert re-issues at a fixed
+      # 90% of the cert's lifetime (consul-template's default, which Nomad
+      # doesn't expose), so the 100d ttl is what buys a ~10d renewal margin.
+      template {
+        data                 = <<-EOF
+          {{- with pkiCert "pki_int/issue/traefik" "common_name=*.service.home" "ttl=2400h" }}
+          tls:
+            certificates:
+              - certFile: |
+          {{ indent 8 .Cert }}
+          {{ indent 8 .CA }}
+                keyFile: |
+          {{ indent 8 .Key }}
+          {{- end }}
+        EOF
+        destination          = "secrets/dynamic/tls.yml"
+        change_mode          = "noop"
+        error_on_missing_key = true
       }
 
       template {
@@ -140,8 +163,7 @@ job "traefik" {
                   - internal-only@file
                   - securedheaders@file
                   - customheaders@file
-                tls:
-                  certresolver: vault
+                tls: {}
 
           tls:
             options:
@@ -194,19 +216,8 @@ job "traefik" {
                   ca: [[ env "NOMAD_TASK_DIR" ]]/home.pem
 
             file:
-              filename: local/static_providers.yml
-
-          certificatesResolvers:
-            vault:
-              acme:
-                email: d@falconindy.com
-                storage: [[ env "NOMAD_ALLOC_DIR" ]]/data/acme.vault.json
-                caCertificates:
-                  - [[ env "NOMAD_TASK_DIR" ]]/home.pem
-                caServer: https://vault.service.home:8200/v1/pki_int/acme/directory
-                certificatesDuration: 1080 # 45d
-                httpChallenge:
-                  entryPoint: http
+              directory: [[ env "NOMAD_SECRETS_DIR" ]]/dynamic
+              watch: true
 
           metrics:
             prometheus:
@@ -267,7 +278,7 @@ job "traefik" {
                     - 10.0.20.0/24
                     - 10.0.100.0/24
         EOF
-        destination     = "local/static_providers.yml"
+        destination     = "secrets/dynamic/static_providers.yml"
       }
 
       env {

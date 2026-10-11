@@ -25,7 +25,9 @@ Four PKI engines:
   the self-signed root, `config/cluster`, `config/urls`, and the `servers` role.
 - `modules/vault/pki_int` — the ACME intermediate: the `pki_int` mount (+ ACME
   header tuning), the CSR → root-sign → import chain, `config/cluster`,
-  `config/urls`, the `intermediate` role, and `config/acme`.
+  `config/urls`, the `intermediate` role, `config/acme`, and the `traefik` role
+  (the `*.service.home`-only, `no_store` role the traefik job's `pkiCert`
+  template issues its wildcard from).
 - `modules/vault/pki_int_internal` — the internal-client-cert intermediate: same
   shape as `pki_int` but no ACME, and its `intermediate` role sets
   `no_store=true` with a longer `max_ttl` (4380h).
@@ -91,7 +93,7 @@ The Nomad workload-identity flow into Vault:
 
 - `modules/vault/nomad-wi` — the Vault-side twin of `modules/consul/nomad-wi`.
   The `jwt-nomad` JWT auth method and its roles (`nomad-workloads`, the default
-  every bare `vault{}` block resolves to, plus `raft-snapshotter`). This is an
+  every bare `vault{}` block resolves to, plus `raft-snapshotter` and `traefik`). This is an
   auth method — **no key material, no `bootstrap` gate**. Must exist **before**
   Nomad's `vault{}` `default_identity` goes live (allocations begin their JWT
   login the moment a `vault{}` block deploys). Do not confuse with
@@ -106,7 +108,9 @@ The Nomad workload-identity flow into Vault:
   breaks silently when the mount is recreated. Roles opt in via
   `roles[*].include_templated_policy`. The module also owns the static
   `raft-snapshots` policy (`policies/raft-snapshots.hcl`, used only by the
-  `raft-snapshotter` role, which opts in via `roles[*].owned_policies`); other
+  `raft-snapshotter` role, which opts in via `roles[*].owned_policies`) and
+  `traefik-certs` (`policies/traefik-certs.hcl`, used only by the `traefik`
+  role, pinned to the `traefik` job); other
   policies come from `policies.tf` by reference (`token_policies`).
 
 Nomad OIDC login:
@@ -467,7 +471,7 @@ What each module manages. Resources marked _bootstrap_ only exist when
 - `vault_mount.pki_int` — the mount, with ACME `passthrough_request_headers` / `allowed_response_headers`
 - `vault_pki_secret_backend_intermediate_cert_request` → `vault_pki_secret_backend_root_sign_intermediate` → `vault_pki_secret_backend_intermediate_set_signed` — the sign chain (_bootstrap_)
 - `vault_pki_secret_backend_config_cluster` / `..._config_urls` / `..._config_acme` / `..._config_auto_tidy`
-- `vault_pki_secret_backend_role` — the `intermediate` role
+- `vault_pki_secret_backend_role` — the `intermediate` role, and the `traefik` role (new; created, not imported)
 
 ### modules/vault/pki_int_internal
 

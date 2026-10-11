@@ -65,7 +65,7 @@ Consul runs as a server cluster on `nomad0-2` and as a client on all nodes. The 
 
 ### Ingress
 
-**Traefik** (two instances, `dc1`) reads the Consul catalog for services tagged `traefik.enable=true` and routes `<service-name>.service.home` to them. TLS is issued via Vault's ACME endpoint (`pki_int`) using the HTTP challenge. The `internal-only` middleware restricts access to RFC1918 ranges.
+**Traefik** (two instances, `dc1`) reads the Consul catalog for services tagged `traefik.enable=true` and routes `<service-name>.service.home` to them. TLS is a `*.service.home` wildcard each instance issues for itself straight from `pki_int` (role `traefik`) via a `pkiCert` Nomad template, hot-reloaded through the file provider — not ACME, since two instances behind one round-robin name can't reliably answer each other's HTTP-01 challenges. The `internal-only` middleware restricts access to RFC1918 ranges.
 
 To expose a new service through Traefik, add `"traefik.enable=true"` to its `service.tags`. To override the hostname slug, add `"traefik.http.routers.<name>.rule=Host(...)"`.
 
@@ -76,7 +76,7 @@ To show a service in the homelab dashboard, also add `"homelabdash.uri=<path>"` 
 Vault runs four PKI secret engines:
 
 - `pki` — self-signed root CA (`home`, 10-year TTL)
-- `pki_int` — intermediate CA with ACME enabled; used by Traefik to issue TLS certs for `*.service.home`
+- `pki_int` — intermediate CA for `*.service.home`; Traefik issues its wildcard from the `traefik` role (Nomad WI role `traefik`, policy `traefik-certs`). ACME is still enabled on the mount but nothing uses it
 - `pki_int_internal` — intermediate CA for internal client certs (no ACME, no storage)
 - `pki_int_connect` — intermediate CA for the Consul Connect mesh CA. Unlike the others, **Consul** (not tofu) generates the intermediate, has `pki` sign it, and rotates every mesh leaf cert; tofu (`modules/vault/pki_int_connect`) only reserves the mount and grants the Consul servers a keyless AppRole (`consul-connect-ca`, role_id in Vault KV `kv/consul/connect-ca`) scoped by the `consul-connect-ca` policy. Consul's server config points at it via `connect { ca_provider = "vault" }` in `server.hcl`
 

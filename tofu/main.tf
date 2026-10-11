@@ -43,11 +43,13 @@ module "vault_pki" {
 module "vault_pki_int" {
   source = "./modules/vault/pki_int"
 
-  # ACME mount: the cluster path is the ACME directory Traefik talks to, so it
-  # must be the https/DNS endpoint. aia_base defaults to cluster_base, so the
-  # *.service.home leaf certs carry https/DNS AIA (current behavior). Set
-  # aia_base = local.vault_plaintext_base if you'd rather their AIA/CRL be
-  # loop-free http — at the cost of off-node CRL fetches not resolving.
+  # ACME mount: the cluster path is the ACME directory, so it must be the
+  # https/DNS endpoint. (Traefik no longer uses ACME — it issues from the
+  # module's `traefik` role via pkiCert — but the endpoint stays enabled.)
+  # aia_base defaults to cluster_base, so the *.service.home leaf certs carry
+  # https/DNS AIA (current behavior). Set aia_base = local.vault_plaintext_base
+  # if you'd rather their AIA/CRL be loop-free http — at the cost of off-node
+  # CRL fetches not resolving.
   cluster_base = local.vault_address
   root_backend = module.vault_pki.backend
   # Chain the intermediate's signing issuer to the root the pki module owns.
@@ -134,6 +136,16 @@ module "vault_nomad_wi" {
       # bare parent name (exact, no glob needed).
       bound_claims = {
         nomad_job_id = "cluster-config-snapshotter"
+      }
+    }
+    "traefik" = {
+      # traefik-certs (modules/vault/nomad-wi/policies) lets it issue from
+      # pki_int/issue/traefik. Pinned to the internal traefik job; it reads no KV,
+      # so no templated policy.
+      token_policies = []
+      owned_policies = ["traefik-certs.hcl"]
+      bound_claims = {
+        nomad_job_id = "traefik"
       }
     }
   }

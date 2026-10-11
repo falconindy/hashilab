@@ -32,7 +32,7 @@ end
 lan(["LAN"])
 wan(["WAN"])
 router["Router<hr>Port forward to keepalived VIP"]
-traefik["traefik<hr>*.service.home<br>ACME via Vault"]
+traefik["traefik<hr>*.service.home<br>Vault PKI wildcard"]
 ingress["traefik-ingress<hr>*.falconindy.com<br>ACME via Let's Encrypt"]
 consul_catalog["Routing via Consul service catalog"]
 mesh["Consul service mesh · mTLS everywhere via Envoy sidecars"]
@@ -61,7 +61,7 @@ and Vault as both server and client. A `bastion` node in `dc2` and a Synology NA
 as clients.
 
 **Two front doors, same services.** An internal **Traefik** pair routes
-`<name>.service.home` for anything on the LAN, issuing certs from Vault's ACME endpoint.
+`<name>.service.home` for anything on the LAN, with a `*.service.home` wildcard issued straight from Vault PKI.
 A separate **`traefik-ingress`** instance handles traffic from the outside world: the
 router port-forwards to a **keepalived** VIP that floats across the servers, and the VIP
 hands that traffic to `traefik-ingress`, which serves the same jobs under
@@ -75,7 +75,7 @@ proxies doing mutual TLS. Intentions are default-deny, so nothing reaches anythi
 wasn't explicitly allowed to.
 
 **PKI, all the way down.** Vault runs a self-signed root CA plus two intermediates.
-The internal Traefik issues `*.service.home` certs from Vault's **ACME** endpoint, while
+The internal Traefik issues its own `*.service.home` wildcard straight from Vault PKI, while
 the external `traefik-ingress` uses a Let's Encrypt wildcard for `*.falconindy.com`;
 internal client certs come from a no-storage intermediate. `vault-agent` on every node
 renders and rotates the Consul/Nomad/Vault daemon certs from templates — no cert is ever

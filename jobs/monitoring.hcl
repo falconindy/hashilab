@@ -563,12 +563,22 @@ job "monitoring" {
                     summary: "Watched x509 cert expiring soon: {{ $labels.filepath }} on {{ $labels.instance }}"
                     description: "Cert watched by x509-exporter (Vault raft client cert, root/intermediate CAs) expires in under 14 days."
 
-                # job="traefik" (internal, pki_int) deliberately excluded: its
-                # ACME store keeps entries for decommissioned services (see
-                # homelabdash's ACME Certificates/Orphaned reconciliation),
-                # which would make this noisy. traefik-ingress requests a
-                # single static wildcard (jobs/traefik-ingress.hcl), so
-                # there's no such ambiguity here.
+                # Each internal Traefik instance issues its own *.service.home
+                # wildcard from pki_int via a ttl=100d pkiCert template
+                # (jobs/traefik.hcl), which re-issues at consul-template's
+                # default 0.9 lease threshold — ~10d left. Under 9d means
+                # that renewal should already have happened on this instance.
+                # max by serial for the same reason as the public cert below.
+                - alert: InternalWildcardCertExpiringSoon
+                  expr: (max by (instance, host) (traefik_tls_certs_not_after{job="traefik", cn="*.service.home"}) - time()) < 9 * 86400
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Internal wildcard TLS cert expiring soon on {{ $labels.host }}"
+                    description: "This Traefik instance's *.service.home wildcard (pkiCert from pki_int) expires in under 9 days, i.e. Nomad's template runner should already have re-issued it and hasn't."
+
+                # traefik-ingress requests a single static wildcard
+                # (jobs/traefik-ingress.hcl).
                 #
                 # Traefik never deletes a replaced cert's series (labelled by
                 # serial), so after an in-process renewal the old serial keeps

@@ -543,17 +543,6 @@
         color: var(--md-on-surface-variant);
       }
 
-      /* Orphaned ACME certs (no matching Consul service) aren't actionable
-         — shown inline rather than split into a separate list, but muted so
-         they read as "not urgent" without being hidden entirely. */
-      .cert-breakout-row.orphaned {
-        opacity: 0.6;
-      }
-
-      .cert-breakout-row.orphaned .host {
-        font-style: italic;
-      }
-
       /* status/severity chip, shared by cert-type cards and pki mount rows.
          height is pinned rather than left to padding + line-height, so a
          chip's box never shifts with its text content (e.g. "no data" vs
@@ -906,8 +895,8 @@
       </section>
 
       <section class="infra-section">
-        <h2>ACME Certificates</h2>
-        <div id="acme-certs" class="cert-type-grid">
+        <h2>Traefik Certificates</h2>
+        <div id="traefik-certs" class="cert-type-grid">
           <p class="infra-loading">Loading…</p>
         </div>
       </section>
