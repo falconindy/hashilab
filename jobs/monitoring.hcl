@@ -561,7 +561,7 @@ job "monitoring" {
                     severity: warning
                   annotations:
                     summary: "Watched x509 cert expiring soon: {{ $labels.filepath }} on {{ $labels.instance }}"
-                    description: "Cert watched by x509-exporter (Vault raft client cert, root/intermediate CAs) expires in under 14 days."
+                    description: "Cert watched by x509-exporter (Vault server cert, root/intermediate CAs) expires in under 14 days."
 
                 # Each internal Traefik instance issues its own *.service.home
                 # wildcard from pki_int via a ttl=100d pkiCert template

@@ -218,18 +218,12 @@ const CERT_TYPES = [
   },
   {
     key: "vaultServer",
-    label: "Vault Server",
+    label: "Vault",
     filepath: "/certs/vault/server.crt",
     warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
   },
   {
-    key: "vaultClient",
-    label: "Vault Client",
-    filepath: "/certs/vault/client.crt",
-    warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
-  },
-  {
-    // Same vault-agent ttl=45d/0.667 lease as the four types above (see
+    // Same vault-agent ttl=45d/0.667 lease as the three types above (see
     // os/etc/vault-agent.d/omada-controller.tpl), but omada-controller lives
     // on the bastion (dc2) and reads its cert from a Vault KV push rather
     // than a local file x509-exporter can watch, so this is sourced from

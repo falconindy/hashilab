@@ -72,7 +72,15 @@
   loop:
     - vault-tls.hcl
     - vault-server.tpl
-    - vault-client.tpl
+  when: "'vault_servers' in group_names"
+  notify: Restart vault-agent
+
+# Rendered the retired raft client cert (see the vault role's "Remove retired
+# vault raft client cert"). Drop once all servers converge.
+- name: Remove retired vault client cert template
+  ansible.builtin.file:
+    path: /etc/vault-agent.d/vault-client.tpl
+    state: absent
   when: "'vault_servers' in group_names"
   notify: Restart vault-agent
 
