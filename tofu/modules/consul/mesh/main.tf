@@ -74,6 +74,10 @@ locals {
       { name = "sonarr", action = "allow" },
       { name = "radarr", action = "allow" },
     ]
+    "jellyfin" = [
+      { name = "radarr", action = "allow" },
+      { name = "sonarr", action = "allow" },
+    ]
     "mosquitto" = [
       { name = "teslamate", action = "allow" },
       { name = "mqtt-explorer", action = "allow" },
