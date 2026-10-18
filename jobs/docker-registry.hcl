@@ -160,8 +160,9 @@ job "docker-registry" {
       }
 
       resources {
-        cpu    = 100
-        memory = 512
+        cpu        = 100
+        memory     = 512
+        memory_max = 2048
       }
 
       env {
