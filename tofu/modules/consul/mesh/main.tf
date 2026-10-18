@@ -51,13 +51,13 @@ resource "consul_config_entry" "proxy_defaults" {
 locals {
   intentions = {
     "*" = [
-      { name = "traefik", action = "allow" },
       { name = "prometheus", action = "allow" },
+      { name = "traefik", action = "allow" },
       { name = "*", action = "deny" },
     ]
     "deluge" = [
-      { name = "sonarr", action = "allow" },
       { name = "radarr", action = "allow" },
+      { name = "sonarr", action = "allow" },
     ]
     "deluge-inbound" = [
       { name = "traefik-ingress", action = "allow" },
@@ -67,23 +67,23 @@ locals {
       { name = "maramon", action = "allow" },
     ]
     "homeassistant" = [
-      { name = "traefik-ingress", action = "allow" },
       { name = "homeassistant-mcp", action = "allow" },
+      { name = "traefik-ingress", action = "allow" },
     ]
     "jackett" = [
-      { name = "sonarr", action = "allow" },
       { name = "radarr", action = "allow" },
+      { name = "sonarr", action = "allow" },
     ]
     "jellyfin" = [
       { name = "radarr", action = "allow" },
       { name = "sonarr", action = "allow" },
     ]
     "mosquitto" = [
-      { name = "teslamate", action = "allow" },
-      { name = "mqtt-explorer", action = "allow" },
-      { name = "rtl433", action = "allow" },
       { name = "homeassistant", action = "allow" },
       { name = "maramon", action = "allow" },
+      { name = "mqtt-explorer", action = "allow" },
+      { name = "rtl433", action = "allow" },
+      { name = "teslamate", action = "allow" },
     ]
     "nut" = [
       { name = "homeassistant", action = "allow" },
@@ -95,17 +95,17 @@ locals {
       { name = "traefik-ingress", action = "allow" },
     ]
     "postgres" = [
-      { name = "teslamate", action = "allow" },
       { name = "grafana", action = "allow" },
-      { name = "pocket-id", action = "allow" },
       { name = "homeassistant", action = "allow" },
+      { name = "pocket-id", action = "allow" },
+      { name = "teslamate", action = "allow" },
     ]
     "prometheus" = [
       { name = "grafana", action = "allow" },
     ]
     "victorialogs" = [
-      { name = "vector", action = "allow" },
       { name = "grafana", action = "allow" },
+      { name = "vector", action = "allow" },
     ]
     "zwave-ws" = [
       { name = "homeassistant", action = "allow" },
