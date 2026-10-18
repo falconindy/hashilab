@@ -45,7 +45,7 @@ job "omada-controller" {
       kill_timeout = "30s"
 
       config {
-        image        = "mbentley/omada-controller:6.3.0.111-openj9"
+        image        = "mbentley/omada-controller:6.3.0.111"
         network_mode = "host"
         volumes = [
           "/clusterdata/omada-controller/data:/opt/tplink/EAPController/data:rw",
