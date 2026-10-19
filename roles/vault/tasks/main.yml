@@ -32,16 +32,3 @@
     mode: "0644"
   notify:
     - Flag vault restart
-
-# The raft retry_join client cert is retired: the leader's listener sets
-# tls_disable_client_certs, so it was never presented, and an initialized node
-# never re-joins anyway. Removed here, after vault.hcl drops its references,
-# rather than in vault_agent, so a --tags vault_agent run can't delete files a
-# not-yet-updated vault.hcl still points at. Drop once all servers converge.
-- name: Remove retired vault raft client cert
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/vault.d/certs/client.crt
-    - /etc/vault.d/private/client.key
