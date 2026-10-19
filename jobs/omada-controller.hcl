@@ -119,8 +119,9 @@ job "omada-controller" {
       }
 
       resources {
-        cpu    = 200
-        memory = 2048
+        cpu        = 200
+        memory     = 2048
+        memory_max = 4196
       }
     }
   }
