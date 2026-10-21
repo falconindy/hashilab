@@ -44,7 +44,7 @@ job "coredns" {
       driver = "docker"
 
       config {
-        image = "coredns/coredns:1.14.7"
+        image = "coredns/coredns:1.15.0"
         ports = ["dns", "metrics", "health"]
 
         cap_add      = ["NET_BIND_SERVICE"]
