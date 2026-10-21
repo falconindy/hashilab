@@ -69,7 +69,7 @@ job "traefik" {
       driver = "docker"
 
       config {
-        image = "traefik:v3.7.15"
+        image = "traefik:v3.7.16"
 
         cap_add      = ["NET_BIND_SERVICE"]
         cap_drop     = ["all"]
