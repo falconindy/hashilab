@@ -29,7 +29,7 @@ job "static-www" {
       driver = "docker"
 
       config {
-        image = "nginx:1.31.7-alpine"
+        image = "nginx:1.31.8-alpine"
 
         cap_add      = ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETUID", "SETGID"]
         cap_drop     = ["all"]
