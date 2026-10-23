@@ -39,7 +39,7 @@ job "jellyfin" {
       driver = "docker"
 
       config {
-        image = "jellyfin/jellyfin:12.2"
+        image = "jellyfin/jellyfin:12.3"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
