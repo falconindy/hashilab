@@ -40,7 +40,7 @@ job "go2rtc" {
       driver = "docker"
 
       config {
-        image = "alexxit/go2rtc:1.9.14"
+        image = "alexxit/go2rtc:1.9.15"
         ports = ["rtsp", "webrtc"]
 
         cap_drop     = ["all"]
