@@ -234,8 +234,16 @@ job "traefik-ingress" {
             services:
               vault-service-home:
                 loadBalancer:
+                  serversTransport: home-ca
                   servers:
                     - url: https://vault.service.home:8200
+
+            # Vault's cert chains to the home CA, which the container's system
+            # bundle doesn't carry.
+            serversTransports:
+              home-ca:
+                rootCAs:
+                  - [[ env "NOMAD_TASK_DIR" ]]/home.pem
 
             middlewares:
               securedheaders:
