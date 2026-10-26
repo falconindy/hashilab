@@ -25,7 +25,7 @@ job "jackett" {
       driver = "docker"
 
       config {
-        image = "linuxserver/jackett:0.24.2890"
+        image = "linuxserver/jackett:0.24.2918"
 
         volumes = [
           "/clusterdata/jackett:/config:rw",
