@@ -165,23 +165,6 @@ job "traefik" {
                   - customheaders@file
                 tls: {}
 
-          tls:
-            options:
-              default:
-                sniStrict: true
-                minVersion: VersionTLS12
-                curvePreferences:
-                  - CurveP521
-                  - CurveP384
-                cipherSuites:
-                  - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-                  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-                  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-                  - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-                  - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-              mintls13:
-                minVersion: VersionTLS13
-
           api:
             dashboard: true
             insecure: false
@@ -277,6 +260,23 @@ job "traefik" {
                     - 10.0.1.0/24
                     - 10.0.20.0/24
                     - 10.0.100.0/24
+
+          tls:
+            options:
+              default:
+                sniStrict: true
+                minVersion: VersionTLS12
+                curvePreferences:
+                  - CurveP521
+                  - CurveP384
+                cipherSuites:
+                  - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                  - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+                  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+                  - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+                  - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+              mintls13:
+                minVersion: VersionTLS13
         EOF
         destination     = "secrets/dynamic/static_providers.yml"
       }

@@ -4,7 +4,9 @@ global_defs {
 }
 
 vrrp_script traefik_ingress_healthy {
-  script "/usr/bin/curl -fsk https://localhost:8443/ping"
+  # sniStrict on traefik-ingress rejects SNI "localhost"; send a name its
+  # *.falconindy.com cert covers, pinned to loopback.
+  script "/usr/bin/curl -fsk --resolve ping.falconindy.com:8443:127.0.0.1 https://ping.falconindy.com:8443/ping"
   interval 2
   fall 2
   rise 2
