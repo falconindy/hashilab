@@ -31,9 +31,6 @@ client {
 {% for hwcap in nomad_hardware_capabilities %}
     has_{{ hwcap }} = "true"
 {% endfor %}
-{% if 'vault_servers' in group_names %}
-    has_vault = "true"
-{% endif %}
   }
 }
 
