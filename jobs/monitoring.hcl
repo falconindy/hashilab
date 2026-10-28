@@ -228,7 +228,7 @@ job "monitoring" {
               consul_sd_configs:
                 - server: consul.service.home:8501
                   scheme: https
-                  services: [omada-controller]
+                  services: [omada-controller, vault]
               # A relabeling config that lets us scrape target through the Blackbox Exporter,
               # while labeling the resulting metrics with the probed target's URL.
               relabel_configs:
@@ -240,6 +240,10 @@ job "monitoring" {
                 # Set the "instance" label to the target URL that we want to probe.
                 - source_labels: [__param_target]
                   target_label: instance
+                # Vault registers one instance per server; keep the node name
+                # so the dashboard can label rows by host instead of ip:port.
+                - source_labels: [__meta_consul_node]
+                  target_label: host
                 # Don't actually scrape the target itself, but the Blackbox Exporter.
                 - source_labels: [__meta_consul_service]
                   target_label: job
@@ -519,7 +523,9 @@ job "monitoring" {
                   labels:
                     severity: warning
                   annotations:
-                    summary: "Scrape target down: {{ $labels.job }} on {{ $labels.host }}"
+                    # Not every scrape job sets host (e.g. x509-exporter only
+                    # sets instance), so fall back rather than print "on ".
+                    summary: "Scrape target down: {{ $labels.job }} on {{ with $labels.host }}{{ . }}{{ else }}{{ $labels.instance }}{{ end }}"
                     description: "Prometheus has failed to scrape this target for more than 5 minutes."
 
                 - alert: VaultSealed
@@ -531,13 +537,13 @@ job "monitoring" {
                     summary: "Vault node sealed: {{ $labels.host }}"
                     description: "A Vault node has been sealed for more than 2 minutes."
 
-                - alert: OmadaCertExpiringSoon
+                - alert: ProbedCertExpiringSoon
                   expr: (probe_ssl_earliest_cert_expiry - time()) < 14 * 86400
                   labels:
                     severity: warning
                   annotations:
-                    summary: "Omada controller TLS cert expiring soon: {{ $labels.instance }}"
-                    description: "Certificate probed via blackbox_exporter expires in under 14 days."
+                    summary: "{{ $labels.job }} TLS cert expiring soon: {{ $labels.instance }}"
+                    description: "Certificate served by {{ $labels.job }}, probed via blackbox_exporter, expires in under 14 days."
 
                 - alert: ConsulAgentCertExpiringSoon
                   expr: consul_agent_tls_cert_expiry < 14 * 86400
@@ -560,8 +566,8 @@ job "monitoring" {
                   labels:
                     severity: warning
                   annotations:
-                    summary: "Watched x509 cert expiring soon: {{ $labels.filepath }} on {{ $labels.instance }}"
-                    description: "Cert watched by x509-exporter (Vault server cert, root/intermediate CAs) expires in under 14 days."
+                    summary: "PKI CA cert expiring soon: {{ $labels.filepath }}"
+                    description: "Root/intermediate CA cert watched by x509-exporter expires in under 14 days."
 
                 # Each internal Traefik instance issues its own *.service.home
                 # wildcard from pki_int via a ttl=100d pkiCert template

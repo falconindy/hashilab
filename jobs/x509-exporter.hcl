@@ -1,6 +1,6 @@
 job "x509-exporter" {
   datacenters = ["dc1"]
-  type        = "system"
+  type        = "service"
 
   ui {
     description = "A Prometheus exporter to monitor x509 certificate expiry"
@@ -14,11 +14,12 @@ job "x509-exporter" {
     }
   }
 
+  # Only watches the PKI mounts' CA certs, which it fetches from Vault itself
+  # -- nothing host-local -- so one instance covers the whole cluster. Vault's
+  # own server cert is probed by blackbox instead (jobs/monitoring.hcl's
+  # tls-expiration job).
   group "x509-exporter" {
-    constraint {
-      attribute = "${meta.has_vault}"
-      value     = "true"
-    }
+    count = 1
 
     network {
       mode = "bridge"
@@ -28,25 +29,22 @@ job "x509-exporter" {
 
     task "exporter" {
       driver = "docker"
+      # Templates render 0644, so nothing it reads needs root.
+      user = "nobody"
 
       config {
         image = "enix/x509-certificate-exporter:3.21.0-alpine"
         ports = ["metrics"]
 
-        # Kept as root: it reads root-owned host cert dirs (/etc/vault.d/certs).
-        # cap_drop + no-new-privileges still shrink the blast radius of the
-        # root process without risking those reads.
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
 
         args = [
-          "--watch-dir=/certs/vault",
           "--watch-dir=/certs/trust",
           "--listen-address=:${NOMAD_HOST_PORT_metrics}",
         ]
 
         volumes = [
-          "/etc/vault.d/certs:/certs/vault:ro",
           "local/pki.pem:/certs/trust/pki.pem:ro",
           "local/pki_int.pem:/certs/trust/pki_int.pem:ro",
           "local/pki_int_internal.pem:/certs/trust/pki_int_internal.pem:ro",

@@ -176,10 +176,10 @@ function renderAlerts() {
     .join("");
 }
 
-// Cert types sourced from x509_cert_not_after (absolute unix timestamps,
-// watched by x509-exporter) vs. the consul/nomad agent metrics, which are
-// already seconds-remaining gauges. Both kinds get normalized to
-// seconds-remaining in loadInfra().
+// Cert types sourced from probe_ssl_earliest_cert_expiry (absolute unix
+// timestamps, from the blackbox tls_connect probe) vs. the consul/nomad agent
+// metrics, which are already seconds-remaining gauges. Both kinds get
+// normalized to seconds-remaining in loadInfra().
 // All four of these are issued by vault-agent with ttl=45d and renewed at
 // the global lease_renewal_threshold = 0.667 (os/etc/vault-agent.d/agent.hcl.j2),
 // i.e. vault-agent should renew each one while ~1/3 of the 45d ttl (~15d)
@@ -217,18 +217,19 @@ const CERT_TYPES = [
     warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
   },
   {
-    key: "vaultServer",
+    // Probed (jobs/monitoring.hcl's tls-expiration job) rather than
+    // file-watched, so this is the cert Vault is actually serving -- a
+    // vault-agent render whose `systemctl reload vault` didn't take still
+    // shows up here as the old cert.
+    key: "vault",
     label: "Vault",
-    filepath: "/certs/vault/server.crt",
+    probeJob: "vault",
     warnThresholdSeconds: VAULT_AGENT_RENEWAL_THRESHOLD_SECONDS,
   },
   {
     // Same vault-agent ttl=45d/0.667 lease as the three types above (see
-    // os/etc/vault-agent.d/omada-controller.tpl), but omada-controller lives
-    // on the bastion (dc2) and reads its cert from a Vault KV push rather
-    // than a local file x509-exporter can watch, so this is sourced from
-    // the blackbox tls_connect probe instead (jobs/monitoring.hcl's
-    // tls-expiration job).
+    // os/etc/vault-agent.d/omada-controller.tpl); lives on the bastion (dc2)
+    // and is probed the same way as Vault.
     key: "omadaController",
     label: "Omada Controller",
     probeJob: "omada-controller",
@@ -236,10 +237,9 @@ const CERT_TYPES = [
   },
 ];
 
-// The CA cert for each PKI issuing mount, rendered to disk once by
-// x509-exporter's own Vault template (see jobs/x509-exporter.hcl) and
-// watched under the same /certs/trust dir on every Vault node, so every
-// instance reports an identical not_after for a given mount.
+// The CA cert for each PKI issuing mount, rendered to disk by
+// x509-exporter's own Vault templates (see jobs/x509-exporter.hcl) and
+// watched under /certs/trust.
 const PKI_MOUNTS = [
   { key: "pki", label: "pki", filepath: "/certs/trust/pki.pem" },
   { key: "pki_int", label: "pki_int", filepath: "/certs/trust/pki_int.pem" },
@@ -343,34 +343,14 @@ async function loadInfra() {
         seconds: Number(r.value[1]),
       }));
     } else if (type.probeJob) {
-      // Blackbox target label (jobs/monitoring.hcl's tls-expiration job) is
-      // ip:port, not a hostname -- there's no Consul node to attach a nicer
-      // label to, since the probe target is the service address, not an agent.
+      // The tls-expiration job (jobs/monitoring.hcl) labels each target
+      // with its Consul node as `host`; instance (ip:port) is the fallback.
       rows = probeCerts
         .filter((r) => r.metric.job === type.probeJob)
         .map((r) => ({
-          host: r.metric.instance,
+          host: r.metric.host ?? r.metric.instance,
           seconds: Number(r.value[1]) - now,
         }));
-    } else {
-      // vault-agent renders these as leaf+CA bundles (.Cert followed by .CA,
-      // see os/etc/vault-agent.d/vault-{server,client}.tpl), so x509-exporter
-      // reports one series per cert in the file. Keep only the soonest
-      // (the short-lived leaf) per host — the embedded CA duplicates what
-      // the pki_int_internal mount already reports.
-      const byHost = new Map();
-      for (const r of x509) {
-        if (r.metric.filepath !== type.filepath) continue;
-        const host = r.metric.instance;
-        const seconds = Number(r.value[1]) - now;
-        if (!byHost.has(host) || seconds < byHost.get(host)) {
-          byHost.set(host, seconds);
-        }
-      }
-      rows = [...byHost.entries()].map(([host, seconds]) => ({
-        host,
-        seconds,
-      }));
     }
     infraData.certs[type.key] = rows.sort((a, b) =>
       a.host.localeCompare(b.host),
@@ -379,10 +359,8 @@ async function loadInfra() {
 
   infraData.pki = {};
   for (const mount of PKI_MOUNTS) {
-    const rows = x509.filter((r) => r.metric.filepath === mount.filepath);
-    infraData.pki[mount.key] = rows.length
-      ? Math.min(...rows.map((r) => Number(r.value[1]) - now))
-      : null;
+    const row = x509.find((r) => r.metric.filepath === mount.filepath);
+    infraData.pki[mount.key] = row ? Number(row.value[1]) - now : null;
   }
 }
 
