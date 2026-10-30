@@ -159,7 +159,7 @@ job "immich" {
       kill_timeout = "30s"
 
       config {
-        image = "ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0"
+        image = "ghcr.io/immich-app/postgres:18-vectorchord1.1.1-pgvector0.8.5"
 
         # The image's entrypoint copies a DB_STORAGE_TYPE-selected template to
         # /etc/postgresql/postgresql.conf (with shared_preload_libraries=vchord.so
@@ -203,6 +203,10 @@ job "immich" {
         POSTGRES_INITDB_ARGS = "--data-checksums"
         PGDATA               = "/appdata/postgres"
         DB_STORAGE_TYPE      = "HDD"
+
+        # postgres18 refuses to start with the database on NFS unless you
+        # explicitly acknowledge the associated risks.
+        IGNORE_DATABASE_FSTYPE = "true"
       }
     }
 
