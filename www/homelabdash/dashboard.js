@@ -53,6 +53,7 @@ function init() {
   watchHealth();
   watchAlerts();
   watchInfra();
+  watchVersions();
   initTabs();
 }
 
@@ -531,6 +532,240 @@ function renderTraefikCerts() {
     ),
   ].join("");
   restoreOpenDetails(container, openKeys);
+}
+
+// ---- HashiCorp versions ----
+// Running versions come straight from each product's own API (all readable
+// without a token): Consul's LAN members carry `Tags.build`, Nomad's node list
+// carries `Version`, and each Vault server reports `version` on the
+// unauthenticated /v1/sys/health. Vault has no version metric and Consul's
+// consul_version is servers-only, so Prometheus isn't a usable source here.
+// The latest release comes from HashiCorp's releases API, which sends
+// Access-Control-Allow-Origin: *. license_class=oss is required: without it,
+// Vault's /latest can be an enterprise build like 2.2.1+ent.hsm.fips1403.
+const RELEASES_API = "https://api.releases.hashicorp.com/v1/releases";
+const VERSION_PRODUCTS = [
+  { key: "nomad", label: "Nomad" },
+  { key: "consul", label: "Consul" },
+  { key: "vault", label: "Vault" },
+];
+// Releases land every few weeks; there's no point hitting the API on every
+// running-version poll. A failed fetch retries sooner, keeping the last good
+// value in the meantime.
+const LATEST_REFRESH_MS = 60 * 60 * 1000;
+const LATEST_RETRY_MS = 5 * 60 * 1000;
+
+let versionData = { running: {}, latest: {} };
+let nextLatestFetch = 0;
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadConsulVersions() {
+  const members = await fetchJson(`${CONSUL_ADDR}/v1/agent/members`);
+  return (
+    members
+      // Serf status 1 = alive; a left/failed member would only show a stale
+      // version.
+      .filter((m) => m.Status === 1)
+      // build is "<version>:<short sha>"
+      .map((m) => ({ host: m.Name, version: m.Tags?.build?.split(":")[0] }))
+  );
+}
+
+async function loadNomadVersions() {
+  const nodes = await fetchJson(`${NOMAD_ADDR}/v1/nodes`);
+  return nodes
+    .filter((n) => n.Status !== "down")
+    .map((n) => ({ host: n.Name, version: n.Version }));
+}
+
+// The Vault server certs carry each node's IP as a SAN but not
+// <node>.node.home, so address each server the way the catalog registers it.
+// The *code params make sys/health answer 200 regardless of HA/seal state, so
+// a standby (429 by default) or sealed (503) node still reports its version.
+// CORS comes from the listener's custom_response_headers
+// (os/etc/vault.d/vault.hcl.j2), not sys/config/cors, which only the active
+// node honors.
+async function loadVaultVersions() {
+  const instances = await fetchJson(`${CONSUL_ADDR}/v1/catalog/service/vault`);
+  return Promise.all(
+    instances.map(async (svc) => {
+      const addr = svc.ServiceAddress || svc.Address;
+      try {
+        const health = await fetchJson(
+          `https://${addr}:${svc.ServicePort}/v1/sys/health?standbycode=200&perfstandbycode=200&sealedcode=200&uninitcode=200`,
+        );
+        return { host: svc.Node, version: health.version };
+      } catch (err) {
+        console.error(`Vault version fetch failed for ${svc.Node}:`, err);
+        return { host: svc.Node, version: null };
+      }
+    }),
+  );
+}
+
+async function loadLatestVersions() {
+  const results = await Promise.allSettled(
+    VERSION_PRODUCTS.map((p) =>
+      fetchJson(`${RELEASES_API}/${p.key}/latest?license_class=oss`),
+    ),
+  );
+  let allOk = true;
+  results.forEach((r, i) => {
+    const key = VERSION_PRODUCTS[i].key;
+    if (r.status === "fulfilled") {
+      versionData.latest[key] = {
+        version: r.value.version,
+        changelog: r.value.url_changelog,
+        released: r.value.timestamp_created,
+      };
+    } else {
+      allOk = false;
+      console.error(`Latest ${key} version fetch failed:`, r.reason);
+    }
+  });
+  nextLatestFetch = Date.now() + (allOk ? LATEST_REFRESH_MS : LATEST_RETRY_MS);
+}
+
+async function loadVersions() {
+  const loaders = {
+    nomad: loadNomadVersions,
+    consul: loadConsulVersions,
+    vault: loadVaultVersions,
+  };
+  // allSettled so one unreachable API doesn't blank the other products.
+  const [results] = await Promise.all([
+    Promise.allSettled(VERSION_PRODUCTS.map((p) => loaders[p.key]())),
+    Date.now() >= nextLatestFetch ? loadLatestVersions() : null,
+  ]);
+  results.forEach((r, i) => {
+    const key = VERSION_PRODUCTS[i].key;
+    if (r.status === "fulfilled") {
+      versionData.running[key] = r.value.sort((a, b) =>
+        a.host.localeCompare(b.host),
+      );
+    } else {
+      console.error(`Running ${key} version fetch failed:`, r.reason);
+      versionData.running[key] = null;
+    }
+  });
+}
+
+// Running versions only change on an upgrade, so this polls slower than
+// watchInfra.
+async function watchVersions() {
+  while (true) {
+    try {
+      await loadVersions();
+      renderVersions();
+    } catch (err) {
+      console.error("Versions watch error:", err);
+    }
+    await new Promise((r) => setTimeout(r, 60000));
+  }
+}
+
+// "2.1.0", "2.1.0+ent", "2.1.0-beta1" → [2, 1, 0]
+function parseVersion(v) {
+  return v
+    .replace(/[-+].*/, "")
+    .split(".")
+    .map((n) => Number(n) || 0);
+}
+
+function compareVersions(a, b) {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+// Drift (nodes disagreeing) outranks "behind latest": the roles apt-install
+// unpinned, so a node that missed an Ansible run silently falls behind the
+// rest. A major/minor split is critical, a patch-only split a warning.
+function classifyVersions(rows, latest) {
+  const known = [...new Set(rows.map((r) => r.version).filter(Boolean))].sort(
+    compareVersions,
+  );
+  if (!known.length) return { cls: "unknown", text: "no data", known };
+  if (known.length > 1) {
+    const lo = parseVersion(known[0]);
+    const hi = parseVersion(known.at(-1));
+    const minorSplit = lo[0] !== hi[0] || lo[1] !== hi[1];
+    return { cls: minorSplit ? "critical" : "warning", text: "drift", known };
+  }
+  if (!latest) return { cls: "unknown", text: "latest unknown", known };
+  if (compareVersions(known[0], latest.version) >= 0)
+    return { cls: "passing", text: "current", known };
+  return { cls: "warning", text: `${latest.version} available`, known };
+}
+
+function renderVersions() {
+  const container = document.getElementById("versions");
+  const openKeys = preserveOpenDetails(container);
+  container.innerHTML = VERSION_PRODUCTS.map((p) =>
+    versionCardHtml(p, versionData.running[p.key], versionData.latest[p.key]),
+  ).join("");
+  restoreOpenDetails(container, openKeys);
+}
+
+// Same <details> shell as certTypeCardHtml, so it shares that card's styling
+// and open-state tracking (data-cert-key).
+function versionCardHtml(product, rows, latest) {
+  const status = rows
+    ? classifyVersions(rows, latest)
+    : { cls: "unknown", text: "unreachable", known: [] };
+  const running =
+    status.known.length > 1
+      ? `${status.known[0]} – ${status.known.at(-1)}`
+      : status.known[0] || "";
+
+  const hostRows = (rows || [])
+    .map((row) => {
+      const behind =
+        row.version &&
+        latest &&
+        compareVersions(row.version, latest.version) < 0;
+      return `
+        <div class="cert-breakout-row">
+          <span class="host">${row.host}</span>
+          <span class="version-value${behind ? " behind" : ""}">${row.version || "no data"}</span>
+        </div>
+      `;
+    })
+    .join("");
+  const latestRow = latest
+    ? `
+        <div class="cert-breakout-row version-latest-row">
+          <span class="host">latest release</span>
+          <a class="version-value" href="${latest.changelog}" target="_blank" rel="noopener"
+             title="released ${new Date(latest.released).toLocaleDateString()}">${latest.version}</a>
+        </div>
+      `
+    : "";
+
+  return `
+    <details class="info-card cert-type-card" data-cert-key="version-${product.key}">
+      <summary>
+        <span class="cert-type-name">${product.label}</span>
+        <span class="cert-type-summary-right">
+          <span class="version-value">${running}</span>
+          <span class="expiry-chip ${status.cls}"><span class="dot"></span>${status.text}</span>
+          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+          </svg>
+        </span>
+      </summary>
+      <div class="cert-breakout">${hostRows || `<p class="infra-loading">No hosts reporting</p>`}${latestRow}</div>
+    </details>
+  `;
 }
 
 async function watchCatalog() {

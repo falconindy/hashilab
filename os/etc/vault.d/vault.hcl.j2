@@ -46,6 +46,20 @@ listener "tcp" {
   telemetry {
     unauthenticated_metrics_access = "true"
   }
+
+  # Lets the homelab dashboard (www/homelabdash, served at d.service.home)
+  # read each server's version off the unauthenticated /v1/sys/health. Set
+  # here rather than via the sys/config/cors API: that config only takes
+  # effect on the active node (standbys answer without the header, so the
+  # browser drops their responses), while listener headers apply on every
+  # node regardless of HA role. Don't also enable sys/config/cors — the active
+  # node would then send Access-Control-Allow-Origin twice, which browsers
+  # reject.
+  custom_response_headers {
+    "default" = {
+      "Access-Control-Allow-Origin" = ["https://d.service.home"]
+    }
+  }
 }
 
 seal "gcpckms" {

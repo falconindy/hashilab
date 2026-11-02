@@ -543,6 +543,35 @@
         color: var(--md-on-surface-variant);
       }
 
+      /* HashiCorp Versions cards reuse the cert-type-card shell; these are
+         the version strings in the summary and per-host breakout. */
+      .version-value {
+        font-family: "Roboto Mono", monospace;
+        font-size: 0.85rem;
+        color: var(--md-on-surface-variant);
+      }
+
+      a.version-value {
+        color: var(--md-primary);
+        text-decoration: none;
+      }
+
+      a.version-value:hover {
+        text-decoration: underline;
+      }
+
+      /* a host behind the latest release */
+      .version-value.behind {
+        color: var(--md-warn);
+        font-weight: 500;
+      }
+
+      .version-latest-row {
+        margin-top: 4px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--md-outline-variant);
+      }
+
       /* status/severity chip, shared by cert-type cards and pki mount rows.
          height is pinned rather than left to padding + line-height, so a
          chip's box never shifts with its text content (e.g. "no data" vs
@@ -876,6 +905,13 @@
       <section class="infra-section">
         <h2>Server Uptime</h2>
         <div id="uptime-list" class="uptime-list">
+          <p class="infra-loading">Loading…</p>
+        </div>
+      </section>
+
+      <section class="infra-section">
+        <h2>HashiCorp Versions</h2>
+        <div id="versions" class="cert-type-grid">
           <p class="infra-loading">Loading…</p>
         </div>
       </section>
