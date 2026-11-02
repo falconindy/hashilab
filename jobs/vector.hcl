@@ -276,8 +276,9 @@ job "vector" {
 
         sidecar_task {
           resources {
-            cpu    = 50
-            memory = 48
+            cpu        = 50
+            memory     = 48
+            memory_max = 128
           }
         }
       }
