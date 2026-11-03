@@ -32,7 +32,7 @@ job "adguard" {
       user   = "65534:65534"
 
       config {
-        image = "adguard/adguardhome:v0.107.79"
+        image = "adguard/adguardhome:v0.107.80"
 
         cap_drop     = ["all"]
         cap_add      = ["NET_BIND_SERVICE"]
