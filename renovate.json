@@ -8,6 +8,11 @@
       "enabled": false
     },
     {
+      "description": "Our own images in the private registry, which Renovate can't reach",
+      "matchPackageNames": ["docker-registry.service.home/**"],
+      "enabled": false
+    },
+    {
       "matchPackageNames": ["postgres"],
       "matchUpdateTypes": ["minor", "patch"]
     },

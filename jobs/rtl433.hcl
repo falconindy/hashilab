@@ -31,7 +31,14 @@ job "rtl433" {
       driver = "docker"
 
       config {
-        image = "hertzg/rtl_433:25.12-alpine-linux_amd64"
+        # Locally built from falconindy/rtl_433@mqtt-dead-broker-detection: fixes
+        # the MQTT client hanging forever on a broker that accepts the TCP
+        # connection but never answers (e.g. Envoy with no route to mosquitto
+        # after a cluster reboot). Rebuild with ~/code/rtl_433/Dockerfile.local.
+        # The commented upstream image below is still tracked by Renovate, so a
+        # PR bumping it means a new release -- switch back once it has the fix.
+        # image = "hertzg/rtl_433:25.12-alpine-linux_amd64"
+        image = "docker-registry.service.home/rtl_433:25.12-mqttfix"
 
         args = [
           "-c", "${NOMAD_TASK_DIR}/rtl_433.conf",
