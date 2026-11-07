@@ -33,7 +33,7 @@ job "homeassistant-mcp" {
       # host before first run, or the settings/tool-config volume falls back
       # to an in-container tmpdir and loses state on every restart.
       config {
-        image   = "ghcr.io/homeassistant-ai/ha-mcp:9.1.0"
+        image   = "ghcr.io/homeassistant-ai/ha-mcp:9.1.1"
         command = "ha-mcp-web"
 
         cap_drop     = ["all"]
