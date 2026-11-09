@@ -31,7 +31,7 @@ job "omada-exporter" {
       user   = "1000:1000"
 
       config {
-        image = "rcooler/omada_exporter:2.4.4"
+        image = "rcooler/omada_exporter:2.4.5"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
