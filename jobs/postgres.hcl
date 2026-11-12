@@ -34,7 +34,7 @@ job "postgres" {
       kill_timeout = "30s"
 
       config {
-        image = "postgres:17.11"
+        image = "postgres:17.12"
 
         args = [
           "-c", "listen_addresses=127.0.0.1",
