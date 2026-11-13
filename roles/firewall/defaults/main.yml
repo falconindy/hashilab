@@ -1,0 +1,39 @@
+---
+# Audit mode (false): the input policy is accept, and anything that falls off
+# the end of the chain is logged as "nft-would-drop: " instead of dropped.
+# Review with `journalctl -k --grep nft-would-drop` and the per-rule counters
+# (`nft list table inet hashilab`), then flip to true to set policy drop.
+firewall_enforce: false
+
+# Seconds before an applied ruleset is rolled back (our table deleted) unless a
+# fresh SSH connection succeeds and disarms the timer.
+firewall_rollback_seconds: 90
+
+# Client/LAN subnets allowed to reach service ports (SSH, UIs, APIs).
+#
+# Deliberately NOT here: 10.0.20.0/24, the local-only device VLAN (ESPHome
+# devices like the RATGDO and nursery camera; no internet). Nothing on the hosts'
+# own sockets should be reachable from it. The cluster talks to those devices
+# outbound (conntrack covers replies), and anything they reach on the cluster
+# (DNS, MQTT, Traefik) is a DNAT'd bridge-mode port on the forward hook, which
+# this ruleset doesn't filter. In audit mode its traffic shows up as
+# nft-would-drop with SRC=10.0.20.x, so any real dependency will surface there.
+firewall_lan_cidrs:
+  - 10.0.1.0/24
+  - 10.0.100.0/24
+
+# Docker's default bridge (docker0) and Nomad's CNI bridge (`nomad`). Containers
+# reaching the host's own IPs (Prometheus scrapes, CoreDNS -> Consul DNS, Vault on
+# 172.17.0.1) arrive from here.
+firewall_container_cidrs:
+  - 172.17.0.0/16
+  - 172.26.64.0/20
+
+# Nomad's default dynamic port range: host-network and raw_exec/exec2 tasks bind
+# their dynamic ports here directly on the host.
+firewall_nomad_dynamic_ports: 20000-32000
+
+# Static ports of host-network jobs, set per datacenter in group_vars since jobs
+# float between that DC's nodes. Each entry: port (number or "a-b" range),
+# proto (tcp|udp), comment, and optionally from: any (default: trusted subnets).
+firewall_job_ports: []

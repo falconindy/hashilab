@@ -1,0 +1,11 @@
+---
+# Static ports of host-network jobs that can land on any dc2 node.
+firewall_job_ports:
+  # omada-controller (see jobs/omada-controller.hcl)
+  - { port: 8088, proto: tcp, comment: "omada http" }
+  - { port: 8043, proto: tcp, comment: "omada manage https" }
+  - { port: 8843, proto: tcp, comment: "omada portal https" }
+  - { port: "29811-29817", proto: tcp, comment: "omada device mgmt" }
+  - { port: 19810, proto: udp, comment: "omada olt" }
+  - { port: 27001, proto: udp, comment: "omada app discovery" }
+  - { port: 29810, proto: udp, comment: "omada discovery" }

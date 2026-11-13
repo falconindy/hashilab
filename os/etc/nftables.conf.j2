@@ -1,0 +1,133 @@
+#!/usr/sbin/nft -f
+{# | bool: `-e firewall_enforce=false` on the CLI is the truthy string "false". #}
+{% set enforce = firewall_enforce | bool %}
+# {{ ansible_managed }}
+#
+# Host firewall. This file owns ONLY `table inet hashilab`: Docker, Nomad's CNI
+# plugins and Tailscale manage their own tables, so never `flush ruleset` here.
+# Declare-then-delete makes the reload atomic and idempotent.
+#
+# Scope: INPUT only (the host's own sockets). Bridge-mode job ports (traefik,
+# coredns, Envoy sidecars, ...) are DNAT'd to containers and traverse the
+# forward hook, which is untouched.
+#
+# Mode: {{ 'ENFORCE (policy drop)' if enforce else 'AUDIT (policy accept, unmatched traffic logged as nft-would-drop)' }}
+{% set cluster = groups['all'] | map('extract', hostvars, 'ansible_host') | unique | sort %}
+{% set servers = (groups['consul_servers'] + groups['nomad_servers'] + groups['vault_servers']) | unique | map('extract', hostvars, 'ansible_host') | unique | sort %}
+{% set verdict_drop = 'drop' if enforce else '' %}
+
+table inet hashilab
+delete table inet hashilab
+
+table inet hashilab {
+  # Every managed host, incl. the NAS (Consul client gossip).
+  set cluster_v4 {
+    type ipv4_addr
+    elements = { {{ cluster | join(', ') }} }
+  }
+
+  # Consul/Nomad/Vault servers.
+  set servers_v4 {
+    type ipv4_addr
+    elements = { {{ servers | join(', ') }} }
+  }
+
+  set containers_v4 {
+    type ipv4_addr
+    flags interval
+    elements = { {{ firewall_container_cidrs | join(', ') }} }
+  }
+
+  # LAN client subnets + container bridges.
+  set trusted_v4 {
+    type ipv4_addr
+    flags interval
+    elements = { {{ (firewall_lan_cidrs + firewall_container_cidrs) | join(', ') }} }
+  }
+
+  chain input {
+    type filter hook input priority filter; policy {{ 'drop' if enforce else 'accept' }};
+
+    ct state established,related accept
+    ct state invalid counter {{ verdict_drop }} comment "ct invalid"
+    iif "lo" accept
+
+    # --- baseline -----------------------------------------------------------
+    meta l4proto { icmp, ipv6-icmp } counter accept comment "icmp/ndp"
+    udp sport 67 udp dport 68 counter accept comment "dhcp client"
+    ip6 saddr fe80::/10 udp sport 547 udp dport 546 counter accept comment "dhcpv6 client"
+    udp dport 5353 ip daddr 224.0.0.251 counter accept comment "mdns"
+    udp dport 5353 ip6 daddr ff02::fb counter accept comment "mdns"
+    tcp dport 22 ip saddr @trusted_v4 counter accept comment "ssh"
+    # systemd-resolved's DNSStubListenerExtra=172.17.0.1, the DNS server jobs
+    # are pointed at. On dc1 CoreDNS's static port 53 DNATs this away first;
+    # where CoreDNS doesn't run (bastion) resolved answers it here.
+    meta l4proto { tcp, udp } th dport 53 ip daddr 172.17.0.1 ip saddr @containers_v4 counter accept comment "resolved stub for containers"
+
+    # --- consul (every agent) -----------------------------------------------
+{% if 'consul_clients' in group_names %}
+    meta l4proto { tcp, udp } th dport 8301 ip saddr @cluster_v4 counter accept comment "consul serf lan"
+    tcp dport 8501 ip saddr @trusted_v4 counter accept comment "consul https api"
+    tcp dport 8503 ip saddr @containers_v4 counter accept comment "consul grpc tls"
+    meta l4proto { tcp, udp } th dport 8600 ip saddr @containers_v4 counter accept comment "consul dns"
+{% endif %}
+{% if 'consul_servers' in group_names %}
+    tcp dport 8300 ip saddr @cluster_v4 counter accept comment "consul server rpc"
+    meta l4proto { tcp, udp } th dport 8302 ip saddr @servers_v4 counter accept comment "consul serf wan"
+{% endif %}
+
+    # --- nomad --------------------------------------------------------------
+{% if 'nomad_clients' in group_names or 'nomad_servers' in group_names %}
+    tcp dport 4646 ip saddr @trusted_v4 counter accept comment "nomad http api"
+{% endif %}
+{% if 'nomad_servers' in group_names %}
+    tcp dport 4647 ip saddr @cluster_v4 counter accept comment "nomad rpc"
+    meta l4proto { tcp, udp } th dport 4648 ip saddr @servers_v4 counter accept comment "nomad serf"
+{% endif %}
+{% if 'nomad_clients' in group_names %}
+    meta l4proto { tcp, udp } th dport {{ firewall_nomad_dynamic_ports }} ip saddr @trusted_v4 counter accept comment "nomad dynamic ports"
+{% endif %}
+
+    # --- vault --------------------------------------------------------------
+{% if 'vault_servers' in group_names %}
+    tcp dport 8200 ip saddr @trusted_v4 counter accept comment "vault api"
+    tcp dport 8201 ip saddr @servers_v4 counter accept comment "vault cluster"
+{% endif %}
+
+    # --- keepalived ---------------------------------------------------------
+{% if 'keepalived_servers' in group_names %}
+    ip protocol vrrp ip saddr @servers_v4 counter accept comment "vrrp"
+{% endif %}
+
+    # --- host-network jobs (firewall_job_ports) -----------------------------
+{% for p in firewall_job_ports %}
+    {{ p.proto }} dport {{ p.port }} {{ '' if p.from | default('trusted') == 'any' else 'ip saddr @trusted_v4 ' }}counter accept comment "{{ p.comment }}"
+{% endfor %}
+
+    # --- fall-through -------------------------------------------------------
+    # LAN broadcast/multicast chatter (SSDP, NetBIOS, LLMNR, ...) is counted but
+    # not logged so it doesn't eat the log rate limit (in audit mode it's
+    # accepted here, which is what the accept policy would do anyway).
+    meta pkttype { broadcast, multicast } counter {{ 'drop' if enforce else 'accept' }} comment "unmatched bcast/mcast"
+    # Unmatched unicast from the internet is almost all late UDP replies to
+    # deluge's peer traffic whose NAT entry has expired. Nothing legitimate from
+    # the internet ends here (tailscale is accepted above), so count, don't log.
+    ip saddr != { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } counter {{ 'drop' if enforce else 'accept' }} comment "unmatched internet"
+    # Unicast SSDP replies to M-SEARCHes that bridge-mode containers (e.g.
+    # homeassistant) multicast through the host's masquerade. conntrack can't tie
+    # a unicast reply to a multicast request, so these never reach the container
+    # and were undeliverable before this firewall too. Count, don't log.
+    udp sport 1900 ip saddr @trusted_v4 counter {{ 'drop' if enforce else 'accept' }} comment "unmatched ssdp replies"
+    limit rate 30/minute burst 50 packets log prefix "{{ 'nft-drop: ' if enforce else 'nft-would-drop: ' }}" level info
+    counter comment "unmatched unicast"
+{% if enforce %}
+    # Refuse LAN clients the way a closed port would (TCP RST / ICMP port
+    # unreachable) instead of silently dropping, so they fail fast: Android's
+    # opportunistic DNS-over-TLS probe falls back to :53 at once, and a browser
+    # that hits a node mid-Traefik-redeploy retries the other A record instead
+    # of hanging. Everything else falls through to policy drop.
+    meta l4proto tcp ip saddr @trusted_v4 reject with tcp reset
+    ip saddr @trusted_v4 reject with icmpx port-unreachable
+{% endif %}
+  }
+}

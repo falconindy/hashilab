@@ -1,0 +1,44 @@
+---
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    dpkg_options: "force-confdef,force-confold"
+    state: present
+
+# Debian's unit stops with `nft flush ruleset`, which would also wipe the tables
+# Docker, Nomad's CNI plugins and Tailscale own. Scope stop to our table.
+- name: Scope nftables.service stop to our table
+  ansible.builtin.copy:
+    src: os/etc/systemd/system/nftables.service.d
+    dest: /etc/systemd/system
+    mode: "0644"
+  notify:
+    - Reload systemd units
+
+- name: Flush handlers so the drop-in is live before the service is touched
+  ansible.builtin.meta: flush_handlers
+
+- name: Render ruleset
+  ansible.builtin.template:
+    src: os/etc/nftables.conf.j2
+    dest: /etc/nftables.conf
+    mode: "0755"
+    validate: nft -c -f %s
+  register: firewall_ruleset
+
+- name: Enable nftables.service so the ruleset loads at boot
+  ansible.builtin.systemd_service:
+    name: nftables.service
+    enabled: true
+
+# Apply with a dead-man's switch (apply.yml). include_tasks, not a block: the
+# `when` gates the include itself, so the reset_connection meta inside never
+# sees a conditional (meta tasks ignore `when` and warn). Dynamic includes don't
+# pass tags to their tasks, so tag them `always`: they then run whenever the
+# include itself does (e.g. under --tags firewall).
+- name: Apply ruleset with automatic rollback
+  ansible.builtin.include_tasks:
+    file: apply.yml
+    apply:
+      tags: [always]
+  when: firewall_ruleset.changed # noqa: no-handler
