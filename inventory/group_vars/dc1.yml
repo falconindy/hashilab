@@ -1,0 +1,10 @@
+---
+# Static ports of host-network jobs that can land on any dc1 node.
+#
+# No tailscale entry: tailscaled picks a random port, the router rewrites it
+# anyway (no UPnP/NAT-PMP, endpoint-independent mapping), and NAT traversal's
+# simultaneous sends make peer traffic match `ct state established`. An inbound
+# rule would only matter with a router port-forward, which can't follow a
+# floating job.
+firewall_job_ports:
+  - { port: 6052, proto: tcp, comment: "esphome" }

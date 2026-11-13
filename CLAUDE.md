@@ -53,7 +53,7 @@ ansible-playbook site.yml -i inventory/hosts.yml --tags consul      # single rol
 ansible-playbook site.yml -i inventory/hosts.yml -l nomad0.node.home  # single host
 ```
 
-Available tags match role names: `trust`, `base`, `systemd`, `keepalived`, `consul`, `nomad`, `vault`, `vault_agent`, `synology`. The `trust` role (home Root CA + Vault SSH client CA) is OS-agnostic and runs on every host; `base` (apt packages, editor, clusterdata NFS mount) is gated to Debian hosts so non-Debian nodes can take `trust` without it.
+Available tags match role names: `trust`, `base`, `firewall`, `systemd`, `keepalived`, `consul`, `nomad`, `vault`, `vault_agent`, `synology`. The `trust` role (home Root CA + Vault SSH client CA) is OS-agnostic and runs on every host; `base` (apt packages, editor, clusterdata NFS mount) is gated to Debian hosts so non-Debian nodes can take `trust` without it.
 
 The Synology NAS (`nasty.node.home`) is not Debian, so `site.yml` splits into two plays: `Deploy All` (`hosts: all:!synology`) for the Debian fleet, and `Deploy Synology` (`hosts: synology`) running the thin `synology` role — which manages the NAS's Consul client `consul.hcl` plus its `home-ca.pem` trust anchor (via `synopkg restart` on change). nasty is a bare `auto_encrypt` client: it serves no HTTP/gRPC and the servers issue and rotate its RPC cert, so the only TLS material delivered to it is the static home Root CA — there's no per-node cert to provision. The Consul package itself stays managed out of band. Connection identity for the NAS lives in `inventory/group_vars/synology.yml` (SSH as `nasty` + sudo, since DSM forbids root SSH).
 
@@ -70,6 +70,10 @@ Consul runs as a server cluster on `nomad0-2` and as a client on all nodes. The 
 To expose a new service through Traefik, add `"traefik.enable=true"` to its `service.tags`. To override the hostname slug, add `"traefik.http.routers.<name>.rule=Host(...)"`.
 
 To show a service in the homelab dashboard, also add `"homelabdash.uri=<path>"` (optional) or `"homelabdash.slug=<name>"` (to override the display name). Add `"homelabdash.hide"` to suppress it entirely.
+
+### Host firewall
+
+The `firewall` role (Debian hosts) manages an nftables ruleset rendered from `os/etc/nftables.conf.j2`. It owns only `table inet hashilab`, never `flush ruleset`, because Docker, Nomad's CNI plugins and Tailscale keep their own tables; a `nftables.service` drop-in scopes `ExecStop` to that table for the same reason. It filters the INPUT hook only: bridge-mode job ports are DNAT'd to containers and go through the forward hook, which it doesn't touch. Port rules turn on by inventory group (Consul/Nomad/Vault/keepalived), with host-network job ports in `firewall_job_ports` (`inventory/group_vars/dc1.yml`, `dc2.yml`). `10.0.20.0/24`, the local-only device VLAN, is deliberately not a trusted subnet. `firewall_enforce` (default `false`) switches between audit mode (policy accept, unmatched traffic logged as `nft-would-drop:`, read with `journalctl -k --grep nft-would-drop`) and policy drop. Every apply arms a rollback timer that deletes the table unless a fresh SSH connection gets through.
 
 ### PKI / TLS
 

@@ -14,6 +14,11 @@
       tags: ["base"]
       when: ansible_facts['os_family'] == 'Debian'
 
+    # nftables host firewall (INPUT only). Audit mode unless firewall_enforce.
+    - role: firewall
+      tags: ["firewall"]
+      when: ansible_facts['os_family'] == 'Debian'
+
     - role: systemd
       tags: ["systemd"]
 
