@@ -84,7 +84,7 @@ job "omada-mcp" {
 
       # No app-layer auth in front of the HTTP transport (no bearer/API-key
       # support upstream as of v0.15.0) — traefik.enable=true + the
-      # internal-only middleware (RFC1918-only) is the only gate today.
+      # internal-only middleware (home LAN subnets only) is the only gate today.
       # Revisit with Traefik BasicAuth if that's not enough.
       tags = [
         "traefik.enable=true",

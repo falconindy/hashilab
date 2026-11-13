@@ -262,7 +262,8 @@ job "traefik-ingress" {
                     - 127.0.0.1/32
                     - 172.26.64.0/20
                     - 10.0.1.0/24
-                    - 10.0.20.0/24
+                    # 10.0.20.0/24 (local-only device VLAN) deliberately
+                    # excluded: those devices never need the web UIs.
                     - 10.0.100.0/24
 
               vault-pem-path:
