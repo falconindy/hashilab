@@ -72,7 +72,13 @@ job "coredns" {
               health_check 5s
             }
             {{- else }}
-            forward . 1.1.1.1 8.8.8.8
+            # Only used while no adguard-dns instance is registered (e.g. an
+            # AdGuard restart). DoT so the fallback isn't plaintext either;
+            # tls_servername covers the whole block, hence Google-only.
+            forward . tls://8.8.8.8 tls://8.8.4.4 {
+              tls_servername dns.google
+              health_check 5s
+            }
             {{- end }}
 
             cache {
