@@ -73,13 +73,17 @@ job "go2rtc" {
           webrtc:
             listen: ":8555"
 
-            ice_servers:
-              - urls: ["stun:stun.l.google.com:19302"]
-            ice_udp_port_range: [8555, 8555]
+            # LAN-only: viewers reach this host address on Wi-Fi or over
+            # Tailscale (subnet routes); nothing is published to the internet.
+            # Home Assistant's camera views reach go2rtc through the Home
+            # Assistant Web Proxy integration (hass-web-proxy), which relays
+            # them over HA's own connection. No STUN either: with a single fixed
+            # candidate there's no per-session random UDP socket (only 8555
+            # is mapped into the container, so pairs on one always failed).
+            ice_servers: []
 
             candidates:
               - {{ env "NOMAD_HOST_ADDR_webrtc" }}
-              - stun:8555
 
             filters:
               networks: [udp4]
@@ -105,19 +109,6 @@ job "go2rtc" {
       env {
         TZ = "America/New_York"
       }
-    }
-
-    service {
-      name = "webrtc"
-      port = "webrtc"
-
-      tags = [
-        "traefik-ingress.enable=true",
-        "traefik-ingress.consulcatalog.connect=false",
-        "traefik-ingress.udp.routers.${NOMAD_JOB_NAME}.entrypoints=webrtc",
-      ]
-
-      # no service mesh because connect doesn't support udp
     }
 
     service {
