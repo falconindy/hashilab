@@ -35,7 +35,6 @@ job "traefik-ingress" {
       }
 
       port "https" { static = 8443 }
-      port "webrtc" { static = 58555 }
       port "deluge" { static = 52520 }
 
       port "envoy_metrics" { to = 9102 }
@@ -135,10 +134,6 @@ job "traefik-ingress" {
 
             deluge:
               address: :[[ env "NOMAD_HOST_PORT_deluge" ]]
-              asDefault: false
-
-            webrtc:
-              address: :[[ env "NOMAD_HOST_PORT_webrtc" ]]/udp
               asDefault: false
 
             metrics:
