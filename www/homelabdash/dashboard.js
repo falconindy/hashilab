@@ -620,7 +620,10 @@ async function loadLatestVersions() {
     if (r.status === "fulfilled") {
       versionData.latest[key] = {
         version: r.value.version,
-        changelog: r.value.url_changelog,
+        // Not the API's url_changelog: for Vault it points at the
+        // release/<minor>.x branch, whose CHANGELOG.md is never updated (only
+        // main's is), so it shows notes for an older release.
+        releaseNotes: `https://github.com/hashicorp/${key}/releases/tag/v${r.value.version}`,
         released: r.value.timestamp_created,
       };
     } else {
@@ -745,7 +748,7 @@ function versionCardHtml(product, rows, latest) {
     ? `
         <div class="cert-breakout-row version-latest-row">
           <span class="host">latest release</span>
-          <a class="version-value" href="${latest.changelog}" target="_blank" rel="noopener"
+          <a class="version-value" href="${latest.releaseNotes}" target="_blank" rel="noopener"
              title="released ${new Date(latest.released).toLocaleDateString()}">${latest.version}</a>
         </div>
       `
