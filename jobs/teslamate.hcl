@@ -33,7 +33,7 @@ job "teslamate" {
       driver = "docker"
 
       config {
-        image = "teslamate/teslamate:4.4.0"
+        image = "teslamate/teslamate:4.5.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
