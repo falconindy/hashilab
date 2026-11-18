@@ -31,7 +31,7 @@ job "mosquitto" {
       user = "1883:1883"
 
       config {
-        image = "eclipse-mosquitto:2.1.2-alpine"
+        image = "eclipse-mosquitto:2.1.4-alpine"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
