@@ -5,9 +5,14 @@
 # (`nft list table inet hashilab`), then flip to true to set policy drop.
 firewall_enforce: false
 
-# Seconds before an applied ruleset is rolled back (our table deleted) unless a
-# fresh SSH connection succeeds and disarms the timer.
+# Seconds before an applied ruleset is rolled back to the snapshot of the
+# previously live one, unless a fresh SSH connection succeeds and disarms the
+# timer.
 firewall_rollback_seconds: 90
+
+# Where that snapshot lives. /run is tmpfs, like the transient timer that reads
+# it, so neither outlives a reboot.
+firewall_rollback_snapshot: /run/nftables-hashilab.rollback
 
 # Client/LAN subnets allowed to reach service ports (SSH, UIs, APIs).
 #

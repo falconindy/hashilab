@@ -127,7 +127,7 @@ table inet hashilab {
     # that hits a node mid-Traefik-redeploy retries the other A record instead
     # of hanging. Everything else falls through to policy drop.
     meta l4proto tcp ip saddr @trusted_v4 reject with tcp reset
-    ip saddr @trusted_v4 reject with icmpx port-unreachable
+    ip saddr @trusted_v4 reject with icmp port-unreachable
 {% endif %}
   }
 }

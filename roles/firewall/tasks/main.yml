@@ -31,14 +31,35 @@
     name: nftables.service
     enabled: true
 
-# Apply with a dead-man's switch: a transient timer deletes our table unless a
-# brand-new SSH connection gets through after the load and disarms it. The check
+# Apply with a dead-man's switch: a transient timer restores the ruleset that
+# was live before this apply (and /etc/nftables.conf, so a reboot can't bring the
+# bad rules back) unless a brand-new SSH connection gets through after the load
+# and disarms it. Only if the snapshot itself won't load does it fall back to
+# deleting our table: open-but-reachable beats locked out. The check
 # is a real ssh from the controller with multiplexing off, not
 # `meta: reset_connection` -- meta tasks ignore `when` (and warn), and tasks in
 # an include inherit the include's `when`, so the meta ran (and warned) anyway.
 - name: Apply ruleset with automatic rollback
   when: firewall_ruleset.changed # noqa: no-handler
   block:
+    # `nft list table` output can't be loaded over a live table (it would merge,
+    # not replace), so give it the same declare-then-delete header as the
+    # template. On a first-ever apply there's no table and the snapshot is just
+    # the header: rolling back then means "no table", the pre-role state.
+    # Validated here so a snapshot that wouldn't load aborts before the load.
+    - name: Snapshot the live ruleset for rollback
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          {
+            echo 'table inet hashilab'
+            echo 'delete table inet hashilab'
+            nft -s list table inet hashilab 2>/dev/null || true
+          } > {{ firewall_rollback_snapshot }}
+          nft -c -f {{ firewall_rollback_snapshot }}
+        executable: /bin/bash
+      changed_when: false
+
     - name: Arm rollback timer
       ansible.builtin.command:
         argv:
@@ -46,11 +67,15 @@
           - --collect
           - --unit=nftables-rollback
           - --on-active={{ firewall_rollback_seconds }}
-          - /usr/sbin/nft
-          - delete
-          - table
-          - inet
-          - hashilab
+          # systemd's default AccuracySec=1min lets the timer fire up to a
+          # minute late; keep the rollback where firewall_rollback_seconds says.
+          - --timer-property=AccuracySec=1s
+          - /bin/sh
+          - -c
+          - >-
+            if nft -f {{ firewall_rollback_snapshot }}; then
+            cp {{ firewall_rollback_snapshot }} /etc/nftables.conf;
+            else nft delete table inet hashilab; fi
       changed_when: true
 
     - name: Load ruleset
