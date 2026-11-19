@@ -31,14 +31,60 @@
     name: nftables.service
     enabled: true
 
-# Apply with a dead-man's switch (apply.yml). include_tasks, not a block: the
-# `when` gates the include itself, so the reset_connection meta inside never
-# sees a conditional (meta tasks ignore `when` and warn). Dynamic includes don't
-# pass tags to their tasks, so tag them `always`: they then run whenever the
-# include itself does (e.g. under --tags firewall).
+# Apply with a dead-man's switch: a transient timer deletes our table unless a
+# brand-new SSH connection gets through after the load and disarms it. The check
+# is a real ssh from the controller with multiplexing off, not
+# `meta: reset_connection` -- meta tasks ignore `when` (and warn), and tasks in
+# an include inherit the include's `when`, so the meta ran (and warned) anyway.
 - name: Apply ruleset with automatic rollback
-  ansible.builtin.include_tasks:
-    file: apply.yml
-    apply:
-      tags: [always]
   when: firewall_ruleset.changed # noqa: no-handler
+  block:
+    - name: Arm rollback timer
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - --collect
+          - --unit=nftables-rollback
+          - --on-active={{ firewall_rollback_seconds }}
+          - /usr/sbin/nft
+          - delete
+          - table
+          - inet
+          - hashilab
+      changed_when: true
+
+    - name: Load ruleset
+      ansible.builtin.command:
+        argv: [nft, -f, /etc/nftables.conf]
+      changed_when: true
+
+    # become: false -- Deploy All is become:true, and a sudo'd localhost task
+    # loses SSH_AUTH_SOCK (the Vault-signed cert lives in the user's agent).
+    - name: Confirm a fresh, non-multiplexed SSH connection still works
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -o
+          - ControlMaster=no
+          - -o
+          - ControlPath=none
+          - -o
+          - BatchMode=yes
+          - -o
+          - ConnectTimeout=10
+          - -p
+          - "{{ ansible_port | default(22) }}"
+          - "{{ ansible_user | default('root') }}@{{ ansible_host }}"
+          - "true"
+      register: firewall_fresh_ssh
+      until: firewall_fresh_ssh.rc == 0
+      retries: 3
+      delay: 5
+      changed_when: false
+
+    - name: Disarm rollback timer
+      ansible.builtin.systemd_service:
+        name: nftables-rollback.timer
+        state: stopped
