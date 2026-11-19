@@ -1,2 +1,6 @@
 ansible_host: 10.0.1.99
 ansible_python_interpreter: /usr/bin/python3
+
+# First host to leave audit mode (policy drop); the rest stay on the role
+# default (firewall_enforce: false) until they've been audited clean too.
+firewall_enforce: true
