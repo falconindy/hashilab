@@ -42,7 +42,7 @@ job "immich" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/immich-app/immich-server:v3.4.1"
+        image = "ghcr.io/immich-app/immich-server:v3.4.2"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
