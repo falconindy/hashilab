@@ -34,7 +34,7 @@ job "postgres" {
       kill_timeout = "30s"
 
       config {
-        image = "postgres:17.12"
+        image = "postgres:19.0"
 
         args = [
           "-c", "listen_addresses=127.0.0.1",
@@ -75,6 +75,10 @@ job "postgres" {
         POSTGRES_DB   = "postgres"
         POSTGRES_USER = "postgres"
         PGDATA        = "/appdata/postgres"
+
+        # postgres18+ refuses to start with the database on NFS unless you
+        # explicitly acknowledge the associated risks.
+        IGNORE_DATABASE_FSTYPE = "true"
       }
     }
 
