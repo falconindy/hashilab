@@ -72,7 +72,7 @@ job "traefik-ingress" {
       driver = "docker"
 
       config {
-        image = "traefik:v3.7.19"
+        image = "traefik:v3.8.0"
 
         cap_drop     = ["all"]
         security_opt = ["no-new-privileges=true"]
