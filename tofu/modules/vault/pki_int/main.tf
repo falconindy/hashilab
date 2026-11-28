@@ -120,7 +120,6 @@ resource "vault_pki_secret_backend_config_auto_tidy" "this" {
 
   tidy_cert_store                       = true
   tidy_revoked_certs                    = true
-  tidy_acme                             = true # reaps leftover ACME accounts/orders
   tidy_revoked_cert_issuer_associations = true
 
   # No-ops on OSS/non-replicated Vault, but part of HashiCorp's recommended
